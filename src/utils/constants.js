@@ -109,9 +109,9 @@ export const ROLE = {
 };
 
 /**
- * API 설정
+ * API 설정 - 환경변수에서 가져옴
  */
-export const API_BASE = 'http://localhost:3001';
+export const API_BASE = import.meta.env.VITE_API_BASE || 'https://mk04952lrj.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 /**
  * 세션 타임아웃 (밀리초)
