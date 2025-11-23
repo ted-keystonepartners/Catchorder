@@ -1,0 +1,19 @@
+{
+  "response_1763871026100": {
+    "response_id": "response_1763871026100",
+    "link_id": "link_ed582fca-44fc-4206-86d1-1f8590dfe05e",
+    "token": "ed582fca-44fc-4206-86d1-1f8590dfe05e",
+    "store_id": "ed582fca-44fc-4206-86d1-1f8590dfe05e",
+    "respondent_name": "테스트 사용자",
+    "respondent_phone": "010-1234-5678",
+    "respondent_position": "점장",
+    "remote_install_date": "2024-12-01",
+    "remote_install_time": "14:00",
+    "table_count": "10",
+    "sticker_type": "스탠드형",
+    "design_type": "Type A",
+    "preferred_color": "파란색",
+    "terms_agreement": true,
+    "submitted_at": "2025-11-23T04:10:26.100Z"
+  }
+}
