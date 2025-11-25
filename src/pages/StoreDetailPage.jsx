@@ -78,6 +78,20 @@ const StoreDetailPage = () => {
   const [newLogContent, setNewLogContent] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   
+  // 페이지네이션 상태
+  const [salesLogsPagination, setSalesLogsPagination] = useState({
+    page: 1,
+    limit: 5,
+    total: 0,
+    totalPages: 0
+  });
+  const [consentPagination, setConsentPagination] = useState({
+    page: 1,
+    limit: 5,
+    total: 0,
+    totalPages: 0
+  });
+  
   // 동의서 관련 상태
   const [consentLink, setConsentLink] = useState(null);
   const [consentResponses, setConsentResponses] = useState([]);
@@ -146,13 +160,18 @@ const StoreDetailPage = () => {
   };
 
   // 동의서 응답 조회
-  const fetchConsentResponses = async () => {
+  const fetchConsentResponses = async (page = 1) => {
     try {
       setConsentLoading(true);
-      const data = await getConsentResponses(storeId);
-      
+      const data = await getConsentResponses(storeId, page, consentPagination.limit);
       
       setConsentResponses(data.responses || []);
+      setConsentPagination(prev => ({
+        ...prev,
+        page: data.page || page,
+        total: data.total || 0,
+        totalPages: data.totalPages || 0
+      }));
     } catch (err) {
       console.error('❌ 응답 조회 실패:', err);
       showError('응답을 불러올 수 없습니다.');
@@ -305,16 +324,25 @@ const StoreDetailPage = () => {
   };
 
   // Sales Log 목록 가져오기
-  const fetchSalesLogs = async () => {
+  const fetchSalesLogs = async (page = 1) => {
     try {
-      const response = await getSalesLogs(storeId);
+      const response = await getSalesLogs(storeId, page, salesLogsPagination.limit);
       if (response.success && response.data) {
         const logs = response.data.logs || [];
+        const total = response.data.total || 0;
+        const totalPages = response.data.totalPages || Math.ceil(total / salesLogsPagination.limit);
+        
         // 최신순으로 정렬 (created_at 기준)
         const sortedLogs = logs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
         setSalesLogs(sortedLogs);
+        setSalesLogsPagination(prev => ({
+          ...prev,
+          page: page,
+          total: total,
+          totalPages: totalPages
+        }));
         console.log('Sales Log 데이터:', sortedLogs);
-        console.log('Sales Log 개수:', sortedLogs.length);
+        console.log('Sales Log 페이지 정보:', { page, total, totalPages });
       } else {
         console.log('Sales Log 조회 실패 또는 데이터 없음:', response.error);
         setSalesLogs([]);
@@ -731,38 +759,6 @@ const StoreDetailPage = () => {
                   기본 정보
                 </h3>
                 
-                {isAdmin() && (
-                  <button
-                    onClick={() => {
-                      if (isEditingBasic) {
-                        handleSaveBasicInfo();
-                      } else {
-                        setIsEditingBasic(true);
-                      }
-                    }}
-                    style={{
-                      padding: '6px 12px',
-                      backgroundColor: '#f97316',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontSize: '12px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-                    onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
-                  >
-                    <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
-                      <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </svg>
-                    {isEditingBasic ? '완료' : '편집'}
-                  </button>
-                )}
               </div>
               
               <div style={{ 
@@ -1616,8 +1612,73 @@ const StoreDetailPage = () => {
                       margin: 0,
                       fontFamily: 'SUIT'
                     }}>
-                      총 {salesLogs.length}개의 기록
+                      총 {salesLogsPagination.total}개의 기록 (페이지 {salesLogsPagination.page}/{salesLogsPagination.totalPages})
                     </p>
+                  </div>
+                )}
+
+                {/* Sales Log 페이지네이션 */}
+                {salesLogsPagination.totalPages > 1 && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginTop: '16px',
+                    padding: '16px 0'
+                  }}>
+                    <button
+                      onClick={() => fetchSalesLogs(salesLogsPagination.page - 1)}
+                      disabled={salesLogsPagination.page <= 1}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: salesLogsPagination.page <= 1 ? '#e5e7eb' : '#3b82f6',
+                        color: salesLogsPagination.page <= 1 ? '#9ca3af' : 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        cursor: salesLogsPagination.page <= 1 ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      이전
+                    </button>
+                    
+                    {[...Array(salesLogsPagination.totalPages)].map((_, index) => {
+                      const pageNum = index + 1;
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => fetchSalesLogs(pageNum)}
+                          style={{
+                            padding: '6px 10px',
+                            backgroundColor: pageNum === salesLogsPagination.page ? '#3b82f6' : 'transparent',
+                            color: pageNum === salesLogsPagination.page ? 'white' : '#374151',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                    
+                    <button
+                      onClick={() => fetchSalesLogs(salesLogsPagination.page + 1)}
+                      disabled={salesLogsPagination.page >= salesLogsPagination.totalPages}
+                      style={{
+                        padding: '6px 12px',
+                        backgroundColor: salesLogsPagination.page >= salesLogsPagination.totalPages ? '#e5e7eb' : '#3b82f6',
+                        color: salesLogsPagination.page >= salesLogsPagination.totalPages ? '#9ca3af' : 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        cursor: salesLogsPagination.page >= salesLogsPagination.totalPages ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      다음
+                    </button>
                   </div>
                 )}
               </div>
@@ -1930,6 +1991,71 @@ const StoreDetailPage = () => {
                         </p>
                       </div>
                     )}
+
+                    {/* Consent Responses 페이지네이션 */}
+                    {consentPagination.totalPages > 1 && (
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginTop: '16px',
+                        padding: '16px 0'
+                      }}>
+                        <button
+                          onClick={() => fetchConsentResponses(consentPagination.page - 1)}
+                          disabled={consentPagination.page <= 1}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: consentPagination.page <= 1 ? '#e5e7eb' : '#3b82f6',
+                            color: consentPagination.page <= 1 ? '#9ca3af' : 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: consentPagination.page <= 1 ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          이전
+                        </button>
+                        
+                        {[...Array(consentPagination.totalPages)].map((_, index) => {
+                          const pageNum = index + 1;
+                          return (
+                            <button
+                              key={pageNum}
+                              onClick={() => fetchConsentResponses(pageNum)}
+                              style={{
+                                padding: '6px 10px',
+                                backgroundColor: pageNum === consentPagination.page ? '#3b82f6' : 'transparent',
+                                color: pageNum === consentPagination.page ? 'white' : '#374151',
+                                border: '1px solid #d1d5db',
+                                borderRadius: '4px',
+                                fontSize: '12px',
+                                cursor: 'pointer'
+                              }}
+                            >
+                              {pageNum}
+                            </button>
+                          );
+                        })}
+                        
+                        <button
+                          onClick={() => fetchConsentResponses(consentPagination.page + 1)}
+                          disabled={consentPagination.page >= consentPagination.totalPages}
+                          style={{
+                            padding: '6px 12px',
+                            backgroundColor: consentPagination.page >= consentPagination.totalPages ? '#e5e7eb' : '#3b82f6',
+                            color: consentPagination.page >= consentPagination.totalPages ? '#9ca3af' : 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            cursor: consentPagination.page >= consentPagination.totalPages ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          다음
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1970,7 +2096,7 @@ const StoreDetailPage = () => {
                 margin: 0,
                 fontFamily: 'SUIT'
               }}>
-                제출된 동의서 ({consentResponses.length}건)
+                제출된 동의서 (총 {consentPagination.total}건, 페이지 {consentPagination.page}/{consentPagination.totalPages})
               </h3>
               <button
                 onClick={() => setShowConsentModal(false)}

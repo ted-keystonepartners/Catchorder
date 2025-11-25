@@ -184,9 +184,9 @@ export const createSalesLog = async (storeId, logData) => {
   }
 };
 
-export const getSalesLogs = async (storeId) => {
+export const getSalesLogs = async (storeId, page = 1, limit = 10) => {
   try {
-    const result = await apiClient.get(`/api/stores/${storeId}/sales-logs`);
+    const result = await apiClient.get(`/api/stores/${storeId}/sales-logs`, { page, limit });
     if (result.success) {
       return { success: true, data: result.data };
     } else {

@@ -123,36 +123,61 @@ class ApiClient {
    * @returns {Promise<ApiResponse>} API 응답
    */
   async request(endpoint, options = {}) {
-    try {
-      const url = `${this.baseURL}${endpoint}`;
-      const requestOptions = this.buildRequestOptions(options);
+    const maxRetries = options.retries || 2;
+    
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        const url = `${this.baseURL}${endpoint}`;
+        const requestOptions = this.buildRequestOptions(options);
 
-      const response = await fetch(url, requestOptions);
-      const result = await this.handleResponse(response);
+        const response = await fetch(url, requestOptions);
+        const result = await this.handleResponse(response);
 
-      if (!result.success) {
-        console.error(`API Error: ${endpoint}`, result.error);
-      }
+        // 500 에러이고 재시도 가능한 경우
+        if (!result.success && response.status === 500 && attempt < maxRetries) {
+          console.warn(`API 500 Error (attempt ${attempt + 1}): ${endpoint}, retrying...`);
+          await this.delay(Math.pow(2, attempt) * 500); // 지수 백오프: 500ms, 1s, 2s
+          continue;
+        }
 
-      return result;
-    } catch (error) {
-      console.error(`API Request Failed: ${endpoint}`, error);
-      
-      // 네트워크 오류 처리
-      if (error.name === 'AbortError') {
+        if (!result.success) {
+          console.error(`API Error: ${endpoint}`, result.error);
+        }
+
+        return result;
+      } catch (error) {
+        // 네트워크 오류이고 재시도 가능한 경우
+        if (attempt < maxRetries && (error.name === 'TypeError' || error.name === 'AbortError')) {
+          console.warn(`Network Error (attempt ${attempt + 1}): ${endpoint}, retrying...`);
+          await this.delay(Math.pow(2, attempt) * 500);
+          continue;
+        }
+
+        console.error(`API Request Failed: ${endpoint}`, error);
+        
+        if (error.name === 'AbortError') {
+          return {
+            success: false,
+            data: null,
+            error: '요청 시간이 초과되었습니다.'
+          };
+        }
+
         return {
           success: false,
           data: null,
-          error: '요청 시간이 초과되었습니다.'
+          error: error.message || '네트워크 오류가 발생했습니다.'
         };
       }
-
-      return {
-        success: false,
-        data: null,
-        error: error.message || '네트워크 오류가 발생했습니다.'
-      };
     }
+  }
+
+  /**
+   * 지연 함수
+   * @param {number} ms - 지연 시간 (밀리초)
+   */
+  async delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**

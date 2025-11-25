@@ -114,21 +114,26 @@ export const submitConsentForm = async (storeId, formData) => {
 /**
  * 매장의 동의서 응답 목록 조회 (관리자 API - JWT 인증 필요)
  * @param {string} storeId - 매장 ID
+ * @param {number} page - 페이지 번호 (기본값: 1)
+ * @param {number} limit - 페이지당 항목 수 (기본값: 10)
  * @returns {Promise<Object>} 응답 목록
  */
-export const getConsentResponses = async (storeId) => {
+export const getConsentResponses = async (storeId, page = 1, limit = 10) => {
   if (!storeId) {
     throw new Error('매장 ID가 필요합니다.');
   }
 
 
-  const result = await apiClient.get(`/api/stores/${storeId}/consent-responses`);
+  const result = await apiClient.get(`/api/stores/${storeId}/consent-responses`, { page, limit });
   
   
   if (result.success) {
     return {
       total: result.data?.total || 0,
-      responses: result.data?.responses || []
+      responses: result.data?.responses || [],
+      page: result.data?.page || page,
+      limit: result.data?.limit || limit,
+      totalPages: result.data?.totalPages || Math.ceil((result.data?.total || 0) / limit)
     };
   } else {
     console.error('API 호출 실패:', result.error);
