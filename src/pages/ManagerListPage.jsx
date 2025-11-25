@@ -428,7 +428,7 @@ const ManagerListPage = () => {
                 <tbody>
                   {managers.map((manager, index) => (
                     <tr
-                      key={manager.id}
+                      key={manager.id || `manager-${index}`}
                       style={{
                         borderBottom: index < managers.length - 1 ? '1px solid #f1f5f9' : 'none',
                         cursor: 'pointer',

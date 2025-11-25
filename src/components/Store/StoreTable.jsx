@@ -5,6 +5,7 @@ import Button from '../ui/Button.jsx';
 import { getStatusLabel, formatDate, formatPhone } from '../../utils/formatter.js';
 import { LIFECYCLE } from '../../utils/constants.js';
 import { getSalesLogs } from '../../api/storeApi.js';
+import { getConsentResponses } from '../../api/consentApi.js';
 
 /**
  * StoreTable 컴포넌트 - 매장 테이블
@@ -77,48 +78,47 @@ const StoreTable = ({
   };
 
   // 최근 기록 컴포넌트
-  const LatestLogCell = ({ storeId }) => {
-    const [latestLog, setLatestLog] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(false);
+  const ConsentResponseCell = ({ storeId }) => {
+    const [responseCount, setResponseCount] = useState(0);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-      const loadLatestLog = async () => {
+      const loadConsentResponses = async () => {
+        if (!storeId) return;
+        
+        setLoading(true);
         try {
-          setLoading(true);
-          setError(false);
-          const log = await fetchLatestSalesLog(storeId);
-          setLatestLog(log);
-        } catch (err) {
-          console.error(`❌ Sales Log 로드 실패 (${storeId}):`, err);
-          setError(true);
-          setLatestLog(null);
+          const data = await getConsentResponses(storeId, 1, 1); // 개수만 확인
+          setResponseCount(data.total || 0);
+        } catch (error) {
+          console.error('Failed to load consent responses:', error);
+          setResponseCount(0);
         } finally {
           setLoading(false);
         }
       };
 
       if (storeId) {
-        loadLatestLog();
+        loadConsentResponses();
       }
     }, [storeId]);
 
     return (
       <div style={{ 
-        width: '150px',
+        width: '100px',
         height: '40px',
-        padding: '4px 8px',
+        padding: '4px',
         display: 'flex',
-        flexDirection: 'column',
+        alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        whiteSpace: 'nowrap'
       }}>
         {loading ? (
           <div style={{ 
             fontSize: '11px', 
             color: '#9ca3af',
             textAlign: 'center',
-            minHeight: '20px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
@@ -132,40 +132,22 @@ const StoreTable = ({
               animation: 'spin 1s linear infinite'
             }} />
           </div>
-        ) : !latestLog ? (
+        ) : responseCount > 0 ? (
+          <div style={{ 
+            fontSize: '12px',
+            color: '#16a34a',
+            fontWeight: '600',
+            textAlign: 'center'
+          }}>
+            응답완료
+          </div>
+        ) : (
           <div style={{ 
             fontSize: '11px', 
             color: '#9ca3af',
-            textAlign: 'center',
-            minHeight: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
+            textAlign: 'center'
           }}>
-            기록 없음
-          </div>
-        ) : (
-          <div style={{
-            minHeight: '20px'
-          }}>
-            <div style={{
-              fontSize: '11px',
-              color: '#374151',
-              lineHeight: '1.3',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-              marginBottom: '2px'
-            }}>
-              {latestLog.content}
-            </div>
-            <div style={{
-              fontSize: '10px',
-              color: '#9ca3af',
-              lineHeight: '1.2'
-            }}>
-              {new Date(latestLog.created_at).toLocaleDateString('ko-KR')}
-            </div>
+            응답 없음
           </div>
         )}
       </div>
@@ -318,7 +300,7 @@ const StoreTable = ({
       key: 'created_at',
       title: '등록일',
       sortable: true,
-      width: '100px',
+      width: '110px',
       render: (value, store) => (
         <span style={{
           fontSize: '12px',
@@ -332,7 +314,7 @@ const StoreTable = ({
       key: 'updated_at',
       title: '최근수정일',
       sortable: true,
-      width: '100px',
+      width: '110px',
       render: (value, store) => (
         <span style={{
           fontSize: '12px',
@@ -392,13 +374,13 @@ const StoreTable = ({
       }
     },
     {
-      key: 'latest_log',
-      title: '최근기록',
+      key: 'consent_responses',
+      title: '응답현황',
       sortable: false,
-      width: '150px',
+      width: '90px',
       render: (_, store) => {
         const storeId = store.id || store.store_id;
-        return <LatestLogCell storeId={storeId} />;
+        return <ConsentResponseCell storeId={storeId} />;
       }
     }
   ];
@@ -422,20 +404,23 @@ const StoreTable = ({
       {/* 테이블 헤더 */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '100px 250px 120px 120px 100px 100px 100px 100px 120px',
+        gridTemplateColumns: '80px 300px 120px 110px 110px 110px 110px 90px',
         backgroundColor: '#f9fafb',
         borderBottom: '1px solid #e5e7eb',
         fontSize: '13px',
         fontWeight: '600',
         color: '#374151'
       }}>
-        {columns.map((column) => (
+        {columns.map((column, index) => (
           <div
             key={column.key}
             style={{
               padding: '12px 8px',
-              borderRight: column.key !== 'latest_log' ? '1px solid #e5e7eb' : 'none',
-              textAlign: 'left'
+              borderRight: index < columns.length - 1 ? '1px solid #e5e7eb' : 'none',
+              textAlign: ['status', 'created_at', 'updated_at', 'consent_link', 'consent_responses'].includes(column.key) ? 'center' : 'left',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis'
             }}
           >
             {column.title}
@@ -468,7 +453,7 @@ const StoreTable = ({
               onClick={() => handleRowClick(store)}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '100px 250px 120px 120px 100px 100px 100px 100px 120px',
+                gridTemplateColumns: '80px 300px 120px 110px 110px 110px 110px 90px',
                 borderBottom: index < stores.length - 1 ? '1px solid #f3f4f6' : 'none',
                 cursor: 'pointer',
                 transition: 'background-color 0.2s',
@@ -477,15 +462,17 @@ const StoreTable = ({
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
             >
-              {columns.map((column) => (
+              {columns.map((column, columnIndex) => (
                 <div
                   key={column.key}
                   style={{
                     padding: '12px 8px',
-                    borderRight: column.key !== 'latest_log' ? '1px solid #f3f4f6' : 'none',
+                    borderRight: columnIndex < columns.length - 1 ? '1px solid #f3f4f6' : 'none',
                     verticalAlign: 'middle',
                     display: 'flex',
-                    alignItems: 'center'
+                    alignItems: 'center',
+                    justifyContent: ['status', 'created_at', 'updated_at', 'consent_link', 'consent_responses'].includes(column.key) ? 'center' : 'flex-start',
+                    overflow: 'hidden'
                   }}
                 >
                   {column.render ? column.render(store[column.key], store, index) : (store[column.key] || '-')}
