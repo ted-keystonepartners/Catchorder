@@ -24,7 +24,7 @@ import { useAuthStore } from '../context/authStore.js';
 
 class ApiClient {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE;
+    this.baseURL = import.meta.env.VITE_API_BASE || 'https://mk04952lrj.execute-api.ap-northeast-2.amazonaws.com/dev';
     this.defaultTimeout = 30000; // 30초
     this.defaultHeaders = {
       'Content-Type': 'application/json'

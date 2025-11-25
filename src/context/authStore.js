@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
-const API_BASE = import.meta.env.VITE_API_BASE;
+const API_BASE = import.meta.env.VITE_API_BASE || 'https://mk04952lrj.execute-api.ap-northeast-2.amazonaws.com/dev';
 
 export const useAuthStore = create(
   devtools(

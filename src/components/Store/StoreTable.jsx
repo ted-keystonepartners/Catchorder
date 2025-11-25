@@ -80,14 +80,18 @@ const StoreTable = ({
   const LatestLogCell = ({ storeId }) => {
     const [latestLog, setLatestLog] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
 
     useEffect(() => {
       const loadLatestLog = async () => {
         try {
           setLoading(true);
+          setError(false);
           const log = await fetchLatestSalesLog(storeId);
           setLatestLog(log);
-        } catch (error) {
+        } catch (err) {
+          console.error(`❌ Sales Log 로드 실패 (${storeId}):`, err);
+          setError(true);
           setLatestLog(null);
         } finally {
           setLoading(false);

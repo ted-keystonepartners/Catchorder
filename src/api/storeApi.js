@@ -41,23 +41,11 @@ export const storeApi = {
   },
 
   async assignOwner(storeId, ownerId) {
-    try {
-      const response = await fetch(`${API_BASE}/api/stores/${storeId}/owner`, {
-        method: 'PATCH',
-        headers: getAuthHeader(),
-        body: JSON.stringify({ owner_id: ownerId })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || '담당자 배정 실패');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Assign owner API error:', error);
-      throw new Error(error.message || '담당자 배정 실패');
+    const result = await apiClient.patch(`/api/stores/${storeId}/owner`, { owner_id: ownerId });
+    if (result.success) {
+      return result;
+    } else {
+      throw new Error(result.error || '담당자 배정 실패');
     }
   },
 
@@ -72,22 +60,11 @@ export const storeApi = {
   },
 
   async deleteStore(storeId) {
-    try {
-      const response = await fetch(`${API_BASE}/api/stores/${storeId}`, {
-        method: 'DELETE',
-        headers: getAuthHeader()
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error?.message || '매장 삭제 실패');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Delete store API error:', error);
-      throw new Error(error.message || '매장 삭제 실패');
+    const result = await apiClient.delete(`/api/stores/${storeId}`);
+    if (result.success) {
+      return result;
+    } else {
+      throw new Error(result.error || '매장 삭제 실패');
     }
   }
 };
@@ -210,7 +187,11 @@ export const createSalesLog = async (storeId, logData) => {
 export const getSalesLogs = async (storeId) => {
   try {
     const result = await apiClient.get(`/api/stores/${storeId}/sales-logs`);
-    return { success: true, data: result.data };
+    if (result.success) {
+      return { success: true, data: result.data };
+    } else {
+      return { success: false, error: result.error };
+    }
   } catch (error) {
     return { success: false, error: error.message };
   }
