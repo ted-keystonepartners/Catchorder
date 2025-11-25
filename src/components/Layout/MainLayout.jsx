@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUIStore } from '../../context/uiStore.js';
-import Button from '../Common/Button.jsx';
 
 /**
  * MainLayout 컴포넌트
@@ -13,40 +12,51 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
-  const { sidebarOpen, toggleSidebar, notification, hideNotification } = useUIStore();
+  const { notification, hideNotification } = useUIStore();
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(false);
 
   const handleLogout = async () => {
     await logout();
     navigate('/');
   };
 
-  const navigationItems = [
+  const menuItems = [
     {
-      name: '대시보드',
-      path: '/dashboard',
+      name: '영업관리',
+      path: '/stores',
       icon: (
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z" />
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
       )
     },
     {
-      name: '매장 관리',
-      path: '/stores',
+      name: '설치관리',
+      path: '/installation',
       icon: (
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      )
+    },
+    {
+      name: '이용관리',
+      path: '/usage',
+      icon: (
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
         </svg>
       )
     }
   ];
 
   if (isAdmin()) {
-    navigationItems.push({
+    menuItems.push({
       name: '데이터 업로드',
       path: '/upload',
       icon: (
-        <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
       )
@@ -54,98 +64,251 @@ const MainLayout = ({ children }) => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
-        <div className="flex items-center justify-between h-16 px-4 bg-primary-600">
-          <div className="flex items-center">
-            <h1 className="text-xl font-bold text-white">캐치오더 SMS</h1>
-          </div>
-          <button
-            onClick={toggleSidebar}
-            className="lg:hidden text-white hover:text-gray-300"
+    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+      {/* Header */}
+      <header style={{
+        backgroundColor: '#FF3D00',
+        borderBottom: '1px solid #e5e7eb',
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '12px 24px',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          {/* 로고 */}
+          <div 
+            onClick={() => navigate('/dashboard')}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              cursor: 'pointer',
+              transition: 'opacity 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+            onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
           >
-            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+            <div style={{ 
+              width: '120px', 
+              height: '40px', 
+              backgroundImage: 'url(/logo_white.svg)',
+              backgroundSize: 'contain',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'center'
+            }}></div>
+          </div>
 
-        <nav className="mt-8 px-4">
-          <ul className="space-y-2">
-            {navigationItems.map((item) => {
-              const isActive = location.pathname === item.path;
-              return (
-                <li key={item.name}>
-                  <button
-                    onClick={() => navigate(item.path)}
-                    className={`w-full flex items-center px-4 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                      isActive
-                        ? 'bg-primary-100 text-primary-700 border-r-2 border-primary-500'
-                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                    }`}
-                  >
-                    <span className="mr-3">{item.icon}</span>
-                    {item.name}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
-      </div>
-
-      {/* Main content */}
-      <div className={`${sidebarOpen ? 'lg:pl-64' : ''} lg:pl-64`}>
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
-          <div className="flex justify-between items-center px-4 py-4 sm:px-6 lg:px-8">
-            <div className="flex items-center">
+          {/* 우측 메뉴 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* 메인 메뉴 */}
+            <div style={{ position: 'relative' }}>
               <button
-                onClick={toggleSidebar}
-                className="lg:hidden text-gray-500 hover:text-gray-700 mr-4"
+                onClick={() => setShowMainMenu(!showMainMenu)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
               >
-                <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                  <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+                </svg>
+                메뉴
+              </button>
+              
+              {/* 메뉴 드롭다운 */}
+              {showMainMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  border: '1px solid #e5e7eb',
+                  minWidth: '160px',
+                  zIndex: 50
+                }}>
+                  {menuItems.map((item) => (
+                    <button
+                      key={item.name}
+                      onClick={() => {
+                        if (item.path === '/installation' || item.path === '/usage') {
+                          navigate('/coming-soon', { state: { feature: item.name } });
+                        } else {
+                          navigate(item.path);
+                        }
+                        setShowMainMenu(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '12px 16px',
+                        color: '#374151',
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        textAlign: 'left',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        borderRadius: item === menuItems[0] ? '8px 8px 0 0' : item === menuItems[menuItems.length - 1] ? '0 0 8px 8px' : '0'
+                      }}
+                      onMouseOver={(e) => e.target.style.backgroundColor = '#f9fafb'}
+                      onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                    >
+                      {item.icon}
+                      {item.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* 프로필 메뉴 */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '8px 12px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'background-color 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+                onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+              >
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: '600'
+                }}>
+                  {user?.name?.charAt(0)}
+                </div>
+                <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
+                  <path d="M7 10l5 5 5-5z"/>
                 </svg>
               </button>
-            </div>
 
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2">
-                <div className="text-sm">
-                  <p className="font-medium text-gray-900">{user?.name}</p>
-                  <p className="text-gray-500">{user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}</p>
+              {/* 프로필 드롭다운 */}
+              {showProfileMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: '8px',
+                  backgroundColor: 'white',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                  border: '1px solid #e5e7eb',
+                  minWidth: '200px',
+                  zIndex: 50
+                }}>
+                  <div style={{
+                    padding: '12px 16px',
+                    borderBottom: '1px solid #f3f4f6'
+                  }}>
+                    <p style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#111827',
+                      margin: '0 0 4px 0'
+                    }}>
+                      {user?.name}
+                    </p>
+                    <p style={{
+                      fontSize: '12px',
+                      color: '#6b7280',
+                      margin: 0
+                    }}>
+                      {user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowProfileMenu(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '12px 16px',
+                      color: '#dc2626',
+                      backgroundColor: 'transparent',
+                      border: 'none',
+                      textAlign: 'left',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      borderRadius: '0 0 8px 8px'
+                    }}
+                    onMouseOver={(e) => e.target.style.backgroundColor = '#fef2f2'}
+                    onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                  >
+                    <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M16 17v-3H9v4l-5-5 5-5v4h7z"/>
+                      <path d="M20 3h-9c-1.1 0-2 .9-2 2v4h2V5h9v14h-9v-4H9v4c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+                    </svg>
+                    로그아웃
+                  </button>
                 </div>
-                <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center">
-                  <span className="text-sm font-medium text-primary-600">
-                    {user?.name?.charAt(0)}
-                  </span>
-                </div>
-              </div>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-              >
-                로그아웃
-              </Button>
+              )}
             </div>
           </div>
-        </header>
+        </div>
+      </header>
 
-        {/* Page content */}
-        <main className="py-6 px-4 sm:px-6 lg:px-8">
+      {/* Main content */}
+      <main style={{ padding: '24px' }}>
+        <div style={{ maxWidth: '1152px', margin: '0 auto' }}>
           {children}
-        </main>
-      </div>
+        </div>
+      </main>
 
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
+      {/* 클릭 시 메뉴 닫기 */}
+      {(showMainMenu || showProfileMenu) && (
         <div
-          className="fixed inset-0 z-40 bg-gray-600 bg-opacity-75 lg:hidden"
-          onClick={toggleSidebar}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 40
+          }}
+          onClick={() => {
+            setShowMainMenu(false);
+            setShowProfileMenu(false);
+          }}
         />
       )}
 

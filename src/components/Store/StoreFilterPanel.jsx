@@ -150,7 +150,7 @@ const StoreFilterPanel = ({
         <div style={{
           width: '24px',
           height: '24px',
-          backgroundColor: '#f97316',
+          backgroundColor: '#FF3D00',
           borderRadius: '6px',
           display: 'flex',
           alignItems: 'center',
@@ -219,7 +219,7 @@ const StoreFilterPanel = ({
               onClick={onAddStore}
               style={{
                 padding: '8px 16px',
-                backgroundColor: '#f97316',
+                backgroundColor: '#FF3D00',
                 color: 'white',
                 border: 'none',
                 borderRadius: '8px',
@@ -231,8 +231,8 @@ const StoreFilterPanel = ({
                 gap: '6px',
                 transition: 'background-color 0.2s'
               }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#E65100'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#FF3D00'}
             >
               <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
@@ -281,7 +281,7 @@ const StoreFilterPanel = ({
                 outline: 'none',
                 transition: 'border-color 0.2s'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#f97316'}
+              onFocus={(e) => e.target.style.borderColor = '#FF3D00'}
               onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
             />
           </div>

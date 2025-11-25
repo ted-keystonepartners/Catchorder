@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { apiClient } from '../api/client.js';
 import { createManager } from '../api/managerApi.js';
 import { formatPhoneInput } from '../utils/formatter.js';
+import MainLayout from '../components/Layout/MainLayout.jsx';
 
 const ManagerListPage = () => {
   const navigate = useNavigate();
@@ -222,92 +223,7 @@ const ManagerListPage = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-      {/* 헤더 */}
-      <div style={{ 
-        backgroundColor: '#f97316',
-        padding: '12px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        width: '100%'
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div
-              onClick={() => navigate(-1)}
-              style={{
-                width: '32px',
-                height: '32px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              }}
-            >
-              <svg width="16" height="16" fill="none" stroke="white" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"/>
-              </svg>
-            </div>
-            <h1 style={{
-              fontSize: '20px',
-              fontWeight: '600',
-              color: 'white',
-              margin: 0
-            }}>
-              담당자 관리
-            </h1>
-          </div>
-          
-          {isAdmin() && (
-            <button
-              onClick={() => setShowAddManagerModal(true)}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s'
-              }}
-              onMouseOver={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-              }}
-              onMouseOut={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              }}
-            >
-              <svg width="14" height="14" fill="white" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm5 11h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-              </svg>
-              담당자 추가
-            </button>
-          )}
-        </div>
-      </div>
+    <MainLayout>
 
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px' }}>
 
@@ -815,7 +731,7 @@ const ManagerListPage = () => {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </div>
+    </MainLayout>
   );
 };
 

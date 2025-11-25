@@ -190,7 +190,7 @@ const ErrorFallback = ({
             style={{
               width: '100%',
               padding: '12px 16px',
-              backgroundColor: '#f97316',
+              backgroundColor: '#FF3D00',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -200,8 +200,8 @@ const ErrorFallback = ({
               marginBottom: '12px',
               transition: 'background-color 0.2s'
             }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#E65100'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#FF3D00'}
           >
             다시 시도
           </button>

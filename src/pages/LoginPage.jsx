@@ -90,7 +90,7 @@ const LoginPage = () => {
           <div style={{ 
             width: '32px', 
             height: '32px', 
-            border: '2px solid #f97316', 
+            border: '2px solid #FF3D00', 
             borderTop: '2px solid transparent', 
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
@@ -123,18 +123,14 @@ const LoginPage = () => {
         {/* 로고 */}
         <div style={{ textAlign: 'center', marginBottom: '32px' }}>
           <div style={{ 
-            width: '48px', 
-            height: '48px', 
-            backgroundColor: '#f97316', 
+            width: '64px', 
+            height: '64px', 
+            backgroundImage: 'url(/favicon.png)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
             borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
             margin: '0 auto 16px'
           }}>
-            <svg width="24" height="24" fill="white" viewBox="0 0 24 24">
-              <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm5-18v4h3V3h-3z"/>
-            </svg>
           </div>
           <h1 style={{ 
             fontSize: '24px', 
@@ -143,7 +139,7 @@ const LoginPage = () => {
             margin: 0,
             marginBottom: '8px'
           }}>
-            캐치오더 영업관리 시스템
+            캐치오더 관리시스템
           </h1>
           <p style={{ 
             fontSize: '14px', 
@@ -182,7 +178,7 @@ const LoginPage = () => {
                 transition: 'border-color 0.2s',
                 backgroundColor: 'white'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#f97316'}
+              onFocus={(e) => e.target.style.borderColor = '#FF3D00'}
               onBlur={(e) => e.target.style.borderColor = formErrors.email ? '#ef4444' : '#d1d5db'}
             />
             {formErrors.email && (
@@ -222,7 +218,7 @@ const LoginPage = () => {
                 transition: 'border-color 0.2s',
                 backgroundColor: 'white'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#f97316'}
+              onFocus={(e) => e.target.style.borderColor = '#FF3D00'}
               onBlur={(e) => e.target.style.borderColor = formErrors.password ? '#ef4444' : '#d1d5db'}
             />
             {formErrors.password && (
@@ -260,7 +256,7 @@ const LoginPage = () => {
             style={{
               width: '100%',
               height: '48px',
-              backgroundColor: isSubmitting ? '#fed7aa' : '#f97316',
+              backgroundColor: isSubmitting ? '#fed7aa' : '#FF3D00',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
@@ -273,10 +269,10 @@ const LoginPage = () => {
               justifyContent: 'center'
             }}
             onMouseOver={(e) => {
-              if (!isSubmitting) e.target.style.backgroundColor = '#ea580c';
+              if (!isSubmitting) e.target.style.backgroundColor = '#E65100';
             }}
             onMouseOut={(e) => {
-              if (!isSubmitting) e.target.style.backgroundColor = '#f97316';
+              if (!isSubmitting) e.target.style.backgroundColor = '#FF3D00';
             }}
           >
             {isSubmitting ? (
@@ -297,6 +293,29 @@ const LoginPage = () => {
             )}
           </button>
         </form>
+
+        {/* 하단 정보 */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginTop: '24px',
+          paddingTop: '20px',
+          borderTop: '1px solid #f3f4f6'
+        }}>
+          <p style={{ 
+            fontSize: '12px', 
+            color: '#9ca3af',
+            margin: '0 0 4px 0'
+          }}>
+            Version 1.0.0
+          </p>
+          <p style={{ 
+            fontSize: '12px', 
+            color: '#9ca3af',
+            margin: 0
+          }}>
+            문의: ted@catchtable.co.kr
+          </p>
+        </div>
       </div>
 
       <style>{`

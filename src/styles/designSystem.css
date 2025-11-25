@@ -6,16 +6,16 @@
 /* ===== COLOR SYSTEM ===== */
 :root {
   /* Primary Colors - CatchTable Orange */
-  --color-primary-50: #fff8f1;
-  --color-primary-100: #ffead5;
-  --color-primary-200: #ffd3aa;
-  --color-primary-300: #ffb574;
-  --color-primary-400: #ff8a3c;
-  --color-primary-500: #ff6b1a; /* Main Brand Color */
-  --color-primary-600: #e55100;
-  --color-primary-700: #bf3f00;
-  --color-primary-800: #9c3206;
-  --color-primary-900: #7e2a08;
+  --color-primary-50: #fff3e0;
+  --color-primary-100: #ffe0b2;
+  --color-primary-200: #ffcc80;
+  --color-primary-300: #ffb74d;
+  --color-primary-400: #ff9800;
+  --color-primary-500: #FF3D00; /* Main Brand Color */
+  --color-primary-600: #E65100;
+  --color-primary-700: #BF360C;
+  --color-primary-800: #9A0007;
+  --color-primary-900: #7B1FA2;
 
   /* Secondary Colors - Supporting Orange */
   --color-secondary-50: #fef7ed;
@@ -74,13 +74,13 @@
   --color-text-tertiary: #6b7280;
   --color-text-quaternary: #9ca3af;
   --color-text-inverse: #ffffff;
-  --color-text-accent: #ff6b1a;
+  --color-text-accent: #FF3D00;
 
   /* Border Colors */
   --color-border-primary: #e5e7eb;
   --color-border-secondary: #d1d5db;
   --color-border-tertiary: #f3f4f6;
-  --color-border-accent: #ff6b1a;
+  --color-border-accent: #FF3D00;
 
   /* ===== TYPOGRAPHY SYSTEM ===== */
   

@@ -111,7 +111,7 @@ const ScheduleList = ({ storeId, month, onRefresh }) => {
           width: '20px',
           height: '20px',
           border: '2px solid #f3f4f6',
-          borderTop: '2px solid #f97316',
+          borderTop: '2px solid #FF3D00',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite',
           marginBottom: '8px'
@@ -143,7 +143,7 @@ const ScheduleList = ({ storeId, month, onRefresh }) => {
         <button
           onClick={loadSchedules}
           style={{
-            backgroundColor: '#f97316',
+            backgroundColor: '#FF3D00',
             color: 'white',
             border: 'none',
             borderRadius: '6px',

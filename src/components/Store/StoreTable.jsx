@@ -349,7 +349,7 @@ const StoreTable = ({
               title="동의서 링크 복사"
               style={{
                 padding: '6px 8px',
-                backgroundColor: '#f97316',
+                backgroundColor: '#FF3D00',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
@@ -361,8 +361,8 @@ const StoreTable = ({
                 alignItems: 'center',
                 gap: '4px'
               }}
-              onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-              onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#E65100'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#FF3D00'}
             >
               <svg width="10" height="10" fill="white" viewBox="0 0 24 24">
                 <path d="M16 1H4C2.9 1 2 1.9 2 3v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/>

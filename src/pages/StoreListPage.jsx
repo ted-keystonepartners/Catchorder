@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useStores } from '../hooks/useStores.js';
 import { apiClient } from '../api/client.js';
+import MainLayout from '../components/Layout/MainLayout.jsx';
 import StoreFilterPanel from '../components/Store/StoreFilterPanel.jsx';
 import StoreTable from '../components/Store/StoreTable.jsx';
 import { formatPhoneInput } from '../utils/formatter.js';
@@ -363,86 +364,9 @@ const StoreListPage = () => {
   }
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#fafafa' }}>
-      {/* 헤더 - 대시보드와 동일한 스타일 */}
-      <div style={{ 
-        backgroundColor: '#f97316',
-        padding: '12px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        width: '100%'
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div 
-              style={{ 
-                width: '32px', 
-                height: '32px', 
-                backgroundColor: 'rgba(255, 255, 255, 0.2)', 
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              onClick={() => navigate('/dashboard')}
-            >
-              <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
-                <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-              </svg>
-            </div>
-            <h1 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              color: 'white',
-              margin: 0
-            }}>
-              매장 관리
-            </h1>
-          </div>
-          
-          {/* 네비게이션 버튼들 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {userIsAdmin && (
-              <button
-                onClick={() => navigate('/managers')}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
-                onMouseOut={(e) => e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
-              >
-                <svg width="14" height="14" fill="white" viewBox="0 0 24 24">
-                  <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-                </svg>
-                담당자추가
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+    <MainLayout>
 
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px 20px' }}>
+      <div>
 
         {/* 필터 패널 */}
         <StoreFilterPanel
@@ -487,7 +411,7 @@ const StoreListPage = () => {
               <div style={{ 
                 width: '20px', 
                 height: '20px', 
-                backgroundColor: '#f97316', 
+                backgroundColor: '#FF3D00', 
                 borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
@@ -1349,7 +1273,7 @@ const StoreListPage = () => {
           }
         }
       `}</style>
-    </div>
+    </MainLayout>
   );
 };
 

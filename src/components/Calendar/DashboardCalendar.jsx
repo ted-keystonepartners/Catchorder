@@ -89,7 +89,8 @@ const DashboardCalendar = () => {
             allSchedules.push(...schedulesWithStore);
           }
         } catch (error) {
-          console.error(`❌ 매장 ${storeName} 일정 조회 실패:`, error);
+          // 500 에러는 무시하고 계속 진행 (백엔드 미구현 API)
+          console.warn(`⚠️ 매장 ${storeName} 일정 조회 스킵:`, error.message);
         }
       }
       
@@ -198,7 +199,7 @@ const DashboardCalendar = () => {
           <div style={{
             width: '20px',
             height: '20px',
-            backgroundColor: '#f97316',
+            backgroundColor: '#FF3D00',
             borderRadius: '4px',
             display: 'flex',
             alignItems: 'center',
@@ -289,7 +290,7 @@ const DashboardCalendar = () => {
             width: '20px',
             height: '20px',
             border: '2px solid #f3f4f6',
-            borderTop: '2px solid #f97316',
+            borderTop: '2px solid #FF3D00',
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
             marginBottom: '8px'
@@ -347,7 +348,7 @@ const DashboardCalendar = () => {
                     minHeight: '100px',
                     padding: '8px',
                     backgroundColor: isCurrentMonth ? 'white' : '#f9fafb',
-                    border: isToday ? '2px solid #f97316' : 'none',
+                    border: isToday ? '2px solid #FF3D00' : 'none',
                     position: 'relative',
                     cursor: daySchedules.length > 0 ? 'pointer' : 'default',
                     transition: 'background-color 0.2s'
@@ -574,7 +575,7 @@ const DashboardCalendar = () => {
                 onClick={closeModal}
                 style={{
                   padding: '10px 20px',
-                  backgroundColor: '#f97316',
+                  backgroundColor: '#FF3D00',
                   color: 'white',
                   border: 'none',
                   borderRadius: '6px',

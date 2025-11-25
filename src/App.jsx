@@ -16,6 +16,7 @@ import ManagerListPage from './pages/ManagerListPage.jsx';
 import UploadPage from './pages/UploadPage.jsx';
 import ConsentFormPage from './pages/ConsentFormPage.jsx';
 import ConsentResponsesPage from './pages/ConsentResponsesPage.jsx';
+import ComingSoonPage from './pages/ComingSoonPage.jsx';
 
 /**
  * 404 페이지 컴포넌트
@@ -31,7 +32,7 @@ const NotFoundPage = () => {
           href="/" 
           style={{
             padding: '12px 24px',
-            backgroundColor: '#f97316',
+            backgroundColor: '#FF3D00',
             color: 'white',
             border: 'none',
             borderRadius: '8px',
@@ -41,8 +42,8 @@ const NotFoundPage = () => {
             display: 'inline-block',
             transition: 'background-color 0.2s'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
+          onMouseOver={(e) => e.target.style.backgroundColor = '#E65100'}
+          onMouseOut={(e) => e.target.style.backgroundColor = '#FF3D00'}
         >
           홈으로 돌아가기
         </a>
@@ -95,8 +96,71 @@ function App() {
   // 초기 로딩 중
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loading text="앱을 시작하는 중..." />
+      <div style={{ 
+        minHeight: '100vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        backgroundColor: '#fafafa',
+        padding: '20px'
+      }}>
+        {/* 로고 */}
+        <div style={{ 
+          width: '80px', 
+          height: '80px', 
+          backgroundImage: 'url(/favicon.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          borderRadius: '16px',
+          marginBottom: '24px',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+        }}></div>
+        
+        {/* 타이틀 */}
+        <h1 style={{
+          fontSize: '24px',
+          fontWeight: '700',
+          color: '#111827',
+          marginBottom: '8px',
+          textAlign: 'center'
+        }}>
+          캐치오더 관리시스템
+        </h1>
+        
+        {/* 스피너 */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          marginTop: '32px'
+        }}>
+          <div style={{
+            width: '32px',
+            height: '32px',
+            border: '3px solid #f3f4f6',
+            borderTop: '3px solid #FF3D00',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            marginBottom: '16px'
+          }}></div>
+          
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280',
+            margin: 0,
+            textAlign: 'center'
+          }}>
+            앱을 시작하는 중...
+          </p>
+        </div>
+        
+        <style>{`
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -164,6 +228,16 @@ function App() {
             <AdminRoute>
               <UploadPage />
             </AdminRoute>
+          } 
+        />
+        
+        {/* 준비중 페이지 */}
+        <Route 
+          path="/coming-soon" 
+          element={
+            <ProtectedRoute>
+              <ComingSoonPage />
+            </ProtectedRoute>
           } 
         />
         

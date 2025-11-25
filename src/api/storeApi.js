@@ -186,9 +186,24 @@ export const createSalesLog = async (storeId, logData) => {
 
 export const getSalesLogs = async (storeId, page = 1, limit = 10) => {
   try {
-    const result = await apiClient.get(`/api/stores/${storeId}/sales-logs`, { page, limit });
+    // 백엔드 pagination 버그로 인해 파라미터 제거
+    const result = await apiClient.get(`/api/stores/${storeId}/sales-logs`);
     if (result.success) {
-      return { success: true, data: result.data };
+      // 프론트엔드에서 pagination 처리
+      const allLogs = result.data?.logs || result.data || [];
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedLogs = allLogs.slice(startIndex, endIndex);
+      
+      return { 
+        success: true, 
+        data: {
+          logs: paginatedLogs,
+          total: allLogs.length,
+          page,
+          limit
+        }
+      };
     } else {
       return { success: false, error: result.error };
     }

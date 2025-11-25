@@ -285,7 +285,7 @@ const ScheduleForm = ({ storeId, onScheduleAdded }) => {
           type="submit"
           disabled={loading}
           style={{
-            backgroundColor: loading ? '#9ca3af' : '#f97316',
+            backgroundColor: loading ? '#9ca3af' : '#FF3D00',
             color: 'white',
             border: 'none',
             borderRadius: '6px',
@@ -300,12 +300,12 @@ const ScheduleForm = ({ storeId, onScheduleAdded }) => {
           }}
           onMouseOver={(e) => {
             if (!loading) {
-              e.target.style.backgroundColor = '#ea580c';
+              e.target.style.backgroundColor = '#E65100';
             }
           }}
           onMouseOut={(e) => {
             if (!loading) {
-              e.target.style.backgroundColor = '#f97316';
+              e.target.style.backgroundColor = '#FF3D00';
             }
           }}
         >

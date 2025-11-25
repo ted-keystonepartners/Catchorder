@@ -9,6 +9,7 @@ import { copyToClipboard } from '../utils/clipboard.js';
 import { useToast } from '../hooks/useToast.js';
 import ToastContainer from '../components/ui/Toast.jsx';
 import ScheduleTab from '../components/ScheduleTab.jsx';
+import MainLayout from '../components/Layout/MainLayout.jsx';
 
 // 안전한 날짜 포맷팅 유틸리티 함수
 const formatSafeDate = (dateValue, options = { includeTime: true }) => {
@@ -547,7 +548,7 @@ const StoreDetailPage = () => {
           <div style={{ 
             width: '48px', 
             height: '48px', 
-            border: '3px solid #f97316', 
+            border: '3px solid #FF3D00', 
             borderTop: '3px solid transparent', 
             borderRadius: '50%',
             animation: 'spin 1s linear infinite',
@@ -591,7 +592,7 @@ const StoreDetailPage = () => {
             onClick={() => navigate('/stores')}
             style={{
               padding: '16px 32px',
-              backgroundColor: '#f97316',
+              backgroundColor: '#FF3D00',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -601,8 +602,8 @@ const StoreDetailPage = () => {
               width: '100%',
               transition: 'all 0.2s'
             }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#D32F2F'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#FF3D00'}
           >
             매장 목록으로 돌아가기
           </button>
@@ -643,7 +644,7 @@ const StoreDetailPage = () => {
             onClick={() => navigate('/stores')}
             style={{
               padding: '16px 32px',
-              backgroundColor: '#f97316',
+              backgroundColor: '#FF3D00',
               color: 'white',
               border: 'none',
               borderRadius: '12px',
@@ -653,8 +654,8 @@ const StoreDetailPage = () => {
               width: '100%',
               transition: 'all 0.2s'
             }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#ea580c'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#f97316'}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#D32F2F'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#FF3D00'}
           >
             매장 목록으로 돌아가기
           </button>
@@ -666,58 +667,7 @@ const StoreDetailPage = () => {
   const statusDisplay = getStatusDisplay(store.status);
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', fontFamily: 'SUIT, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif' }}>
-      {/* 헤더 - 매장 목록 페이지와 동일한 스타일 */}
-      <div style={{ 
-        backgroundColor: '#f97316',
-        padding: '12px 0',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        width: '100%'
-      }}>
-        <div style={{ 
-          maxWidth: '1200px', 
-          margin: '0 auto',
-          padding: '0 20px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div 
-              style={{ 
-                width: '32px', 
-                height: '32px', 
-                backgroundColor: 'rgba(255, 255, 255, 0.2)', 
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                cursor: 'pointer'
-              }}
-              onClick={() => navigate('/stores')}
-            >
-              <svg width="18" height="18" fill="white" viewBox="0 0 24 24">
-                <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-              </svg>
-            </div>
-            <h1 style={{ 
-              fontSize: '18px', 
-              fontWeight: '600', 
-              color: 'white',
-              margin: 0
-            }}>
-              매장 프로필 관리
-            </h1>
-          </div>
-          
-          {/* 버튼들 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          </div>
-        </div>
-      </div>
+    <MainLayout>
 
       {/* 메인 컨텐츠 */}
       <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
@@ -746,7 +696,7 @@ const StoreDetailPage = () => {
                   <div style={{
                     width: '20px',
                     height: '20px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
@@ -955,7 +905,7 @@ const StoreDetailPage = () => {
                   <div style={{
                     width: '20px',
                     height: '20px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
@@ -978,7 +928,7 @@ const StoreDetailPage = () => {
                   }}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: isEditingAdditional ? '#10b981' : '#f97316',
+                    backgroundColor: isEditingAdditional ? '#10b981' : '#FF3D00',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
@@ -1209,7 +1159,7 @@ const StoreDetailPage = () => {
                   <div style={{
                     width: '20px',
                     height: '20px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1230,7 +1180,7 @@ const StoreDetailPage = () => {
                   }}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
@@ -1272,7 +1222,7 @@ const StoreDetailPage = () => {
                   <div style={{
                     width: '20px',
                     height: '20px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1288,7 +1238,7 @@ const StoreDetailPage = () => {
                   onClick={() => setShowContactModal(true)}
                   style={{
                     padding: '6px 12px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     color: 'white',
                     border: 'none',
                     borderRadius: '6px',
@@ -1386,7 +1336,7 @@ const StoreDetailPage = () => {
                   <div style={{
                     width: '20px',
                     height: '20px',
-                    backgroundColor: '#f97316',
+                    backgroundColor: '#FF3D00',
                     borderRadius: '4px',
                     display: 'flex',
                     alignItems: 'center',
@@ -1447,7 +1397,7 @@ const StoreDetailPage = () => {
                     style={{
                       width: '32px',
                       height: '32px',
-                      backgroundColor: newLogContent.trim() ? '#f97316' : '#e5e7eb',
+                      backgroundColor: newLogContent.trim() ? '#FF3D00' : '#e5e7eb',
                       border: 'none',
                       borderRadius: '16px',
                       cursor: newLogContent.trim() ? 'pointer' : 'not-allowed',
@@ -1459,13 +1409,13 @@ const StoreDetailPage = () => {
                     }}
                     onMouseOver={(e) => {
                       if (newLogContent.trim()) {
-                        e.target.style.backgroundColor = '#ea580c';
+                        e.target.style.backgroundColor = '#D32F2F';
                         e.target.style.transform = 'scale(1.05)';
                       }
                     }}
                     onMouseOut={(e) => {
                       if (newLogContent.trim()) {
-                        e.target.style.backgroundColor = '#f97316';
+                        e.target.style.backgroundColor = '#FF3D00';
                         e.target.style.transform = 'scale(1)';
                       }
                     }}
@@ -1708,7 +1658,7 @@ const StoreDetailPage = () => {
                 <div style={{
                   width: '20px',
                   height: '20px',
-                  backgroundColor: '#f97316',
+                  backgroundColor: '#FF3D00',
                   borderRadius: '4px',
                   display: 'flex',
                   alignItems: 'center',
@@ -1774,7 +1724,7 @@ const StoreDetailPage = () => {
                     <div style={{
                       width: '20px',
                       height: '20px',
-                      backgroundColor: '#f97316',
+                      backgroundColor: '#FF3D00',
                       borderRadius: '4px',
                       display: 'flex',
                       alignItems: 'center',
@@ -2120,7 +2070,7 @@ const StoreDetailPage = () => {
                   width: '32px',
                   height: '32px',
                   border: '3px solid #f3f4f6',
-                  borderTopColor: '#f97316',
+                  borderTopColor: '#FF3D00',
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite',
                   margin: '0 auto 16px'
@@ -2201,7 +2151,7 @@ const StoreDetailPage = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000
+          zIndex: 1000,
         }}>
           <div style={{
             backgroundColor: 'white',
@@ -2360,7 +2310,7 @@ const StoreDetailPage = () => {
                 style={{
                   flex: 1,
                   padding: '12px',
-                  backgroundColor: '#f97316',
+                  backgroundColor: '#FF3D00',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -2462,7 +2412,7 @@ const StoreDetailPage = () => {
           to { transform: rotate(360deg); }
         }
       `}</style>
-    </div>
+    </MainLayout>
   );
 };
 
