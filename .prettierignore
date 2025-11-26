@@ -1,0 +1,29 @@
+# Build outputs
+dist/
+build/
+
+# Dependencies
+node_modules/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.*
+
+# Logs
+*.log
+
+# Package lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Generated files
+*.min.js
+*.min.css
+
+# Public assets
+public/

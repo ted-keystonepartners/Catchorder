@@ -3,9 +3,16 @@
  */
 
 /**
+ * @typedef {'PRE_INTRODUCTION'|'INTRODUCTION_COMPLETED'|'IN_PROGRESS'|'ADOPTION_CONFIRMED'|'SIGNUP_COMPLETED'|'INSTALLATION_PENDING'|'INSTALLATION_COMPLETED'|'REJECTED'|'PENDING'|'NO_RESPONSE'|'OUT_OF_BUSINESS'} StoreStatusCode
+ * @typedef {'P1'|'P2'|'P3'|'P4'} LifecycleCode
+ * @typedef {'CALL'|'VISIT'|'SCHEDULE_CALL'|'SCHEDULE_VISIT'|'MEMO'} ActivityTypeCode
+ * @typedef {'ADMIN'|'GENERAL'} RoleCode
+ */
+
+/**
  * 매장 상태 정의
- * @typedef {Object} StoreStatus
- * @property {string} code - 상태 코드
+ * @typedef {Object} StoreStatusItem
+ * @property {StoreStatusCode} code - 상태 코드
  * @property {string} label - 한글 라벨
  * @property {string} color - Tailwind 색상 클래스
  * @property {string} description - 상태 설명

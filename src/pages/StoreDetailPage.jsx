@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { getStoreDetail, updateStore, updateStoreAdditionalInfo, createStoreContact, getStoreContacts, deleteStoreContact, updateStoreStatus, createSalesLog, getSalesLogs, deleteSalesLog } from '../api/storeApi.js';

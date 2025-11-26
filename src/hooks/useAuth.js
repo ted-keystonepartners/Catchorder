@@ -5,8 +5,28 @@ import { useAuthStore, useIsAdmin, useIsGeneral, useHasRole } from '../context/a
 import { ROLE } from '../utils/constants.js';
 
 /**
+ * @typedef {import('../types/api.js').User} User
+ */
+
+/**
+ * 인증 훅 반환값
+ * @typedef {Object} AuthHookReturn
+ * @property {User|null} user - 현재 로그인한 사용자
+ * @property {string|null} token - 인증 토큰
+ * @property {boolean} isAuthenticated - 인증 여부
+ * @property {boolean} isLoading - 로딩 상태
+ * @property {string|null} error - 에러 메시지
+ * @property {Function} login - 로그인 함수
+ * @property {Function} logout - 로그아웃 함수
+ * @property {Function} clearError - 에러 초기화
+ * @property {Function} isAdmin - 관리자 여부 확인
+ * @property {Function} isGeneral - 일반 사용자 여부 확인
+ * @property {Function} hasRole - 권한 확인
+ */
+
+/**
  * 인증 관련 훅
- * @returns {Object} 인증 상태 및 액션들
+ * @returns {AuthHookReturn} 인증 상태 및 액션들
  */
 export const useAuth = () => {
   const {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useStores } from '../hooks/useStores.js';
@@ -9,6 +9,7 @@ import Button from '../components/ui/Button.jsx';
 import StoreTable from '../components/Store/StoreTable.jsx';
 import { SectionLoading } from '../components/ui/LoadingStates.jsx';
 import DashboardCalendar from '../components/Calendar/DashboardCalendar.jsx';
+import Icon from '../components/ui/Icon.jsx';
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { logout, user, isAdmin } = useAuth();
@@ -60,39 +61,41 @@ const DashboardPage = () => {
     delayedFetch();
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     await fetchStores();
     setLastUpdated(new Date());
-  };
+  }, [fetchStores]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate('/');
-  };
+  }, [logout, navigate]);
 
-  // 통계 계산
-  const stats = {
+  // 통계 계산 - stores가 변경될 때만 재계산
+  const stats = useMemo(() => ({
     total: stores.length,
     preIntroduction: stores.filter(s => s.status === 'PRE_INTRODUCTION').length,
     inProgress: stores.filter(s => s.status === 'IN_PROGRESS').length,
     adoptionConfirmed: stores.filter(s => s.status === 'ADOPTION_CONFIRMED').length,
     signupCompleted: stores.filter(s => s.status === 'SIGNUP_COMPLETED').length
-  };
+  }), [stores]);
 
-  // 최근 3일 이내 수정한 매장 (updated_at 기준으로 정렬)
-  const threeDaysAgo = new Date();
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  
-  const recentlyModifiedStores = stores
-    .filter(store => {
-      const updateDate = new Date(store.updated_at || store.created_at || 0);
-      return updateDate >= threeDaysAgo;
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.updated_at || a.created_at || 0);
-      const dateB = new Date(b.updated_at || b.created_at || 0);
-      return dateB - dateA; // 최신 순으로 정렬
-    });
+  // 최근 3일 이내 수정한 매장 (updated_at 기준으로 정렬) - stores가 변경될 때만 재계산
+  const recentlyModifiedStores = useMemo(() => {
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    
+    return stores
+      .filter(store => {
+        const updateDate = new Date(store.updated_at || store.created_at || 0);
+        return updateDate >= threeDaysAgo;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.updated_at || a.created_at || 0);
+        const dateB = new Date(b.updated_at || b.created_at || 0);
+        return dateB - dateA; // 최신 순으로 정렬
+      });
+  }, [stores]);
 
   if (storesLoading) {
     return (
@@ -169,9 +172,7 @@ const DashboardPage = () => {
                   justifyContent: 'center',
                   marginBottom: '12px'
                 }}>
-                  <svg width="20" height="20" fill="#6b7280" viewBox="0 0 24 24">
-                    <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm5-18v4h3V3h-3z"/>
-                  </svg>
+                  <Icon name="dashboard" size={20} color="#6b7280" />
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>전체 매장</p>
                 <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}>{stats.total}</p>
@@ -197,9 +198,7 @@ const DashboardPage = () => {
                   justifyContent: 'center',
                   marginBottom: '12px'
                 }}>
-                  <svg width="20" height="20" fill="#d97706" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                  </svg>
+                  <Icon name="check" size={20} color="#d97706" />
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>진행중</p>
                 <p style={{ fontSize: '24px', fontWeight: '700', color: '#d97706', margin: 0 }}>{stats.inProgress}</p>
@@ -225,9 +224,7 @@ const DashboardPage = () => {
                   justifyContent: 'center',
                   marginBottom: '12px'
                 }}>
-                  <svg width="20" height="20" fill="#f97316" viewBox="0 0 24 24">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                  </svg>
+                  <Icon name="check" size={20} color="#f97316" />
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>도입확정</p>
                 <p style={{ fontSize: '24px', fontWeight: '700', color: '#f97316', margin: 0 }}>{stats.adoptionConfirmed}</p>
@@ -253,9 +250,7 @@ const DashboardPage = () => {
                   justifyContent: 'center',
                   marginBottom: '12px'
                 }}>
-                  <svg width="20" height="20" fill="#10b981" viewBox="0 0 24 24">
-                    <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-                  </svg>
+                  <Icon name="checkSimple" size={20} color="#10b981" />
                 </div>
                 <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>가입완료</p>
                 <p style={{ fontSize: '24px', fontWeight: '700', color: '#10b981', margin: 0 }}>{stats.signupCompleted}</p>
@@ -296,9 +291,7 @@ const DashboardPage = () => {
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
-                  <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm5-18v4h3V3h-3z"/>
-                </svg>
+                <Icon name="dashboard" size={12} color="white" />
               </div>
               최근 수정한 매장 (3일 이내)
             </h3>
@@ -323,9 +316,7 @@ const DashboardPage = () => {
                 justifyContent: 'center',
                 margin: '0 auto 16px'
               }}>
-                <svg width="24" height="24" fill="#9ca3af" viewBox="0 0 24 24">
-                  <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm5-18v4h3V3h-3z"/>
-                </svg>
+                <Icon name="dashboard" size={24} color="#9ca3af" />
               </div>
               <h3 style={{ 
                 fontSize: '16px', 

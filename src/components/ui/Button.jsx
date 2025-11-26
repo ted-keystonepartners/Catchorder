@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types';
 
 /**
  * 통합 버튼 컴포넌트 - Tailwind CSS 기반
@@ -19,6 +20,7 @@ const Button = ({
   loading = false,
   fullWidth = false,
   className = '',
+  ariaLabel,
   ...props
 }) => {
   const baseClasses = [
@@ -103,6 +105,9 @@ const Button = ({
     <button
       className={classes}
       disabled={disabled || loading}
+      aria-label={ariaLabel || (typeof children === 'string' ? children : undefined)}
+      aria-busy={loading}
+      aria-disabled={disabled}
       {...props}
     >
       {loading && <LoadingSpinner />}
@@ -111,4 +116,28 @@ const Button = ({
   );
 };
 
-export default Button;
+Button.propTypes = {
+  children: PropTypes.node.isRequired,
+  variant: PropTypes.oneOf(['primary', 'secondary', 'danger', 'success', 'warning', 'ghost']),
+  size: PropTypes.oneOf(['sm', 'md', 'lg', 'xl']),
+  disabled: PropTypes.bool,
+  loading: PropTypes.bool,
+  fullWidth: PropTypes.bool,
+  className: PropTypes.string,
+  ariaLabel: PropTypes.string,
+  onClick: PropTypes.func,
+  type: PropTypes.oneOf(['button', 'submit', 'reset'])
+};
+
+// Props 비교 함수 - loading과 disabled만 비교
+const areEqual = (prevProps, nextProps) => {
+  return (
+    prevProps.loading === nextProps.loading &&
+    prevProps.disabled === nextProps.disabled &&
+    prevProps.variant === nextProps.variant &&
+    prevProps.size === nextProps.size &&
+    prevProps.children === nextProps.children
+  );
+};
+
+export default React.memo(Button, areEqual);

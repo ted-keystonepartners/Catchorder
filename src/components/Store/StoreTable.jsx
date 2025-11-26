@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Table from '../ui/Table.jsx';
 import Button from '../ui/Button.jsx';
@@ -26,7 +26,7 @@ const StoreTable = ({
   const [salesLogsCache, setSalesLogsCache] = useState({});
 
   // 최근 Sales Log 가져오기
-  const fetchLatestSalesLog = async (storeId) => {
+  const fetchLatestSalesLog = useCallback(async (storeId) => {
     // 이미 캐시에 있으면 반환
     if (salesLogsCache[storeId]) {
       return salesLogsCache[storeId];
@@ -75,7 +75,7 @@ const StoreTable = ({
     }
     
     return null;
-  };
+  }, [salesLogsCache]);
 
   // 최근 기록 컴포넌트
   const ConsentResponseCell = ({ storeId, index }) => {
@@ -394,12 +394,12 @@ const StoreTable = ({
   ];
 
   // 행 클릭 핸들러
-  const handleRowClick = (store) => {
+  const handleRowClick = useCallback((store) => {
     // state를 통해 매장 데이터를 전달
     navigate(`/stores/${store.store_id || store.id}`, {
       state: { storeData: store }
     });
-  };
+  }, [navigate]);
 
   return (
     <div style={{

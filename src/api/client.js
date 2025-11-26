@@ -7,27 +7,25 @@ import { logger } from '../utils/logger.js';
 import { API_ERRORS, getHttpErrorMessage } from '../constants/messages.js';
 
 /**
- * API 응답 표준 인터페이스
- * @typedef {Object} ApiResponse
- * @property {boolean} success - 성공 여부
- * @property {any} data - 응답 데이터
- * @property {string} error - 에러 메시지
+ * @typedef {import('../types/api.js').ApiResponse} ApiResponse
  */
 
 /**
  * API 요청 옵션
  * @typedef {Object} RequestOptions
- * @property {string} method - HTTP 메서드
- * @property {Object} headers - 추가 헤더
- * @property {any} body - 요청 본문
- * @property {boolean} requireAuth - 인증 필요 여부
- * @property {number} timeout - 타임아웃 (ms)
+ * @property {'GET'|'POST'|'PUT'|'PATCH'|'DELETE'} [method='GET'] - HTTP 메서드
+ * @property {Object<string, string>} [headers] - 추가 헤더
+ * @property {any} [body] - 요청 본문
+ * @property {boolean} [requireAuth=true] - 인증 필요 여부
+ * @property {number} [timeout=30000] - 타임아웃 (ms)
+ * @property {number} [retries=3] - 재시도 횟수
  */
 
 class ApiClient {
   constructor() {
+    // 환경 변수에서 가져오기 (env.js 사용하면 순환 참조 가능성 있음)
     this.baseURL = import.meta.env.VITE_API_BASE || 'https://mk04952lrj.execute-api.ap-northeast-2.amazonaws.com/dev';
-    this.defaultTimeout = 30000; // 30초
+    this.defaultTimeout = Number(import.meta.env.VITE_SESSION_TIMEOUT) || 30000; // 기본 30초
     this.defaultHeaders = {
       'Content-Type': 'application/json'
     };

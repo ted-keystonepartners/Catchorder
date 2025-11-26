@@ -1,7 +1,7 @@
 /**
  * 매장 목록 페이지 - 대시보드 스타일 적용
  */
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { useStores } from '../hooks/useStores.js';
@@ -94,14 +94,14 @@ const StoreListPage = () => {
     fetchManagers();
   }, []);
 
-  const handleRefresh = async () => {
+  const handleRefresh = useCallback(async () => {
     await fetchStores();
-  };
+  }, [fetchStores]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await logout();
     navigate('/');
-  };
+  }, [logout, navigate]);
 
   // 필터링된 매장 목록
   const filteredStores = useMemo(() => {
@@ -158,16 +158,16 @@ const StoreListPage = () => {
     currentPage * itemsPerPage
   );
 
-  // 통계 계산
-  const stats = {
+  // 통계 계산 - stores가 변경될 때만 재계산
+  const stats = useMemo(() => ({
     total: stores.length,
     preIntroduction: stores.filter(s => s.status === 'PRE_INTRODUCTION').length,
     inProgress: stores.filter(s => s.status === 'IN_PROGRESS').length,
     adoptionConfirmed: stores.filter(s => s.status === 'ADOPTION_CONFIRMED').length,
     signupCompleted: stores.filter(s => s.status === 'SIGNUP_COMPLETED').length
-  };
+  }), [stores]);
 
-  const handleAddStore = async (e) => {
+  const handleAddStore = useCallback(async (e) => {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -188,7 +188,7 @@ const StoreListPage = () => {
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [isSubmitting, createStoreFromHook, newStore, fetchStores]);
 
   // CSV 파일 파싱
   const parseCSV = (text) => {
