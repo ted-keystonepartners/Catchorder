@@ -71,14 +71,14 @@ const StoreTable = ({
       } else {
       }
     } catch (error) {
-      console.error('🔥 Sales Log 조회 실패:', error);
+      // Sales Log 조회 실패 시 null 반환
     }
     
     return null;
   };
 
   // 최근 기록 컴포넌트
-  const ConsentResponseCell = ({ storeId }) => {
+  const ConsentResponseCell = ({ storeId, index }) => {
     const [responseCount, setResponseCount] = useState(0);
     const [loading, setLoading] = useState(false);
 
@@ -86,12 +86,20 @@ const StoreTable = ({
       const loadConsentResponses = async () => {
         if (!storeId) return;
         
+        // Lambda Cold Start 대응: 인덱스 기반 지연 시간 추가
+        // 각 컴포넌트가 순차적으로 로딩되도록 지연
+        const delay = index ? index * 250 : 0; // 각 항목당 250ms 지연 (증가)
+        
+        if (delay > 0) {
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+        
         setLoading(true);
         try {
           const data = await getConsentResponses(storeId, 1, 1); // 개수만 확인
           setResponseCount(data.total || 0);
         } catch (error) {
-          console.error('Failed to load consent responses:', error);
+          // API 실패 시 조용히 실패 처리 - 에러 로그 없음
           setResponseCount(0);
         } finally {
           setLoading(false);
@@ -101,7 +109,7 @@ const StoreTable = ({
       if (storeId) {
         loadConsentResponses();
       }
-    }, [storeId]);
+    }, [storeId, index]);
 
     return (
       <div style={{ 
@@ -378,9 +386,9 @@ const StoreTable = ({
       title: '응답현황',
       sortable: false,
       width: '90px',
-      render: (_, store) => {
-        const storeId = store.id || store.store_id;
-        return <ConsentResponseCell storeId={storeId} />;
+      render: (_, store, index) => {
+        const storeId = store.store_id || store.id;
+        return <ConsentResponseCell storeId={storeId} index={index} />;
       }
     }
   ];

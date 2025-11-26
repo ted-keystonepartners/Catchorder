@@ -1,9 +1,10 @@
 /**
  * 활동 로그 관련 API 함수들
+ * Mock 데이터와 API 로직 분리
  */
-import { mockActivityLogs } from './mockData.js';
-import { ACTIVITY_TYPES } from '../utils/constants.js';
-import { v4 as uuidv4 } from 'uuid';
+import { activityMockStore } from '../mocks/activityMocks.js';
+import { apiWrapper } from './utils.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * 매장별 활동 로그 조회
@@ -15,55 +16,31 @@ import { v4 as uuidv4 } from 'uuid';
  * @returns {Promise<{success: boolean, data?: object, error?: string}>}
  */
 export const getActivities = async (storeId, options = {}) => {
-  // API 호출 시뮬레이션을 위한 딜레이
-  await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
-
-  try {
-    if (!storeId) {
-      return {
-        success: false,
-        error: '매장 ID가 필요합니다.'
-      };
-    }
-
-    let activities = mockActivityLogs[storeId] || [];
-
-    // 활동 타입 필터링
-    if (options.type && Object.keys(ACTIVITY_TYPES).includes(options.type)) {
-      activities = activities.filter(activity => activity.type === options.type);
-    }
-
-    // 페이지네이션
-    const total = activities.length;
-    const page = Math.max(1, options.page || 1);
-    const pageSize = Math.max(1, Math.min(50, options.pageSize || 10));
-    const startIndex = (page - 1) * pageSize;
-    const endIndex = Math.min(startIndex + pageSize, total);
+  return apiWrapper(async () => {
+    // API 호출 시뮬레이션을 위한 딜레이
+    await new Promise(resolve => setTimeout(resolve, Math.random() * 200 + 100));
     
-    const paginatedActivities = activities.slice(startIndex, endIndex);
-
+    // Mock 데이터 사용
+    let activities = activityMockStore.getStoreActivities(storeId);
+    
+    // 타입 필터링
+    activities = activityMockStore.filterByType(activities, options.type);
+    
+    // 페이지네이션
+    const result = activityMockStore.paginate(
+      activities,
+      options.page,
+      options.pageSize
+    );
+    
     return {
       success: true,
       data: {
-        activities: paginatedActivities,
-        pagination: {
-          page,
-          pageSize,
-          total,
-          totalPages: Math.ceil(total / pageSize),
-          hasNext: endIndex < total,
-          hasPrev: page > 1
-        }
+        activities: result.items,
+        pagination: result.pagination
       }
     };
-
-  } catch (error) {
-    console.error('Get activities error:', error);
-    return {
-      success: false,
-      error: '활동 로그 조회 중 오류가 발생했습니다.'
-    };
-  }
+  }, `활동 로그 조회 (${storeId})`);
 };
 
 /**
@@ -77,27 +54,18 @@ export const getActivities = async (storeId, options = {}) => {
  * @returns {Promise<{success: boolean, data?: object, error?: string}>}
  */
 export const createActivity = async (storeId, activityData) => {
-  await new Promise(resolve => setTimeout(resolve, 300));
-
-  try {
-    if (!storeId) {
-      return {
-        success: false,
-        error: '매장 ID가 필요합니다.'
-      };
-    }
-
-    if (!activityData.type || !Object.keys(ACTIVITY_TYPES).includes(activityData.type)) {
-      return {
-        success: false,
-        error: '올바른 활동 타입을 선택해주세요.'
-      };
-    }
-
-    if (!activityData.content || !activityData.content.trim()) {
-      return {
-        success: false,
-        error: '활동 내용을 입력해주세요.'
+  return apiWrapper(async () => {
+    // API 호출 시뮬레이션
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    // Mock 데이터에 추가
+    const newActivity = activityMockStore.addActivity(storeId, activityData);
+    
+    logger.info(`활동 생성 성공: ${newActivity.id}`);
+    
+    return {
+      success: true,
+      data: newActivity
       };
     }
 

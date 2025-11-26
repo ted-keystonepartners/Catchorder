@@ -1,16 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../../api/client.js';
-import { getAllSchedules, getSchedules } from '../../api/scheduleApi.js';
+import { getAllSchedules } from '../../api/scheduleApi.js';
 
 /**
  * 대시보드용 캘린더 컴포넌트
  * 모든 매장의 일정을 표시
  */
-const DashboardCalendar = () => {
+const DashboardCalendar = ({ stores = [] }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [stores, setStores] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
 
@@ -30,84 +28,32 @@ const DashboardCalendar = () => {
   const endDate = new Date(lastDay);
   endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
-  // 매장 목록 가져오기
-  const fetchStores = async () => {
-    try {
-      const response = await apiClient.get('/api/stores');
-      if (response.success) {
-        const storesData = response.data?.stores || response.data || [];
-        setStores(storesData);
-      }
-    } catch (error) {
-      console.error('매장 목록 가져오기 실패:', error);
-    }
-  };
+  // 매장 목록은 props로 받음 - fetchStores 제거
 
   // 모든 일정 가져오기
   const fetchAllSchedules = async () => {
+    if (!stores || stores.length === 0) {
+      setSchedules([]);
+      setLoading(false);
+      return;
+    }
+    
     setLoading(true);
     
     try {
-      try {
-        // 새로운 getAllSchedules API 사용
-        const schedulesData = await getAllSchedules();
-        
-        if (schedulesData && schedulesData.length > 0) {
-          setSchedules(schedulesData);
-        } else {
-          await fetchSchedulesByStore();
-        }
-      } catch (error) {
-        await fetchSchedulesByStore();
-      }
+      // getAllSchedules에 stores 전달하여 각 매장별 일정 조회
+      const currentMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
+      const schedulesData = await getAllSchedules(stores, currentMonthStr);
+      setSchedules(schedulesData || []);
     } catch (error) {
-      console.error('❌ 일정 가져오기 최종 실패:', error);
+      // 에러는 조용히 처리
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // 매장별 일정 가져오기 (대안 방법)
-  const fetchSchedulesByStore = async () => {
-    try {
-      const allSchedules = [];
-      
-      for (const store of stores) {
-        const storeId = store.store_id || store.id;
-        const storeName = store.store_name || store.name;
-        
-        try {
-          const storeSchedules = await getSchedules(storeId);
-          
-          if (storeSchedules && storeSchedules.length > 0) {
-            // 매장 정보 추가
-            const schedulesWithStore = storeSchedules.map(schedule => ({
-              ...schedule,
-              store_name: storeName,
-              store_id: storeId
-            }));
-            allSchedules.push(...schedulesWithStore);
-          }
-        } catch (error) {
-          // 500 에러는 무시하고 계속 진행 (백엔드 미구현 API)
-          console.warn(`⚠️ 매장 ${storeName} 일정 조회 스킵:`, error.message);
-        }
-      }
-      
-      setSchedules(allSchedules);
-    } catch (error) {
-      console.error('❌ 매장별 일정 가져오기 실패:', error);
-    }
-  };
-
-  // 컴포넌트 마운트 시 데이터 로드
-  useEffect(() => {
-    const loadData = async () => {
-      await fetchStores();
-    };
-    loadData();
-  }, []);
-
+  // stores가 있을 때 일정 데이터 로드
   useEffect(() => {
     if (stores.length > 0) {
       fetchAllSchedules();

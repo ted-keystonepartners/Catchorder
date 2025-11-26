@@ -3,6 +3,8 @@
  * 모든 API 호출을 표준화하고 중복 코드를 제거
  */
 import { useAuthStore } from '../context/authStore.js';
+import { logger } from '../utils/logger.js';
+import { API_ERRORS, getHttpErrorMessage } from '../constants/messages.js';
 
 /**
  * API 응답 표준 인터페이스
@@ -105,7 +107,7 @@ class ApiClient {
         data: data.data || data,
         error: null
       };
-    } catch (parseError) {
+    } catch {
       return {
         success: false,
         data: null,
@@ -123,7 +125,9 @@ class ApiClient {
    * @returns {Promise<ApiResponse>} API 응답
    */
   async request(endpoint, options = {}) {
-    const maxRetries = options.retries || 2;
+    const maxRetries = options.retries !== undefined ? options.retries : 3; // 재시도 3회로 증가
+    // Lambda Cold Start 대응: 첫 재시도 시 더 긴 대기시간
+    const initialDelay = 1500; // 1.5초로 증가
     
     for (let attempt = 0; attempt <= maxRetries; attempt++) {
       try {
@@ -133,40 +137,51 @@ class ApiClient {
         const response = await fetch(url, requestOptions);
         const result = await this.handleResponse(response);
 
-        // 500 에러이고 재시도 가능한 경우
+        // 500 에러이고 재시도 가능한 경우에만 재시도
         if (!result.success && response.status === 500 && attempt < maxRetries) {
-          console.warn(`API 500 Error (attempt ${attempt + 1}): ${endpoint}, retrying...`);
-          await this.delay(Math.pow(2, attempt) * 500); // 지수 백오프: 500ms, 1s, 2s
+          // Lambda Cold Start 대응: 더 긴 초기 대기시간
+          const delay = attempt === 0 ? initialDelay : Math.pow(2, attempt) * 1000; // 1.5s, 2s, 4s
+          // logger.debug(`API 재시도 ${attempt + 1}/${maxRetries}: ${endpoint}`);
+          await this.delay(delay);
           continue;
         }
 
-        if (!result.success) {
-          console.error(`API Error: ${endpoint}`, result.error);
+        // 재시도 후 성공 시 에러 로그 없이 반환
+        if (result.success && attempt > 0) {
+          // logger.info(`API 재시도 성공: ${endpoint} (시도: ${attempt + 1})`);
+          return result;
+        }
+
+        // 최종 실패 시에만 에러 출력 (500 에러는 제외)
+        if (!result.success && attempt === maxRetries && response.status !== 500) {
+          logger.error(`API 최종 실패: ${endpoint}`, { status: response.status, error: result.error });
         }
 
         return result;
       } catch (error) {
         // 네트워크 오류이고 재시도 가능한 경우
         if (attempt < maxRetries && (error.name === 'TypeError' || error.name === 'AbortError')) {
-          console.warn(`Network Error (attempt ${attempt + 1}): ${endpoint}, retrying...`);
-          await this.delay(Math.pow(2, attempt) * 500);
+          const delay = attempt === 0 ? initialDelay : Math.pow(2, attempt) * 500;
+          await this.delay(delay);
           continue;
         }
 
-        console.error(`API Request Failed: ${endpoint}`, error);
+        // API Request Failed
         
         if (error.name === 'AbortError') {
+          logger.warn(`API 타임아웃: ${endpoint}`);
           return {
             success: false,
             data: null,
-            error: '요청 시간이 초과되었습니다.'
+            error: API_ERRORS.TIMEOUT_ERROR
           };
         }
 
+        logger.error(`API 요청 실패: ${endpoint}`, error);
         return {
           success: false,
           data: null,
-          error: error.message || '네트워크 오류가 발생했습니다.'
+          error: error.message || API_ERRORS.NETWORK_ERROR
         };
       }
     }
@@ -256,6 +271,78 @@ export const apiClient = new ApiClient();
 
 // 편의 함수들
 export const { get, post, put, patch, delete: del } = apiClient;
+
+/**
+ * 동시 실행 제한 유틸리티
+ * Lambda Cold Start 문제 해결을 위한 동시 요청 수 제한
+ * @param {Array} items - 처리할 항목들
+ * @param {Function} fn - 각 항목에 대해 실행할 비동기 함수
+ * @param {number} limit - 동시 실행 제한 수 (기본값: 2로 감소)
+ * @param {number} delayMs - 각 배치 사이 지연시간 (기본값: 200ms로 증가)
+ * @returns {Promise<Array>} 처리 결과 배열
+ */
+export async function limitConcurrency(items, fn, limit = 2, delayMs = 200) {
+  const results = [];
+  
+  for (let i = 0; i < items.length; i += limit) {
+    const batch = items.slice(i, i + limit);
+    
+    // 현재 배치 처리 (각 항목 사이에도 약간의 지연 추가)
+    const batchResults = await Promise.all(
+      batch.map((item, index) => 
+        new Promise(async (resolve) => {
+          // 배치 내 각 요청 사이 50ms 지연
+          if (index > 0) {
+            await new Promise(r => setTimeout(r, index * 50));
+          }
+          try {
+            const result = await fn(item);
+            resolve(result);
+          } catch (error) {
+            resolve({ error, item });
+          }
+        })
+      )
+    );
+    
+    results.push(...batchResults);
+    
+    // 다음 배치 전 지연 (마지막 배치 제외)
+    if (i + limit < items.length) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * 순차적 실행 유틸리티
+ * 각 요청을 순차적으로 처리하며 지연시간 추가
+ * @param {Array} items - 처리할 항목들
+ * @param {Function} fn - 각 항목에 대해 실행할 비동기 함수
+ * @param {number} delayMs - 각 요청 사이 지연시간 (기본값: 50ms)
+ * @returns {Promise<Array>} 처리 결과 배열
+ */
+export async function sequentialExecute(items, fn, delayMs = 50) {
+  const results = [];
+  
+  for (let i = 0; i < items.length; i++) {
+    try {
+      const result = await fn(items[i]);
+      results.push(result);
+    } catch (error) {
+      results.push({ error, item: items[i] });
+    }
+    
+    // 다음 요청 전 지연 (마지막 항목 제외)
+    if (i < items.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+  
+  return results;
+}
 
 // 기본 익스포트
 export default apiClient;

@@ -46,8 +46,18 @@ const DashboardPage = () => {
   };
 
   useEffect(() => {
-    fetchStores();
-    fetchManagers();
+    // Lambda Cold Start 대응: 초기 로드 시 지연 추가
+    const delayedFetch = async () => {
+      // 첫 번째 API 호출 전 500ms 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+      await fetchStores();
+      
+      // 두 번째 API 호출 전 추가 200ms 대기
+      await new Promise(resolve => setTimeout(resolve, 200));
+      await fetchManagers();
+    };
+    
+    delayedFetch();
   }, []);
 
   const handleRefresh = async () => {
@@ -256,7 +266,7 @@ const DashboardPage = () => {
 
         {/* 캘린더 */}
         <div style={{ marginBottom: '24px' }}>
-          <DashboardCalendar />
+          <DashboardCalendar stores={stores} />
         </div>
 
         {/* 최근 매장 */}

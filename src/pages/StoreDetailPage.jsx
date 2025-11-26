@@ -670,7 +670,7 @@ const StoreDetailPage = () => {
     <MainLayout>
 
       {/* 메인 컨텐츠 */}
-      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '24px' }}>
+      <div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px' }}>
           
           {/* 왼쪽 - 프로필 영역 */}

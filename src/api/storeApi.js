@@ -2,6 +2,8 @@
  * AWS Lambda 매장 관리 API
  */
 import { apiClient } from './client.js';
+import { apiWrapper } from './utils.js';
+import { STORE_MESSAGES } from '../constants/messages.js';
 
 export const storeApi = {
   async getStores(filters = {}) {
@@ -69,32 +71,26 @@ export const storeApi = {
   }
 };
 
-// 래퍼 함수들
+// 래퍼 함수들 - apiWrapper로 통일된 에러 처리
 export const getStores = async (filters = {}) => {
-  try {
-    const result = await storeApi.getStores(filters);
-    return { success: true, data: result.data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return apiWrapper(
+    () => storeApi.getStores(filters),
+    '매장 목록 조회'
+  );
 };
 
 export const getStoreDetail = async (storeId) => {
-  try {
-    const result = await storeApi.getStoreDetail(storeId);
-    return { success: true, data: result.data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return apiWrapper(
+    () => storeApi.getStoreDetail(storeId),
+    `매장 상세 조회 (${storeId})`
+  );
 };
 
 export const updateStore = async (storeId, updateData) => {
-  try {
-    const result = await storeApi.updateStore(storeId, updateData);
-    return { success: true, data: result.data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
+  return apiWrapper(
+    () => storeApi.updateStore(storeId, updateData),
+    `매장 정보 수정 (${storeId})`
+  );
 };
 
 export const updateStoreStatus = async (storeId, newStatus) => {

@@ -7,7 +7,7 @@ export const login = async (email, password) => {
   return await apiClient.post('/api/auth/login', { email, password }, { requireAuth: false });
 };
 
-export const validateToken = async (token) => {
+export const validateToken = async () => {
   return await apiClient.get('/api/auth/me');
 };
 

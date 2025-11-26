@@ -80,51 +80,18 @@ export const sendInstallationUrl = async (storeId, options = {}) => {
 
 export const getInstallationStatus = async (storeId) => {
   try {
-    // 먼저 동의서 링크 상태를 확인
-    const consentResult = await apiClient.get(`/api/stores/${storeId}/consent-responses`);
-    
-    if (consentResult.success && consentResult.data.link_info) {
-      // 동의서 링크가 있는 경우, 이를 설치 링크 형태로 변환
-      const linkInfo = consentResult.data.link_info;
-      const hasResponses = consentResult.data.responses.length > 0;
-      
-      return {
-        success: true,
-        data: {
-          activeLink: linkInfo.is_active ? {
-            id: linkInfo.created_at, // 임시 ID
-            url: `http://localhost:5173/consent/...`, // 실제 URL은 별도 조회 필요
-            status: hasResponses ? 'COMPLETED' : 'ACTIVE',
-            sentAt: linkInfo.created_at,
-            expiresAt: linkInfo.expires_at,
-            resendCount: 0
-          } : null,
-          hasActiveLink: linkInfo.is_active,
-          responses: consentResult.data.responses
-        }
-      };
-    }
-    
-    // 동의서 링크가 없으면 기존 설치 링크 확인
+    // 백엔드 consent-responses API가 500 에러를 반환하므로 직접 호출하지 않음
+    // 기존 설치 링크 상태만 확인
     const result = await installationApi.getInstallationStatus(storeId);
     return {
       success: true,
       data: result.data
     };
   } catch (error) {
-    // 동의서 API 호출 실패시 기존 설치 링크 확인으로 폴백
-    try {
-      const result = await installationApi.getInstallationStatus(storeId);
-      return {
-        success: true,
-        data: result.data
-      };
-    } catch (fallbackError) {
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+    return {
+      success: false,
+      error: error.message
+    };
   }
 };
 
