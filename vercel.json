@@ -1,6 +1,7 @@
 {
-  "buildCommand": "cd sms-project && npm install && npm run build",
-  "outputDirectory": "sms-project/dist",
-  "installCommand": "cd sms-project && npm install",
+  "rootDirectory": "sms-project",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "framework": "vite"
 }
