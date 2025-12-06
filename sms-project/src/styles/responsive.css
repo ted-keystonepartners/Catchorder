@@ -1,0 +1,244 @@
+/**
+ * 반응형 디자인 유틸리티 클래스
+ * Tailwind의 기본 브레이크포인트 사용:
+ * - sm: 640px
+ * - md: 768px  
+ * - lg: 1024px
+ * - xl: 1280px
+ * - 2xl: 1536px
+ */
+
+/* 모바일 전용 표시/숨김 */
+@media (max-width: 639px) {
+  .mobile-only {
+    display: block !important;
+  }
+  .hide-mobile {
+    display: none !important;
+  }
+  
+  /* 모바일 네비게이션 */
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    z-index: 50;
+  }
+  
+  /* 모바일 테이블 스크롤 */
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* 모바일 폰트 크기 조정 */
+  .responsive-text {
+    font-size: 14px;
+  }
+  
+  /* 모바일 패딩 조정 */
+  .responsive-padding {
+    padding: 12px;
+  }
+}
+
+/* 태블릿 이상 */
+@media (min-width: 640px) {
+  .mobile-only {
+    display: none !important;
+  }
+  .hide-mobile {
+    display: block !important;
+  }
+  
+  .responsive-text {
+    font-size: 16px;
+  }
+  
+  .responsive-padding {
+    padding: 16px;
+  }
+}
+
+/* 데스크톱 */
+@media (min-width: 1024px) {
+  .desktop-only {
+    display: block !important;
+  }
+  .hide-desktop {
+    display: none !important;
+  }
+  
+  .responsive-padding {
+    padding: 24px;
+  }
+}
+
+/* 컨테이너 최대 너비 */
+.container-responsive {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+@media (min-width: 640px) {
+  .container-responsive {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container-responsive {
+    max-width: 768px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-responsive {
+    max-width: 1024px;
+  }
+}
+
+@media (min-width: 1280px) {
+  .container-responsive {
+    max-width: 1280px;
+  }
+}
+
+/* 반응형 그리드 */
+.grid-responsive {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1280px) {
+  .grid-responsive {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* 반응형 플렉스 */
+.flex-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+@media (min-width: 768px) {
+  .flex-responsive {
+    flex-direction: row;
+  }
+}
+
+/* 사이드바 반응형 */
+.sidebar-responsive {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .sidebar-responsive {
+    display: block;
+    width: 256px;
+    flex-shrink: 0;
+  }
+}
+
+/* 모바일 메뉴 토글 */
+.menu-toggle {
+  display: block;
+}
+
+@media (min-width: 1024px) {
+  .menu-toggle {
+    display: none;
+  }
+}
+
+/* 반응형 버튼 그룹 */
+.button-group-responsive {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 640px) {
+  .button-group-responsive {
+    flex-direction: row;
+    width: auto;
+  }
+}
+
+/* 모바일 모달 풀스크린 */
+@media (max-width: 639px) {
+  .modal-responsive {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 100%;
+    max-height: 100%;
+    border-radius: 0;
+  }
+}
+
+/* 터치 친화적인 크기 */
+@media (max-width: 1023px) {
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  .input-touch {
+    height: 48px;
+    font-size: 16px; /* iOS 줌 방지 */
+  }
+}
+
+/* 반응형 테이블 카드 뷰 */
+@media (max-width: 767px) {
+  .table-card-view thead {
+    display: none;
+  }
+  
+  .table-card-view tr {
+    display: block;
+    margin-bottom: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+  }
+  
+  .table-card-view td {
+    display: block;
+    text-align: left;
+    padding: 0.25rem 0;
+  }
+  
+  .table-card-view td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    display: inline-block;
+    width: 120px;
+    margin-right: 0.5rem;
+  }
+}

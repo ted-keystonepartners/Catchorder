@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consent System Test</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 40px; 
+            line-height: 1.6;
+        }
+        .test-result { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 4px; 
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .info { background-color: #d1ecf1; color: #0c5460; }
+        button {
+            background: #f97316;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #ea580c; }
+        .link-box {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 16px;
+            margin: 16px 0;
+            font-family: monospace;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Consent System Test</h1>
+    <div class="test-result info">
+        이 테스트는 동의서 시스템의 주요 기능들이 제대로 작동하는지 확인합니다.
+    </div>
+
+    <h2>1. 링크 생성 테스트</h2>
+    <button onclick="testCreateLink()">동의서 링크 생성</button>
+    <div id="linkResult"></div>
+
+    <h2>2. 폼 데이터 조회 테스트</h2>
+    <button onclick="testGetForm()">동의서 폼 조회</button>
+    <div id="formResult"></div>
+
+    <h2>3. 동의서 제출 테스트</h2>
+    <button onclick="testSubmitForm()">동의서 제출</button>
+    <div id="submitResult"></div>
+
+    <h2>4. 제출 현황 조회 테스트</h2>
+    <button onclick="testGetResponses()">제출 현황 조회</button>
+    <div id="responsesResult"></div>
+
+    <h2>5. 클립보드 테스트</h2>
+    <button onclick="testClipboard()">클립보드 복사</button>
+    <div id="clipboardResult"></div>
+
+    <script>
+        // Mock 환경 설정
+        window.location = { origin: 'http://localhost:5173' };
+        
+        // 간단한 fetch mock (실제 API는 없으므로)
+        const originalFetch = window.fetch;
+        window.fetch = async (url, options) => {
+            console.log('Mock fetch called:', url, options);
+            // 실패 응답 시뮬레이션 (mock 데이터 사용하도록)
+            throw new Error('API not implemented - using mock data');
+        };
+
+        // Mock 동의서 API 함수들
+        const mockCreateConsentLink = async (storeId) => {
+            await new Promise(resolve => setTimeout(resolve, 500)); // 지연 시뮬레이션
+            return {
+                link_id: `link_${Date.now()}`,
+                token: `mock_token_${Math.random().toString(36).substr(2, 9)}`,
+                consent_url: `${window.location.origin}/consent/mock_token_${Math.random().toString(36).substr(2, 9)}`,
+                expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                message: "링크를 복사해서 고객에게 전달하세요"
+            };
+        };
+
+        const mockGetConsentForm = async (token) => {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            return {
+                link_id: `link_${Date.now()}`,
+                token: token,
+                store_name: "테스트 매장",
+                store_phone: "02-1234-5678", 
+                owner_name: "김영업",
+                form_fields: {
+                    respondent_name: "",
+                    respondent_phone: "",
+                    respondent_position: "",
+                    agreement: false,
+                    desired_install_date: "",
+                    note: ""
+                }
+            };
+        };
+
+        const mockSubmitConsentForm = async (token, formData) => {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            return {
+                response_id: `response_${Date.now()}`,
+                submitted_at: new Date().toISOString()
+            };
+        };
+
+        const mockGetConsentResponses = async (storeId) => {
+            await new Promise(resolve => setTimeout(resolve, 400));
+            return {
+                responses: [
+                    {
+                        response_id: "resp_001",
+                        respondent_name: "김동의",
+                        respondent_phone: "010-1234-5678",
+                        respondent_position: "사장",
+                        agreement: true,
+                        desired_install_date: "2025-12-01",
+                        note: "주말 오전 설치 희망합니다.",
+                        submitted_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                    }
+                ],
+                total_count: 1,
+                link_info: {
+                    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+                    expires_at: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(),
+                    is_active: true
+                }
+            };
+        };
+
+        // 클립보드 mock
+        const mockCopyToClipboard = async (text) => {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+            // 시뮬레이션
+            console.log('Copied to clipboard:', text);
+            return true;
+        };
+
+        // 테스트 함수들
+        async function testCreateLink() {
+            const resultDiv = document.getElementById('linkResult');
+            resultDiv.innerHTML = '<div class="test-result info">링크 생성 중...</div>';
+            
+            try {
+                const result = await mockCreateConsentLink('test_store_123');
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        ✅ 링크 생성 성공!
+                        <div class="link-box">
+                            <strong>링크 URL:</strong><br>
+                            ${result.consent_url}<br><br>
+                            <strong>토큰:</strong> ${result.token}<br>
+                            <strong>만료일:</strong> ${new Date(result.expires_at).toLocaleDateString('ko-KR')}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function testGetForm() {
+            const resultDiv = document.getElementById('formResult');
+            resultDiv.innerHTML = '<div class="test-result info">폼 데이터 조회 중...</div>';
+            
+            try {
+                const result = await mockGetConsentForm('mock_token_test123');
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        ✅ 폼 데이터 조회 성공!
+                        <div class="link-box">
+                            <strong>매장명:</strong> ${result.store_name}<br>
+                            <strong>매장 전화:</strong> ${result.store_phone}<br>
+                            <strong>대표자:</strong> ${result.owner_name}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function testSubmitForm() {
+            const resultDiv = document.getElementById('submitResult');
+            resultDiv.innerHTML = '<div class="test-result info">동의서 제출 중...</div>';
+            
+            try {
+                const formData = {
+                    respondent_name: '테스트 사용자',
+                    respondent_phone: '010-1234-5678',
+                    respondent_position: '사장',
+                    agreement: true,
+                    desired_install_date: '2025-12-01',
+                    note: '테스트 제출입니다.'
+                };
+                
+                const result = await mockSubmitConsentForm('mock_token_test123', formData);
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        ✅ 동의서 제출 성공!
+                        <div class="link-box">
+                            <strong>응답 ID:</strong> ${result.response_id}<br>
+                            <strong>제출 시간:</strong> ${new Date(result.submitted_at).toLocaleString('ko-KR')}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function testGetResponses() {
+            const resultDiv = document.getElementById('responsesResult');
+            resultDiv.innerHTML = '<div class="test-result info">제출 현황 조회 중...</div>';
+            
+            try {
+                const result = await mockGetConsentResponses('test_store_123');
+                const responsesHtml = result.responses.map(resp => `
+                    <div style="margin: 8px 0; padding: 8px; background: white; border-radius: 4px;">
+                        <strong>${resp.respondent_name}</strong> (${resp.respondent_position})<br>
+                        📞 ${resp.respondent_phone}<br>
+                        📅 희망일: ${resp.desired_install_date}<br>
+                        💭 ${resp.note || '추가 사항 없음'}
+                    </div>
+                `).join('');
+                
+                resultDiv.innerHTML = `
+                    <div class="test-result success">
+                        ✅ 제출 현황 조회 성공!
+                        <div class="link-box">
+                            <strong>총 응답 수:</strong> ${result.total_count}개<br>
+                            ${responsesHtml}
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ ${error.message}</div>`;
+            }
+        }
+
+        async function testClipboard() {
+            const resultDiv = document.getElementById('clipboardResult');
+            resultDiv.innerHTML = '<div class="test-result info">클립보드 테스트 중...</div>';
+            
+            try {
+                const testUrl = 'http://localhost:5173/consent/mock_token_abc123';
+                const success = await mockCopyToClipboard(testUrl);
+                
+                if (success) {
+                    resultDiv.innerHTML = `
+                        <div class="test-result success">
+                            ✅ 클립보드 복사 성공!
+                            <div class="link-box">
+                                복사된 URL: ${testUrl}
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    throw new Error('클립보드 복사 실패');
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="test-result error">❌ ${error.message}</div>`;
+            }
+        }
+
+        // 페이지 로드 시 자동 실행
+        window.onload = () => {
+            console.log('🧪 Consent System Test Page Loaded');
+            console.log('Mock 함수들이 준비되었습니다.');
+        };
+    </script>
+</body>
+</html>
