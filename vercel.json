@@ -1,0 +1,11 @@
+{
+  "buildCommand": "cd sms-project && npm install && npm run build",
+  "outputDirectory": "sms-project/dist",
+  "installCommand": "cd sms-project && npm install",
+  "framework": "vite",
+  "functions": {
+    "sms-backend/lambda.js": {
+      "runtime": "nodejs20.x"
+    }
+  }
+}
