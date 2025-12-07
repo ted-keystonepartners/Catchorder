@@ -32,6 +32,7 @@ const DashboardPage = () => {
   const [ownerStats, setOwnerStats] = useState([]);
   const [periodData, setPeriodData] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
+  const [managersMap, setManagersMap] = useState({});
   
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
@@ -85,6 +86,22 @@ const DashboardPage = () => {
       console.error('통계 데이터 조회 실패:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // 담당자 목록 가져오기
+  const fetchManagers = async () => {
+    try {
+      const response = await apiClient.get('/api/managers');
+      if (response.success && response.data) {
+        const map = {};
+        response.data.forEach(manager => {
+          map[manager.user_id] = manager.name;
+        });
+        setManagersMap(map);
+      }
+    } catch (error) {
+      console.error('담당자 목록 조회 실패:', error);
     }
   };
 
@@ -171,6 +188,7 @@ const DashboardPage = () => {
   // 초기 데이터 로드
   useEffect(() => {
     fetchTodayStats();
+    fetchManagers();
   }, []);
 
   // 기간별 데이터 로드
@@ -557,10 +575,11 @@ const DashboardPage = () => {
                 <tbody>
                   {ownerStats.map((owner, index) => {
                     const email = owner.stats_type.replace('owner:', '');
+                    const displayName = managersMap[email] || email.split('@')[0];
                     return (
                       <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>
-                          {email.split('@')[0]}
+                          {displayName}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: '#111827' }}>
                           {owner.funnel?.registered || 0}
