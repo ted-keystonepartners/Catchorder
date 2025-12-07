@@ -232,6 +232,11 @@ const StoreListPage = () => {
       return STORE_STATUS[status]?.priority || 999;
     };
     
+    // 디버깅용 콘솔 로그
+    console.log('stores status values:', filtered.map(s => s.status));
+    console.log('STORE_STATUS keys:', Object.keys(STORE_STATUS));
+    console.log('Unmatched statuses:', filtered.map(s => s.status).filter(status => !STORE_STATUS[status]));
+    
     return filtered.sort((a, b) => {
       return getStatusPriority(a.status) - getStatusPriority(b.status);
     });
