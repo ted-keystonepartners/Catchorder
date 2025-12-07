@@ -22,6 +22,7 @@ const OrderUploadPage = () => {
   const [saveResults, setSaveResults] = useState(null); // 저장 결과 통계
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processingMessage, setProcessingMessage] = useState('');
+  const [saveProgress, setSaveProgress] = useState({ current: 0, total: 0, percent: 0 }); // 저장 진행률
   const [typingText, setTypingText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
 
@@ -339,6 +340,7 @@ match_type criteria:
   const handleSave = async () => {
     setIsSaving(true);
     setErrorOrders([]);
+    setSaveProgress({ current: 0, total: 0, percent: 0 });
 
     try {
       // 매핑 정보를 Map으로 변환
@@ -369,35 +371,52 @@ match_type criteria:
         return;
       }
 
-      // POST 요청
-      const response = await apiClient.post('/api/order', { orders: ordersToSave });
+      // 1000건씩 분할 전송
+      const chunkSize = 1000;
+      let totalSaved = 0;
+      let totalUpdated = 0;
+      let totalDuplicates = 0;
+      let totalErrors = 0;
 
-      if (response.success) {
-        const result = response.data;
+      setSaveProgress({ current: 0, total: ordersToSave.length, percent: 0 });
+
+      for (let i = 0; i < ordersToSave.length; i += chunkSize) {
+        const chunk = ordersToSave.slice(i, i + chunkSize);
+        const progress = Math.min(i + chunkSize, ordersToSave.length);
+        const percent = Math.round((progress / ordersToSave.length) * 100);
         
-        // 결과 메시지 생성
-        const savedCount = result.saved || 0;
-        const updatedCount = result.updated || 0;
-        const errorCount = result.errors?.length || 0;
-        const duplicateCount = result.duplicates || 0;
+        // 진행률 업데이트
+        setSaveProgress({ current: progress, total: ordersToSave.length, percent });
         
-        // 저장 결과 state 저장 (UI 표시용)
-        setSaveResults({
-          saved: savedCount,
-          updated: updatedCount,
-          errors: errorCount,
-          duplicates: duplicateCount,
-          total: ordersToSave.length
-        });
+        // 청크 전송
+        const response = await apiClient.post('/api/order', { orders: chunk });
         
-        // 성공 메시지 생성
-        let successMsg = [];
-        if (savedCount > 0) successMsg.push(`신규 ${savedCount}개`);
-        if (updatedCount > 0) successMsg.push(`업데이트 ${updatedCount}개`);
-        
-        if (successMsg.length > 0) {
-          success(`주문 처리 완료: ${successMsg.join(', ')}`);
+        if (response.success && response.data) {
+          totalSaved += response.data.saved || 0;
+          totalUpdated += response.data.updated || 0;
+          totalDuplicates += response.data.duplicates || 0;
+          totalErrors += response.data.errors?.length || 0;
         }
+      }
+      
+      // 저장 결과 state 저장 (UI 표시용)
+      setSaveResults({
+        saved: totalSaved,
+        updated: totalUpdated,
+        errors: totalErrors,
+        duplicates: totalDuplicates,
+        total: ordersToSave.length
+      });
+      
+      // 성공 메시지 생성
+      let successMsg = [];
+      if (totalSaved > 0) successMsg.push(`신규 ${totalSaved.toLocaleString()}건`);
+      if (totalUpdated > 0) successMsg.push(`업데이트 ${totalUpdated.toLocaleString()}건`);
+      if (totalDuplicates > 0) successMsg.push(`중복 ${totalDuplicates.toLocaleString()}건`);
+      
+      if (successMsg.length > 0) {
+        success(`주문 처리 완료: ${successMsg.join(', ')}`);
+      }
         
         // 에러/중복 처리
         if (result.errors && result.errors.length > 0) {
@@ -1063,6 +1082,54 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
               </table>
             </div>
 
+            {/* 저장 진행률 표시 */}
+            {isSaving && saveProgress.total > 0 && (
+              <div style={{
+                backgroundColor: '#f9fafb',
+                borderRadius: '12px',
+                padding: '20px',
+                marginTop: '24px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '12px'
+                }}>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151'
+                  }}>
+                    저장 중...
+                  </span>
+                  <span style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#FF3D00'
+                  }}>
+                    {saveProgress.current.toLocaleString()} / {saveProgress.total.toLocaleString()} ({saveProgress.percent}%)
+                  </span>
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  backgroundColor: '#e5e7eb',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${saveProgress.percent}%`,
+                    height: '100%',
+                    backgroundColor: '#FF3D00',
+                    borderRadius: '4px',
+                    transition: 'width 0.3s ease-in-out'
+                  }}/>
+                </div>
+              </div>
+            )}
+            
             <div style={{
               marginTop: '24px',
               display: 'flex',
@@ -1070,6 +1137,7 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
             }}>
               <button
                 onClick={resetAll}
+                disabled={isSaving}
                 style={{
                   padding: '10px 20px',
                   backgroundColor: 'white',
@@ -1077,8 +1145,8 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                   borderRadius: '8px',
                   fontSize: '14px',
                   fontWeight: '500',
-                  color: '#6b7280',
-                  cursor: 'pointer',
+                  color: isSaving ? '#d1d5db' : '#6b7280',
+                  cursor: isSaving ? 'not-allowed' : 'pointer',
                   transition: 'all 0.2s'
                 }}
               >
@@ -1099,7 +1167,7 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                   transition: 'all 0.2s'
                 }}
               >
-                {isSaving ? '저장 중...' : '주문 저장'}
+                {isSaving ? `저장 중... ${saveProgress.percent}%` : '주문 저장'}
               </button>
             </div>
           </div>
@@ -1157,7 +1225,7 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#7c2d12' }}>
-                      신규: {saveResults.saved}개
+                      신규: {saveResults.saved.toLocaleString()}건
                     </span>
                   </div>
 
@@ -1174,7 +1242,7 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                       <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
                     </svg>
                     <span style={{ fontSize: '14px', fontWeight: '600', color: '#7c2d12' }}>
-                      업데이트: {saveResults.updated}개
+                      업데이트: {saveResults.updated.toLocaleString()}건
                     </span>
                   </div>
 
@@ -1192,7 +1260,7 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                         <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                       </svg>
                       <span style={{ fontSize: '14px', fontWeight: '600', color: '#7c2d12' }}>
-                        중복: {saveResults.duplicates}개
+                        중복: {saveResults.duplicates.toLocaleString()}건
                       </span>
                     </div>
                   )}
