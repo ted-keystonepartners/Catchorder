@@ -87,18 +87,32 @@ const DashboardPage = () => {
   // 담당자 목록 가져오기
   const fetchManagers = async () => {
     try {
-      const response = await apiClient.get('/api/managers');
-      if (response.success && response.data && response.data.managers) {
-        const map = {};
-        response.data.managers.forEach(manager => {
-          // user_id 또는 email 필드 둘 다 체크
-          const email = manager.user_id || manager.email;
-          if (email) {
-            map[email] = manager.name;
-          }
-        });
-        setManagersMap(map);
-      }
+      // API가 없으므로 하드코딩된 매핑 사용
+      // 실제 배포 시 API 구현 필요
+      const hardcodedManagers = {
+        'admin@example.com': '김관리',
+        'sales1@catchtable.co.kr': '김영업',
+        'sales2@catchtable.co.kr': '이영업', 
+        'sales3@catchtable.co.kr': '박영업',
+        'manager1@catchtable.co.kr': '최매니저',
+        'manager2@catchtable.co.kr': '정매니저',
+        'support@catchtable.co.kr': '서포트팀'
+      };
+      
+      setManagersMap(hardcodedManagers);
+      
+      // 나중에 API가 구현되면 아래 코드 활성화
+      // const response = await apiClient.get('/api/managers');
+      // if (response.success && response.data && response.data.managers) {
+      //   const map = {};
+      //   response.data.managers.forEach(manager => {
+      //     const email = manager.user_id || manager.email;
+      //     if (email) {
+      //       map[email] = manager.name;
+      //     }
+      //   });
+      //   setManagersMap(map);
+      // }
     } catch (error) {
       console.error('담당자 목록 조회 실패:', error);
     }
