@@ -63,27 +63,21 @@ const DashboardPage = () => {
     }
   }, [chatOpen, chatMessages.length]);
 
-  // 오늘 날짜 통계 가져오기
+  // 실시간 현황 통계 가져오기
   const fetchTodayStats = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/stats');
+      const response = await apiClient.get('/api/dashboard');
       
       if (response.success && response.data) {
-        setStatsData(response.data);
+        // overall stats 설정
+        setOverallStats(response.data.overall);
         
-        // overall stats 분리
-        const overall = response.data.find(item => item.stats_type === 'overall');
-        setOverallStats(overall);
-        
-        // owner stats 분리
-        const owners = response.data.filter(item => 
-          item.stats_type && item.stats_type.startsWith('owner:')
-        );
-        setOwnerStats(owners);
+        // owner stats 설정 (이미 owner_name 포함됨)
+        setOwnerStats(response.data.owners || []);
       }
     } catch (error) {
-      console.error('통계 데이터 조회 실패:', error);
+      console.error('대시보드 데이터 조회 실패:', error);
     } finally {
       setLoading(false);
     }
@@ -578,8 +572,12 @@ const DashboardPage = () => {
                 </thead>
                 <tbody>
                   {ownerStats.map((owner, index) => {
-                    const email = owner.stats_type.replace('owner:', '');
-                    const displayName = managersMap[email] || email.split('@')[0];
+                    // owner_name이 API에서 제공되면 사용, 없으면 기존 로직
+                    const displayName = owner.owner_name || 
+                      (() => {
+                        const email = owner.owner_id || owner.stats_type?.replace('owner:', '');
+                        return managersMap[email] || email?.split('@')[0] || '';
+                      })();
                     return (
                       <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>
