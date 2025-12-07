@@ -3,7 +3,7 @@
  */
 
 /**
- * @typedef {'VISIT_PENDING'|'VISIT_COMPLETED'|'REVISIT_SCHEDULED'|'INFO_REQUEST'|'REMOTE_INSTALL_SCHEDULED'|'ADMIN_SETTING'|'QR_LINKING'|'SERVICE_TERMINATED'|'UNUSED_TERMINATED'|'PENDING'} StoreStatusCode
+ * @typedef {'PRE_INTRODUCTION'|'VISIT_COMPLETED'|'REVISIT_SCHEDULED'|'INFO_REQUEST'|'REMOTE_INSTALL_SCHEDULED'|'ADMIN_SETTING'|'QR_LINKING'|'DEFECT_REPAIR'|'QR_MENU_INSTALL'|'SERVICE_TERMINATED'|'UNUSED_TERMINATED'|'PENDING'} StoreStatusCode
  * @typedef {'P1'|'P2'|'P3'|'P4'} LifecycleCode
  * @typedef {'CALL'|'VISIT'|'SCHEDULE_CALL'|'SCHEDULE_VISIT'|'MEMO'} ActivityTypeCode
  * @typedef {'ADMIN'|'GENERAL'} RoleCode
@@ -18,8 +18,8 @@
  * @property {string} description - 상태 설명
  */
 export const STORE_STATUS = {
-  VISIT_PENDING: {
-    code: 'VISIT_PENDING',
+  PRE_INTRODUCTION: {
+    code: 'PRE_INTRODUCTION',
     label: '방문대기',
     color: 'bg-gray-100 text-gray-700',
     description: '방문 대기 중인 매장',

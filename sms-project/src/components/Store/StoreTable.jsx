@@ -80,13 +80,15 @@ const StoreTable = ({
   // 상태 배지 컴포넌트
   const StatusBadge = ({ status }) => {
     const statusConfig = {
-      'VISIT_PENDING': { label: '방문대기', color: 'bg-gray-100 text-gray-800' },
+      'PRE_INTRODUCTION': { label: '방문대기', color: 'bg-gray-100 text-gray-800' },
       'VISIT_COMPLETED': { label: '방문완료', color: 'bg-blue-100 text-blue-800' },
       'REVISIT_SCHEDULED': { label: '재방문예정', color: 'bg-yellow-100 text-yellow-800' },
       'INFO_REQUEST': { label: '추가정보요청', color: 'bg-purple-100 text-purple-800' },
       'REMOTE_INSTALL_SCHEDULED': { label: '에이전트설치예정', color: 'bg-green-100 text-green-800' },
       'ADMIN_SETTING': { label: '어드민셋팅', color: 'bg-emerald-100 text-emerald-800' },
       'QR_LINKING': { label: 'POS연동예정', color: 'bg-green-100 text-green-800' },
+      'DEFECT_REPAIR': { label: '하자보수중', color: 'bg-indigo-100 text-indigo-800' },
+      'QR_MENU_INSTALL': { label: '최종설치완료', color: 'bg-teal-100 text-teal-800' },
       'SERVICE_TERMINATED': { label: '서비스해지', color: 'bg-red-100 text-red-800' },
       'UNUSED_TERMINATED': { label: '미이용해지', color: 'bg-red-100 text-red-800' },
       'PENDING': { label: '보류', color: 'bg-orange-100 text-orange-800' }
@@ -217,7 +219,7 @@ const StoreTable = ({
       width: '110px',
       render: (value) => {
         const statusColors = {
-          'VISIT_PENDING': { bgColor: '#f3f4f6', textColor: '#6b7280' },
+          'PRE_INTRODUCTION': { bgColor: '#f3f4f6', textColor: '#6b7280' },
           'VISIT_COMPLETED': { bgColor: '#dbeafe', textColor: '#1e40af' },
           'REVISIT_SCHEDULED': { bgColor: '#fef3c7', textColor: '#d97706' },
           'INFO_REQUEST': { bgColor: '#f3e8ff', textColor: '#7c3aed' },

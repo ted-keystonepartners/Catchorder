@@ -42,7 +42,7 @@ const StoreFilterPanel = ({
   // 상태 옵션
   const statusOptions = [
     { value: 'all', label: '전체 상태' },
-    { value: 'VISIT_PENDING', label: '방문대기' },
+    { value: 'PRE_INTRODUCTION', label: '방문대기' },
     { value: 'VISIT_COMPLETED', label: '방문완료' },
     { value: 'REVISIT_SCHEDULED', label: '재방문예정' },
     { value: 'INFO_REQUEST', label: '추가정보요청' },

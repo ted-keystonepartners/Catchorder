@@ -118,35 +118,34 @@ export const getStatusColor = (statusCode) => {
  * @returns {string} 한글 라벨
  */
 export const getStatusLabel = (statusCode) => {
-  // 레거시 매핑
+  // 레거시 상태값을 현재 상태값으로 매핑
   const legacyMapping = {
-    'PRE_INTRODUCTION': '방문대기',
-    'INTRODUCTION_COMPLETED': '방문완료',
-    'IN_PROGRESS': '재방문예정',
-    'ADOPTION_CONFIRMED': '에이전트설치예정',
-    'SIGNUP_COMPLETED': '어드민셋팅',
-    'INSTALLATION_PENDING': 'POS연동예정',
-    'INSTALLATION_COMPLETED': 'POS연동예정',
-    'REJECTED': '서비스해지',
-    'NO_RESPONSE': '보류',
-    'OUT_OF_BUSINESS': '미이용해지',
-    'CONTACT_PENDING': '방문대기',
-    'CONTACT_COMPLETED': '방문완료',
-    'PROPOSAL_SENT': '추가정보요청',
-    'UNDER_REVIEW': '재방문예정',
-    'SERVICE_ACTIVE': 'POS연동예정',
-    'PAUSED': '보류',
-    'CANCELLED': '서비스해지'
+    'INTRODUCTION_COMPLETED': 'VISIT_COMPLETED',
+    'IN_PROGRESS': 'REVISIT_SCHEDULED',
+    'ADOPTION_CONFIRMED': 'REMOTE_INSTALL_SCHEDULED',
+    'SIGNUP_COMPLETED': 'ADMIN_SETTING',
+    'INSTALLATION_PENDING': 'QR_LINKING',
+    'INSTALLATION_COMPLETED': 'QR_MENU_INSTALL',
+    'REJECTED': 'SERVICE_TERMINATED',
+    'NO_RESPONSE': 'PENDING',
+    'OUT_OF_BUSINESS': 'UNUSED_TERMINATED',
+    'CONTACT_PENDING': 'PRE_INTRODUCTION',
+    'CONTACT_COMPLETED': 'VISIT_COMPLETED',
+    'PROPOSAL_SENT': 'INFO_REQUEST',
+    'UNDER_REVIEW': 'REVISIT_SCHEDULED',
+    'SERVICE_ACTIVE': 'QR_LINKING',
+    'PAUSED': 'PENDING',
+    'CANCELLED': 'SERVICE_TERMINATED'
   };
 
-  // 먼저 현재 STORE_STATUS에서 찾기
-  const status = Object.values(STORE_STATUS).find(s => s.code === statusCode);
+  // 레거시 상태값이면 매핑
+  const mappedStatus = legacyMapping[statusCode] || statusCode;
+  
+  // STORE_STATUS에서 찾기
+  const status = Object.values(STORE_STATUS).find(s => s.code === mappedStatus);
   if (status) return status.label;
   
-  // 레거시 매핑에서 찾기
-  if (legacyMapping[statusCode]) return legacyMapping[statusCode];
-  
-  // 둘 다 없으면 원본 반환
+  // 없으면 원본 반환
   return statusCode;
 };
 

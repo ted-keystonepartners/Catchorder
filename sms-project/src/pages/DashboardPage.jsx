@@ -8,20 +8,19 @@ import ReactMarkdown from 'react-markdown';
 
 // 상태 라벨 매핑
 const STATUS_LABELS = {
-  PRE_INTRODUCTION: "도입전",
-  VISIT_PENDING: "방문대기",
+  PRE_INTRODUCTION: "방문대기",
   VISIT_COMPLETED: "방문완료",
   REVISIT_SCHEDULED: "재방문예정",
   INFO_REQUEST: "추가정보요청",
   REMOTE_INSTALL_SCHEDULED: "에이전트설치예정",
   ADMIN_SETTING: "어드민셋팅",
-  QR_LINKING: "POS연동",
-  DEFECT_REPAIR: "하자보수",
-  QR_MENU_INSTALL: "설치완료",
+  QR_LINKING: "POS연동예정",
+  DEFECT_REPAIR: "하자보수중",
+  QR_MENU_INSTALL: "최종설치완료",
   SERVICE_TERMINATED: "서비스해지",
   UNUSED_TERMINATED: "미이용해지",
   PENDING: "보류",
-  ADOPTION_CONFIRMED: "도입확정"
+  ADOPTION_CONFIRMED: "에이전트설치예정" // 레거시 상태값
 };
 
 const DashboardPage = () => {

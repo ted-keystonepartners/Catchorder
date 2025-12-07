@@ -179,7 +179,7 @@ const StoreListPage = () => {
       
       // 상태 필터 매핑 (새 상태값과 이전 상태값 모두 처리)
       const statusMapping = {
-        'VISIT_PENDING': ['VISIT_PENDING', 'PRE_INTRODUCTION', 'CONTACT_PENDING'],
+        'PRE_INTRODUCTION': ['PRE_INTRODUCTION', 'CONTACT_PENDING'],
         'VISIT_COMPLETED': ['VISIT_COMPLETED', 'INTRODUCTION_COMPLETED', 'CONTACT_COMPLETED'],
         'REVISIT_SCHEDULED': ['REVISIT_SCHEDULED', 'IN_PROGRESS', 'UNDER_REVIEW'],
         'INFO_REQUEST': ['INFO_REQUEST', 'PROPOSAL_SENT'],
@@ -229,9 +229,8 @@ const StoreListPage = () => {
     
     // 상태 priority로 정렬
     const getStatusPriority = (status) => {
-      // 레거시 상태값 매핑
+      // 레거시 상태값을 현재 상태값으로 매핑
       const legacyMapping = {
-        'PRE_INTRODUCTION': 'VISIT_PENDING',
         'INTRODUCTION_COMPLETED': 'VISIT_COMPLETED',
         'IN_PROGRESS': 'REVISIT_SCHEDULED',
         'ADOPTION_CONFIRMED': 'REMOTE_INSTALL_SCHEDULED',
@@ -240,7 +239,14 @@ const StoreListPage = () => {
         'INSTALLATION_COMPLETED': 'QR_MENU_INSTALL',
         'REJECTED': 'SERVICE_TERMINATED',
         'NO_RESPONSE': 'PENDING',
-        'OUT_OF_BUSINESS': 'UNUSED_TERMINATED'
+        'OUT_OF_BUSINESS': 'UNUSED_TERMINATED',
+        'CONTACT_PENDING': 'PRE_INTRODUCTION',
+        'CONTACT_COMPLETED': 'VISIT_COMPLETED',
+        'PROPOSAL_SENT': 'INFO_REQUEST',
+        'UNDER_REVIEW': 'REVISIT_SCHEDULED',
+        'SERVICE_ACTIVE': 'QR_LINKING',
+        'PAUSED': 'PENDING',
+        'CANCELLED': 'SERVICE_TERMINATED'
       };
       
       const mappedStatus = legacyMapping[status] || status;
@@ -262,7 +268,7 @@ const StoreListPage = () => {
   // 통계 계산 - stores가 변경될 때만 재계산
   const stats = useMemo(() => ({
     total: stores.length,
-    visitPending: stores.filter(s => s.status === 'VISIT_PENDING').length,
+    preIntroduction: stores.filter(s => s.status === 'PRE_INTRODUCTION').length,
     visitCompleted: stores.filter(s => s.status === 'VISIT_COMPLETED').length,
     remoteInstallScheduled: stores.filter(s => s.status === 'REMOTE_INSTALL_SCHEDULED').length,
     adminSetting: stores.filter(s => s.status === 'ADMIN_SETTING').length
