@@ -15,7 +15,8 @@ const STATUS_LABELS = {
   INFO_REQUEST: "추가정보요청",
   REMOTE_INSTALL_SCHEDULED: "원격설치예정",
   ADMIN_SETTING: "어드민셋팅",
-  QR_LINKING: "QR연동",
+  QR_LINKING: "POS연동",
+  DEFECT_REPAIR: "하자보수",
   QR_MENU_INSTALL: "설치완료",
   SERVICE_TERMINATED: "서비스해지",
   UNUSED_TERMINATED: "미이용해지",
@@ -218,14 +219,16 @@ const DashboardPage = () => {
     
     const result = [];
     
-    // 모든 상태 항목 추가 (값이 없어도 0으로 표시)
+    // 값이 있는 상태만 추가
     statusOrder.forEach(key => {
       const value = overallStats.stats[key] || 0;
-      result.push({
-        name: STATUS_LABELS[key] || key,
-        value: value,
-        key: key
-      });
+      if (value > 0) {
+        result.push({
+          name: STATUS_LABELS[key] || key,
+          value: value,
+          key: key
+        });
+      }
     });
     
     return result;
@@ -475,11 +478,11 @@ const DashboardPage = () => {
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
                 상태별 현황
               </h3>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={statusChartData} layout="vertical">
+              <ResponsiveContainer width="100%" height={Math.max(250, statusChartData.length * 40)}>
+                <BarChart data={statusChartData} layout="vertical" margin={{ left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} />
+                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12 }} />
                   <Tooltip />
                   <Bar dataKey="value" fill="#FF6B00" />
                 </BarChart>
