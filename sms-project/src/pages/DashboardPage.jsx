@@ -639,11 +639,11 @@ const DashboardPage = () => {
                           
                           if (selectedInstallCategory === 'churned') {
                             // 해지 카테고리: churned_service와 churned_unused 합치기
-                            const serviceChurned = (overallStats.install_detail.stores?.churned_service || []).map(s => ({...s, churnType: '서비스해지'}));
-                            const unusedChurned = (overallStats.install_detail.stores?.churned_unused || []).map(s => ({...s, churnType: '미이용해지'}));
+                            const serviceChurned = (overallStats.install_detail.churned_service || []).map(s => ({...s, churnType: '서비스해지'}));
+                            const unusedChurned = (overallStats.install_detail.churned_unused || []).map(s => ({...s, churnType: '미이용해지'}));
                             storeList = [...serviceChurned, ...unusedChurned];
                           } else {
-                            storeList = overallStats.install_detail.stores?.[selectedInstallCategory] || [];
+                            storeList = overallStats.install_detail[selectedInstallCategory] || [];
                           }
                           
                           return storeList.map((store, index) => (
