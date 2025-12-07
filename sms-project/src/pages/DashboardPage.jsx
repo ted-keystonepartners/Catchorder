@@ -536,7 +536,7 @@ const DashboardPage = () => {
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>이용중</p>
                   <p style={{ fontSize: '24px', fontWeight: '600', color: '#10b981', margin: 0 }}>
-                    {overallStats.install_detail.summary.active || 0}
+                    {(overallStats.install_detail.summary.active || 0) + (overallStats.install_detail.summary.active_not_completed || 0)}
                   </p>
                 </div>
 
@@ -628,8 +628,8 @@ const DashboardPage = () => {
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>등록일</th>
-                          {selectedInstallCategory === 'churned' && (
-                            <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>상태</th>
+                          {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
+                            <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
                           )}
                         </tr>
                       </thead>
@@ -642,6 +642,11 @@ const DashboardPage = () => {
                             const serviceChurned = (overallStats.install_detail.churned_service || []).map(s => ({...s, churnType: '서비스해지'}));
                             const unusedChurned = (overallStats.install_detail.churned_unused || []).map(s => ({...s, churnType: '미이용해지'}));
                             storeList = [...serviceChurned, ...unusedChurned];
+                          } else if (selectedInstallCategory === 'active') {
+                            // 이용중 카테고리: active와 active_not_completed 합치기
+                            const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
+                            const notCompleted = (overallStats.install_detail.active_not_completed || []).map(s => ({...s, installType: '설치중'}));
+                            storeList = [...completed, ...notCompleted];
                           } else {
                             storeList = overallStats.install_detail[selectedInstallCategory] || [];
                           }
@@ -668,17 +673,17 @@ const DashboardPage = () => {
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
                                 {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '-'}
                               </td>
-                              {selectedInstallCategory === 'churned' && (
+                              {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
                                 <td style={{ padding: '12px 8px', fontSize: '13px' }}>
                                   <span style={{
                                     padding: '2px 8px',
                                     borderRadius: '4px',
                                     fontSize: '11px',
                                     fontWeight: '500',
-                                    backgroundColor: store.churnType === '서비스해지' ? '#fef2f2' : '#fefce8',
-                                    color: store.churnType === '서비스해지' ? '#dc2626' : '#ca8a04'
+                                    backgroundColor: store.churnType === '서비스해지' ? '#fef2f2' : store.churnType === '미이용해지' ? '#fefce8' : store.installType === '설치중' ? '#fef3c7' : '#d1fae5',
+                                    color: store.churnType === '서비스해지' ? '#dc2626' : store.churnType === '미이용해지' ? '#ca8a04' : store.installType === '설치중' ? '#d97706' : '#059669'
                                   }}>
-                                    {store.churnType}
+                                    {store.churnType || store.installType}
                                   </span>
                                 </td>
                               )}
