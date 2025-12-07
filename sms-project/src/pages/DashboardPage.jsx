@@ -631,6 +631,9 @@ const DashboardPage = () => {
                           {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
                             <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
                           )}
+                          {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'churned' || selectedInstallCategory === 'repair' || selectedInstallCategory === 'pending') && (
+                            <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문</th>
+                          )}
                         </tr>
                       </thead>
                       <tbody>
@@ -685,6 +688,22 @@ const DashboardPage = () => {
                                   }}>
                                     {store.churnType || store.installType}
                                   </span>
+                                </td>
+                              )}
+                              {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'churned' || selectedInstallCategory === 'repair' || selectedInstallCategory === 'pending') && (
+                                <td style={{ padding: '12px 8px', fontSize: '13px' }}>
+                                  {store.hasOrder && (
+                                    <span style={{
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: '500',
+                                      backgroundColor: '#dbeafe',
+                                      color: '#1d4ed8'
+                                    }}>
+                                      주문있음
+                                    </span>
+                                  )}
                                 </td>
                               )}
                             </tr>
