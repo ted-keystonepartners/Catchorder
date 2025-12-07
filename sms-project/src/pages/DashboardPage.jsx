@@ -13,7 +13,7 @@ const STATUS_LABELS = {
   VISIT_COMPLETED: "방문완료",
   REVISIT_SCHEDULED: "재방문예정",
   INFO_REQUEST: "추가정보요청",
-  REMOTE_INSTALL_SCHEDULED: "원격설치예정",
+  REMOTE_INSTALL_SCHEDULED: "에이전트설치예정",
   ADMIN_SETTING: "어드민셋팅",
   QR_LINKING: "POS연동",
   DEFECT_REPAIR: "하자보수",
@@ -201,7 +201,7 @@ const DashboardPage = () => {
   const statusChartData = useMemo(() => {
     if (!overallStats?.stats) return [];
     
-    // 모든 상태값을 priority 순서대로 표시
+    // 설치진행 관련 상태만 표시 (이 순서대로)
     const statusOrder = [
       'VISIT_PENDING',
       'VISIT_COMPLETED', 
@@ -209,26 +209,19 @@ const DashboardPage = () => {
       'INFO_REQUEST',
       'REMOTE_INSTALL_SCHEDULED',
       'ADMIN_SETTING',
-      'QR_LINKING',
-      'DEFECT_REPAIR',
-      'QR_MENU_INSTALL',
-      'SERVICE_TERMINATED',
-      'UNUSED_TERMINATED',
-      'PENDING'
+      'QR_LINKING'
     ];
     
     const result = [];
     
-    // 값이 있는 상태만 추가
+    // 설치진행 상태만 추가 (값이 0이어도 표시)
     statusOrder.forEach(key => {
       const value = overallStats.stats[key] || 0;
-      if (value > 0) {
-        result.push({
-          name: STATUS_LABELS[key] || key,
-          value: value,
-          key: key
-        });
-      }
+      result.push({
+        name: STATUS_LABELS[key] || key,
+        value: value,
+        key: key
+      });
     });
     
     return result;
@@ -448,12 +441,13 @@ const DashboardPage = () => {
               backgroundColor: 'white',
               borderRadius: '12px',
               padding: '24px',
-              border: '1px solid #e5e7eb'
+              border: '1px solid #e5e7eb',
+              height: '350px'
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
                 전환 퍼널
               </h3>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={funnelData} layout="horizontal" margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="name" />
@@ -468,21 +462,22 @@ const DashboardPage = () => {
               </ResponsiveContainer>
             </div>
 
-            {/* 상태별 현황 */}
+            {/* 설치진행 현황 */}
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
               padding: '24px',
-              border: '1px solid #e5e7eb'
+              border: '1px solid #e5e7eb',
+              height: '350px'
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
-                상태별 현황
+                설치진행 현황
               </h3>
-              <ResponsiveContainer width="100%" height={Math.max(250, statusChartData.length * 40)}>
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={statusChartData} layout="vertical" margin={{ left: 10 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12 }} />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                   <Tooltip />
                   <Bar dataKey="value" fill="#FF6B00" />
                 </BarChart>
