@@ -22,73 +22,85 @@ export const STORE_STATUS = {
     code: 'VISIT_PENDING',
     label: '방문대기',
     color: 'bg-gray-100 text-gray-700',
-    description: '방문 대기 중인 매장'
+    description: '방문 대기 중인 매장',
+    priority: 1
   },
   VISIT_COMPLETED: {
     code: 'VISIT_COMPLETED',
     label: '방문완료',
     color: 'bg-blue-100 text-blue-700',
-    description: '방문이 완료된 매장'
+    description: '방문이 완료된 매장',
+    priority: 2
   },
   REVISIT_SCHEDULED: {
     code: 'REVISIT_SCHEDULED',
     label: '재방문예정',
     color: 'bg-yellow-100 text-yellow-700',
-    description: '재방문이 예정된 매장'
+    description: '재방문이 예정된 매장',
+    priority: 3
   },
   INFO_REQUEST: {
     code: 'INFO_REQUEST',
     label: '추가정보요청',
     color: 'bg-purple-100 text-purple-700',
-    description: '추가 정보를 요청한 매장'
+    description: '추가 정보를 요청한 매장',
+    priority: 4
   },
   REMOTE_INSTALL_SCHEDULED: {
     code: 'REMOTE_INSTALL_SCHEDULED',
     label: '에이전트설치예정',
     color: 'bg-green-100 text-green-700',
-    description: '에이전트 설치가 예정된 매장'
+    description: '에이전트 설치가 예정된 매장',
+    priority: 5
   },
   ADMIN_SETTING: {
     code: 'ADMIN_SETTING',
     label: '어드민셋팅',
     color: 'bg-green-200 text-green-800',
-    description: '어드민 설정 중인 매장'
+    description: '어드민 설정 중인 매장',
+    priority: 6
   },
   QR_LINKING: {
     code: 'QR_LINKING',
     label: 'POS연동예정',
     color: 'bg-green-300 text-green-900',
-    description: 'POS 연동 예정인 매장'
+    description: 'POS 연동 예정인 매장',
+    priority: 7
   },
   DEFECT_REPAIR: {
     code: 'DEFECT_REPAIR',
     label: '하자보수중',
     color: 'bg-indigo-100 text-indigo-700',
-    description: '하자보수 진행 중인 매장'
+    description: '하자보수 진행 중인 매장',
+    priority: 8
   },
   QR_MENU_INSTALL: {
     code: 'QR_MENU_INSTALL',
     label: '최종설치완료',
     color: 'bg-teal-100 text-teal-700',
-    description: '최종 설치가 완료된 매장'
+    description: '최종 설치가 완료된 매장',
+    priority: 9
   },
   SERVICE_TERMINATED: {
     code: 'SERVICE_TERMINATED',
     label: '서비스해지',
     color: 'bg-red-100 text-red-700',
-    description: '서비스가 해지된 매장'
+    description: '서비스가 해지된 매장',
+    priority: 10
   },
   UNUSED_TERMINATED: {
     code: 'UNUSED_TERMINATED',
     label: '미이용해지',
     color: 'bg-red-200 text-red-800',
-    description: '미이용으로 해지된 매장'
+    description: '미이용으로 해지된 매장',
+    priority: 11
   },
   PENDING: {
     code: 'PENDING',
     label: '보류',
     color: 'bg-orange-100 text-orange-700',
-    description: '검토가 보류된 매장'
+    description: '검토가 보류된 매장',
+    priority: 12
   }
 };
 

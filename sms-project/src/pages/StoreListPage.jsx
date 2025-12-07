@@ -10,6 +10,7 @@ import MainLayout from '../components/Layout/MainLayout.jsx';
 import StoreFilterPanel from '../components/Store/StoreFilterPanel.jsx';
 import StoreTable from '../components/Store/StoreTable.jsx';
 import { formatPhoneInput, getStatusLabel } from '../utils/formatter.js';
+import { STORE_STATUS } from '../utils/constants.js';
 
 const StoreListPage = () => {
   const navigate = useNavigate();
@@ -165,7 +166,8 @@ const StoreListPage = () => {
   const filteredStores = useMemo(() => {
     if (!stores) return [];
     
-    return stores.filter(store => {
+    // 필터링
+    const filtered = stores.filter(store => {
       const matchesSearch = !searchTerm || 
         store.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         store.store_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -223,6 +225,15 @@ const StoreListPage = () => {
       }
       
       return matchesSearch && matchesStatus && matchesDate;
+    });
+    
+    // 상태 priority로 정렬
+    const getStatusPriority = (status) => {
+      return STORE_STATUS[status]?.priority || 999;
+    };
+    
+    return filtered.sort((a, b) => {
+      return getStatusPriority(a.status) - getStatusPriority(b.status);
     });
   }, [stores, searchTerm, statusFilter, dateFilter, dateType]);
 

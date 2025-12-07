@@ -47,8 +47,8 @@ export const useStoreStore = create(
         dateRange: { startDate: null, endDate: null }
       },
       sorting: {
-        field: 'updatedAt',
-        order: 'desc'
+        field: 'status',
+        order: 'asc'
       },
       pagination: {
         page: 1,
