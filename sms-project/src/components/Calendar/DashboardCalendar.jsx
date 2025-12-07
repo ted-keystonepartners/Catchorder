@@ -66,9 +66,14 @@ const DashboardCalendar = ({ stores = [], managers = [] }) => {
     fetchAllSchedules();
   }, [stores, managers, currentDate.getMonth(), currentDate.getFullYear()]);
 
+  // 날짜를 로컬 시간대 YYYY-MM-DD 형식으로 변환
+  const formatLocalDate = (date) => {
+    return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+  };
+
   // 특정 날짜의 일정 가져오기
   const getSchedulesForDate = (date) => {
-    const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD 형식
+    const dateStr = formatLocalDate(date); // 로컬 시간대 사용
     const daySchedules = schedules.filter(schedule => {
       const scheduleDate = schedule.visit_date;
       return scheduleDate === dateStr;
@@ -294,7 +299,7 @@ const DashboardCalendar = ({ stores = [], managers = [] }) => {
 
               return (
                 <div
-                  key={day.toISOString()}
+                  key={formatLocalDate(day)}
                   onClick={() => handleDateClick(day)}
                   style={{
                     minHeight: '100px',
