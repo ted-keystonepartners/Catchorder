@@ -33,6 +33,7 @@ const DashboardPage = () => {
   const [periodData, setPeriodData] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [managersMap, setManagersMap] = useState({});
+  const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
   
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
@@ -500,6 +501,197 @@ const DashboardPage = () => {
               </ResponsiveContainer>
             </div>
           </div>
+
+          {/* 설치완료 매장 상세 */}
+          {overallStats?.install_detail?.summary && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              border: '1px solid #e5e7eb',
+              marginBottom: '24px'
+            }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
+                설치완료 매장 상세
+              </h3>
+              
+              {/* 카테고리 카드들 */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '12px',
+                marginBottom: '20px'
+              }}>
+                {/* 이용중 카드 */}
+                <div
+                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'active' ? null : 'active')}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: selectedInstallCategory === 'active' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
+                    backgroundColor: selectedInstallCategory === 'active' ? '#fff5f3' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>이용중</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#10b981', margin: 0 }}>
+                    {overallStats.install_detail.summary.active || 0}
+                  </p>
+                </div>
+
+                {/* 미이용 카드 */}
+                <div
+                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'inactive' ? null : 'inactive')}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: selectedInstallCategory === 'inactive' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
+                    backgroundColor: selectedInstallCategory === 'inactive' ? '#fff5f3' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>미이용</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#f59e0b', margin: 0 }}>
+                    {overallStats.install_detail.summary.inactive || 0}
+                  </p>
+                </div>
+
+                {/* 해지 카드 */}
+                <div
+                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'churned' ? null : 'churned')}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: selectedInstallCategory === 'churned' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
+                    backgroundColor: selectedInstallCategory === 'churned' ? '#fff5f3' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>해지</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#ef4444', margin: 0 }}>
+                    {(overallStats.install_detail.summary.churned_service || 0) + (overallStats.install_detail.summary.churned_unused || 0)}
+                  </p>
+                </div>
+
+                {/* 하자보수 카드 */}
+                <div
+                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'repair' ? null : 'repair')}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: selectedInstallCategory === 'repair' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
+                    backgroundColor: selectedInstallCategory === 'repair' ? '#fff5f3' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>하자보수</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#6366f1', margin: 0 }}>
+                    {overallStats.install_detail.summary.repair || 0}
+                  </p>
+                </div>
+
+                {/* 보류 카드 */}
+                <div
+                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'pending' ? null : 'pending')}
+                  style={{
+                    padding: '16px',
+                    borderRadius: '8px',
+                    border: selectedInstallCategory === 'pending' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
+                    backgroundColor: selectedInstallCategory === 'pending' ? '#fff5f3' : 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>보류</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#64748b', margin: 0 }}>
+                    {overallStats.install_detail.summary.pending || 0}
+                  </p>
+                </div>
+              </div>
+
+              {/* 선택된 카테고리의 매장 리스트 */}
+              {selectedInstallCategory && (
+                <div style={{
+                  marginTop: '20px',
+                  borderTop: '1px solid #e5e7eb',
+                  paddingTop: '20px'
+                }}>
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>번호</th>
+                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
+                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
+                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>등록일</th>
+                          {selectedInstallCategory === 'churned' && (
+                            <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>상태</th>
+                          )}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(() => {
+                          let storeList = [];
+                          
+                          if (selectedInstallCategory === 'churned') {
+                            // 해지 카테고리: churned_service와 churned_unused 합치기
+                            const serviceChurned = (overallStats.install_detail.stores?.churned_service || []).map(s => ({...s, churnType: '서비스해지'}));
+                            const unusedChurned = (overallStats.install_detail.stores?.churned_unused || []).map(s => ({...s, churnType: '미이용해지'}));
+                            storeList = [...serviceChurned, ...unusedChurned];
+                          } else {
+                            storeList = overallStats.install_detail.stores?.[selectedInstallCategory] || [];
+                          }
+                          
+                          return storeList.map((store, index) => (
+                            <tr
+                              key={store.store_id || index}
+                              onClick={() => navigate(`/stores/${store.store_id}`)}
+                              style={{
+                                borderBottom: '1px solid #f3f4f6',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>{index + 1}</td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#111827', fontWeight: '500' }}>
+                                {store.store_name || store.name || '-'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
+                                {store.owner_name || managersMap[store.owner_id] || store.owner_id || '-'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
+                                {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '-'}
+                              </td>
+                              {selectedInstallCategory === 'churned' && (
+                                <td style={{ padding: '12px 8px', fontSize: '13px' }}>
+                                  <span style={{
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '11px',
+                                    fontWeight: '500',
+                                    backgroundColor: store.churnType === '서비스해지' ? '#fef2f2' : '#fefce8',
+                                    color: store.churnType === '서비스해지' ? '#dc2626' : '#ca8a04'
+                                  }}>
+                                    {store.churnType}
+                                  </span>
+                                </td>
+                              )}
+                            </tr>
+                          ));
+                        })()}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* 일별 추이 차트 */}
           <div style={{
