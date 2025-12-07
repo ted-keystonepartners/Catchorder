@@ -229,13 +229,23 @@ const StoreListPage = () => {
     
     // 상태 priority로 정렬
     const getStatusPriority = (status) => {
-      return STORE_STATUS[status]?.priority || 999;
+      // 레거시 상태값 매핑
+      const legacyMapping = {
+        'PRE_INTRODUCTION': 'VISIT_PENDING',
+        'INTRODUCTION_COMPLETED': 'VISIT_COMPLETED',
+        'IN_PROGRESS': 'REVISIT_SCHEDULED',
+        'ADOPTION_CONFIRMED': 'REMOTE_INSTALL_SCHEDULED',
+        'SIGNUP_COMPLETED': 'ADMIN_SETTING',
+        'INSTALLATION_PENDING': 'QR_LINKING',
+        'INSTALLATION_COMPLETED': 'QR_MENU_INSTALL',
+        'REJECTED': 'SERVICE_TERMINATED',
+        'NO_RESPONSE': 'PENDING',
+        'OUT_OF_BUSINESS': 'UNUSED_TERMINATED'
+      };
+      
+      const mappedStatus = legacyMapping[status] || status;
+      return STORE_STATUS[mappedStatus]?.priority || 999;
     };
-    
-    // 디버깅용 콘솔 로그
-    console.log('stores status values:', filtered.map(s => s.status));
-    console.log('STORE_STATUS keys:', Object.keys(STORE_STATUS));
-    console.log('Unmatched statuses:', filtered.map(s => s.status).filter(status => !STORE_STATUS[status]));
     
     return filtered.sort((a, b) => {
       return getStatusPriority(a.status) - getStatusPriority(b.status);
