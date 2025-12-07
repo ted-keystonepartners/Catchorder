@@ -93,10 +93,14 @@ const DashboardPage = () => {
   const fetchManagers = async () => {
     try {
       const response = await apiClient.get('/api/managers');
-      if (response.success && response.data) {
+      if (response.success && response.data && response.data.managers) {
         const map = {};
-        response.data.forEach(manager => {
-          map[manager.user_id] = manager.name;
+        response.data.managers.forEach(manager => {
+          // user_id 또는 email 필드 둘 다 체크
+          const email = manager.user_id || manager.email;
+          if (email) {
+            map[email] = manager.name;
+          }
         });
         setManagersMap(map);
       }
