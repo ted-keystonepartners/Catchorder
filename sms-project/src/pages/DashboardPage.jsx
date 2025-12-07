@@ -233,6 +233,12 @@ const DashboardPage = () => {
     const maxValue = Math.max(...statusChartData.map(item => item.value));
     return maxValue + 20;
   }, [statusChartData]);
+  
+  // 설치진행 현황 총합 계산
+  const totalInProgress = useMemo(() => {
+    if (!statusChartData || statusChartData.length === 0) return 0;
+    return statusChartData.reduce((sum, item) => sum + item.value, 0);
+  }, [statusChartData]);
 
   // 퍼널 차트 데이터
   const funnelData = useMemo(() => {
@@ -477,8 +483,11 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               height: '350px'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 설치진행 현황
+                <span style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>
+                  총 {totalInProgress}개
+                </span>
               </h3>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={statusChartData} layout="vertical" margin={{ left: 10, right: 40 }}>
