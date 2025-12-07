@@ -226,6 +226,13 @@ const DashboardPage = () => {
     
     return result;
   }, [overallStats]);
+  
+  // 차트 최대값 계산 (가장 큰 값 + 20)
+  const chartMaxValue = useMemo(() => {
+    if (!statusChartData || statusChartData.length === 0) return 100;
+    const maxValue = Math.max(...statusChartData.map(item => item.value));
+    return maxValue + 20;
+  }, [statusChartData]);
 
   // 퍼널 차트 데이터
   const funnelData = useMemo(() => {
@@ -474,12 +481,12 @@ const DashboardPage = () => {
                 설치진행 현황
               </h3>
               <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={statusChartData} layout="vertical" margin={{ left: 10 }}>
+                <BarChart data={statusChartData} layout="vertical" margin={{ left: 10, right: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis type="number" />
+                  <XAxis type="number" domain={[0, chartMaxValue]} />
                   <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#FF6B00" />
+                  <Bar dataKey="value" fill="#FF6B00" label={{ position: 'right', fill: '#111827', fontSize: 12, fontWeight: 600 }} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
