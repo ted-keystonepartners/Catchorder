@@ -417,21 +417,13 @@ match_type criteria:
       if (successMsg.length > 0) {
         success(`주문 처리 완료: ${successMsg.join(', ')}`);
       }
-        
-        // 에러/중복 처리
-        if (result.errors && result.errors.length > 0) {
-          setErrorOrders(result.errors);
-          if (duplicateCount > 0) {
-            showError(`중복 ${duplicateCount}개, 오류 ${errorCount - duplicateCount}개 발생`);
-          } else {
-            showError(`${errorCount}개 주문에서 오류가 발생했습니다.`);
-          }
-        }
-        
-        setCurrentStep(2);
-      } else {
-        throw new Error(response.error || '주문 저장에 실패했습니다.');
+      
+      // 에러 처리
+      if (totalErrors > 0) {
+        showError(`${totalErrors}개 주문에서 오류가 발생했습니다.`);
       }
+      
+      setCurrentStep(2);
     } catch (err) {
       console.error('저장 실패:', err);
       showError(`저장 실패: ${err.message}`);
