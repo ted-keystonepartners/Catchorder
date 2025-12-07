@@ -200,13 +200,26 @@ const DashboardPage = () => {
   const statusChartData = useMemo(() => {
     if (!overallStats?.stats) return [];
     
-    // 원하는 순서 그대로 (reverse 제거)
-    const desiredOrder = ['VISIT_COMPLETED', 'ADMIN_SETTING', 'QR_LINKING', 'QR_MENU_INSTALL'];
+    // 모든 상태값을 priority 순서대로 표시
+    const statusOrder = [
+      'VISIT_PENDING',
+      'VISIT_COMPLETED', 
+      'REVISIT_SCHEDULED',
+      'INFO_REQUEST',
+      'REMOTE_INSTALL_SCHEDULED',
+      'ADMIN_SETTING',
+      'QR_LINKING',
+      'DEFECT_REPAIR',
+      'QR_MENU_INSTALL',
+      'SERVICE_TERMINATED',
+      'UNUSED_TERMINATED',
+      'PENDING'
+    ];
     
     const result = [];
     
-    // 4개 항목만 추가 (값이 없어도 0으로 표시)
-    desiredOrder.forEach(key => {
+    // 모든 상태 항목 추가 (값이 없어도 0으로 표시)
+    statusOrder.forEach(key => {
       const value = overallStats.stats[key] || 0;
       result.push({
         name: STATUS_LABELS[key] || key,
@@ -215,7 +228,6 @@ const DashboardPage = () => {
       });
     });
     
-    // reverse 없이 그대로 반환
     return result;
   }, [overallStats]);
 
