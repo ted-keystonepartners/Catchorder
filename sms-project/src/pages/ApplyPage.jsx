@@ -67,11 +67,28 @@ const ApplyPage = () => {
       return;
     }
     
-    // 가입/미팅 신청 시 POS 정보 필수
-    if ((formData.request_type === 'SIGNUP' || formData.request_type === 'MEETING') && !formData.pos_system) {
-      setError('POS 정보를 선택해주세요.');
-      setSubmitting(false);
-      return;
+    // 가입/미팅 신청 시 추가 필수 필드 검증
+    if (formData.request_type === 'SIGNUP' || formData.request_type === 'MEETING') {
+      if (!formData.pos_system) {
+        setError('POS 정보를 선택해주세요.');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.payment_type) {
+        setError('결제유형을 선택해주세요.');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.preferred_date) {
+        setError('희망방문일을 선택해주세요.');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.preferred_time) {
+        setError('희망방문시간을 선택해주세요.');
+        setSubmitting(false);
+        return;
+      }
     }
 
     // 전화번호 형식 검증 (010-0000-0000 형식)
@@ -389,7 +406,7 @@ const ApplyPage = () => {
                     color: '#374151',
                     marginBottom: '8px'
                   }}>
-                    결제유형
+                    결제유형 <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <div style={{ display: 'flex', gap: '12px' }}>
                     {Object.entries(PAYMENT_TYPE_LABELS).map(([value, label]) => (
@@ -470,7 +487,7 @@ const ApplyPage = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    희망방문일
+                    희망방문일 <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
                     type="date"
@@ -497,7 +514,7 @@ const ApplyPage = () => {
                     color: '#374151',
                     marginBottom: '6px'
                   }}>
-                    희망방문시간
+                    희망방문시간 <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <select
                     name="preferred_time"
