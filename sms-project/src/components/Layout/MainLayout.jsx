@@ -212,6 +212,43 @@ const MainLayout = ({ children }) => {
                       {user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}
                     </p>
                   </div>
+                  {user?.role === 'ADMIN' && (
+                    <>
+                      <button
+                        onClick={() => {
+                          navigate('/managers');
+                          setShowProfileMenu(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '12px 16px',
+                          color: '#374151',
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          textAlign: 'left',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+                        onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L9 7V9H3V11H21V9ZM6 20V12H8V20H10V12H14V20H16V12H18V20H20V22H4V20H6Z"/>
+                        </svg>
+                        멤버 관리
+                      </button>
+                      <div style={{ 
+                        height: '1px', 
+                        backgroundColor: '#f3f4f6',
+                        margin: '0'
+                      }} />
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       handleLogout();
@@ -230,7 +267,8 @@ const MainLayout = ({ children }) => {
                       fontSize: '14px',
                       fontWeight: '500',
                       cursor: 'pointer',
-                      borderRadius: '0 0 8px 8px'
+                      borderRadius: user?.role === 'ADMIN' ? '0 0 8px 8px' : '0 0 8px 8px',
+                      transition: 'background-color 0.2s'
                     }}
                     onMouseOver={(e) => e.target.style.backgroundColor = '#fef2f2'}
                     onMouseOut={(e) => e.target.style.backgroundColor = 'transparent'}
