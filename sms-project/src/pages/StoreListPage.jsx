@@ -167,6 +167,16 @@ const StoreListPage = () => {
   const filteredStores = useMemo(() => {
     if (!stores) return [];
     
+    // 디버깅: 첫번째 매장의 owner 정보 확인
+    if (stores.length > 0 && ownerFilter !== 'all') {
+      console.log('First store owner info:', {
+        owner_id: stores[0].owner_id,
+        owner_name: stores[0].owner_name,
+        ownerFilter,
+        managers: managers.map(m => ({ email: m.email, name: m.name }))
+      });
+    }
+    
     // 필터링
     const filtered = stores.filter(store => {
       const matchesSearch = !searchTerm || 
@@ -199,7 +209,10 @@ const StoreListPage = () => {
       
       // 담당자 필터 추가
       const matchesOwner = ownerFilter === 'all' || 
-        (ownerFilter === 'unassigned' ? !store.owner_id : store.owner_id === ownerFilter);
+        (ownerFilter === 'unassigned' ? !store.owner_id && !store.owner_name : 
+          (store.owner_id === ownerFilter || 
+           // owner_name으로도 매칭 (이메일이 아닌 경우 대비)
+           (managers && managers.find(m => m.email === ownerFilter)?.name === store.owner_name)));
       
       // 날짜 필터 추가
       let matchesDate = true;
@@ -261,7 +274,7 @@ const StoreListPage = () => {
     return filtered.sort((a, b) => {
       return getStatusPriority(a.status) - getStatusPriority(b.status);
     });
-  }, [stores, searchTerm, statusFilter, dateFilter, dateType]);
+  }, [stores, searchTerm, statusFilter, dateFilter, dateType, ownerFilter, managers]);
 
   // 페이지네이션
   const totalPages = Math.ceil(filteredStores.length / itemsPerPage);
