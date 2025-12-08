@@ -390,6 +390,17 @@ const ApplicationsPage = () => {
                           </p>
                         </div>
                       )}
+                      {selectedApp.pos_system && (
+                        <div>
+                          <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>POS 정보</p>
+                          <p style={{ fontSize: '14px', color: '#111827' }}>
+                            {selectedApp.pos_system === 'OKPOS' ? '오케이포스' :
+                             selectedApp.pos_system === 'EASYPOS' ? '이지포스' :
+                             selectedApp.pos_system === 'UNIONPOS' ? '유니온포스' : 
+                             selectedApp.pos_system}
+                          </p>
+                        </div>
+                      )}
                       {selectedApp.preferred_date && (
                         <div>
                           <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>희망방문일</p>
