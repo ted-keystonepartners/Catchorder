@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
 // 상태 라벨 매핑
@@ -744,7 +744,7 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* 일별 추이 차트 */}
+          {/* 매장분포 일별 차트 */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -754,7 +754,7 @@ const DashboardPage = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                일별 추이
+                매장분포 일별 차트
               </h3>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {['7d', '30d', '90d'].map(period => (
@@ -779,16 +779,16 @@ const DashboardPage = () => {
             </div>
             {periodData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={periodData}>
+                <LineChart data={periodData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis dataKey="date" />
                   <YAxis />
                   <Tooltip />
                   <Legend />
-                  <Area type="monotone" dataKey="registered" stackId="1" stroke="#FF3D00" fill="#FF3D00" name="등록" />
-                  <Area type="monotone" dataKey="installed" stackId="1" stroke="#FF6B00" fill="#FF6B00" name="설치완료" />
-                  <Area type="monotone" dataKey="active" stackId="1" stroke="#FFA500" fill="#FFA500" name="이용매장" />
-                </AreaChart>
+                  <Line type="monotone" dataKey="registered" stroke="#dc2626" strokeWidth={2} dot={false} name="가입" />
+                  <Line type="monotone" dataKey="installed" stroke="#ea580c" strokeWidth={2} dot={false} name="설치" />
+                  <Line type="monotone" dataKey="active" stroke="#16a34a" strokeWidth={2} dot={false} name="이용" />
+                </LineChart>
               </ResponsiveContainer>
             ) : (
               <div style={{ 
