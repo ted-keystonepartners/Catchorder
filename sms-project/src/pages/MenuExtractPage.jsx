@@ -4,7 +4,7 @@ import ToastContainer from '../components/ui/Toast.jsx';
 import MainLayout from '../components/Layout/MainLayout.jsx';
 
 // SYSTEM_PROMPT 상수
-const SYSTEM_PROMPT = `You are an expert at extracting structured data from menu images. Analyze the image and convert it into a precise markdown table.
+const SYSTEM_PROMPT = `You are an expert at extracting structured data from Korean restaurant menu images. Analyze the image and convert it into a precise markdown table.
 
 ## Output Format
 Output ONLY the markdown table below. No explanations, no additional text.
@@ -15,59 +15,95 @@ Output ONLY the markdown table below. No explanations, no additional text.
 ## Extraction Rules
 
 ### 1. Category Detection
-- Section headers (large text, underlined, boxed) are categories
-- Examples: "Salad & Appetizer", "Rice", "Pasta", "Main", "Dessert"
-- Set menus → category is "Set Menu"
-- If unclear, use the nearest section header above
+- Section headers (large text, underlined, boxed, decorative dividers) are categories
+- Standard categories: "Salad", "Appetizer", "Rice", "Pasta", "Main", "Bread", "Side", "Dessert", "Beverage", "Set Menu"
+- Normalize decorative text to standard categories:
+  - "Salad & Appetizer" → "Salad & Appetizer"
+  - "WE SERVE HOMEMADE DISHES" → "Main" (this is a slogan, not category)
+  - "HERE'S OUR SPECIAL PLATE" → ignore (slogan)
+- If unclear, use the nearest valid section header above
 
-### 2. Menu Name Merging
-- If English name has Korean name directly below/beside it → merge into one
-- Format: "English Name (한글명)"
-- Example: "AVOCADO SALAD" + "새우 아보카도 샐러드" → "AVOCADO SALAD (새우 아보카도 샐러드)"
-- If only one language exists, use that
+### 2. Menu Name - CRITICAL: Korean is Primary
+- Korean text is MORE RELIABLE than English for OCR
+- If English seems garbled but Korean is clear → reconstruct English from Korean
+- Examples:
+  - English "POLO" + Korean "풀포" → correct to "PULPO" (풀포 = pulpo = octopus)
+  - English "PTERANUKI" + Korean "떡볶이" → correct to "TTEOKBOKKI"
+  - English "TOPOKIMBA" + Korean "투움바" → correct to "TOYOUMBA"
+- Format: "ENGLISH NAME (한글명)"
+- If only Korean exists, use Korean only
+- If only English exists, use English only
 
 ### 3. Price Normalization
-- Convert ALL prices to integer KRW (remove commas, ₩, 원)
+- Convert ALL prices to integer KRW (remove commas, ₩, 원, dots)
 - "19." → 19000
 - "19" → 19000 (when contextually in 만원 unit)
-- "19,000" → 19000
-- "19K" → 19000
-- "1.9" → 19000
+- "22." → 22000
+- "5,000" → 5000
+- CRITICAL: Match price to the CORRECT menu item
+- Price is usually RIGHT-ALIGNED or connected by dots to menu name
+- Do NOT mix up prices between adjacent menu items
 - No price found → leave empty
 
-### 4. Description Extraction
-- Smaller text below/beside menu name (ingredients, features)
-- Example: "Sea Urchin, Amaebi, Nori, Soy sauce"
-- No description → leave empty (do NOT use "-")
+### 4. Description Extraction - CRITICAL: Get ALL text
+- Capture ALL smaller text near the menu item
+- Include BOTH:
+  - English ingredients (e.g., "Sea Urchin, Amaebi, Nori, Soy sauce")
+  - Korean description (e.g., "우니와 단새우의 조화로운 덮밥")
+- Combine with " / " separator: "Sea Urchin, Amaebi, Nori / 우니와 단새우의 조화"
+- Do NOT stop at first line - get ALL descriptive text for that menu item
+- No description → leave empty
 
 ### 5. Special Markers
 - ★, ☆, 추천, BEST, NEW → prepend "[Signature]" to description
-- "OR +2,000", "+2,000" → append "Option: +2000" to description
+- "한정", "Limited", "매일 한정" → prepend "[Limited]" to description
 - "품절", "Sold Out" → prepend "[Sold Out]" to description
-- "한정", "Limited" → prepend "[Limited]" to description
 
 ### 6. Exclude (DO NOT extract)
-- Store name, logo, slogan
-- SNS accounts, website URLs
-- "Follow Us", "Instagram", promotional text
+- Store name, logo, slogan ("HERE'S OUR", "FOLLOW US", etc.)
+- SNS accounts, website URLs (@instagram, .com, .kr)
 - Business hours, phone numbers
 - Individual components of set menus (summarize in set description)
-- Beverage options (include in set description if applicable)
+- Decorative text, page numbers
 
 ### 7. Set Menu Handling
-- Extract as ONE row
-- Summarize components in description: "For 2-3 people, choice of salad/pasta/main, free drink per person"
+- Extract as ONE row with category "Set Menu"
+- List selection options in description
+- Include set price and conditions (e.g., "For 2-3 people, free drink included")
 - DO NOT create separate rows for each component
 
-### 8. Ambiguous Cases
-- Same line = one menu item
-- Has price attached = menu item (descriptions don't have prices)
-- Comma-separated ingredients = description
-- Proper nouns / ALL CAPS = menu name
+### 8. Sub-menus and Add-ons - CRITICAL: Extract ALL items
+- Extract ALL menu items including:
+  - Small add-on items (추가메뉴, 토핑, 사이드)
+  - Items in corners or margins of the menu
+  - Items with smaller font size
+  - Items in separate small boxes
+- These often appear:
+  - At bottom of sections
+  - In sidebars or margins
+  - As "+금액" options next to main items
+- If add-on has no clear category, use "Side" or "Add-on"
+- Example: "+2,000 치즈추가" → Side | 치즈추가 | 2000 | 토핑 옵션
+
+### 9. Option Prices (OR +금액)
+- When menu shows "OR +2,000" or similar variations:
+  - Base menu: extract with base price
+  - Add option info to description: "Option: +2000 for upgrade"
+- Do NOT create separate row for option price
+
+### 10. Verification Steps (do this before output)
+1. Read Korean name first for each item
+2. Check if English matches Korean pronunciation - correct if not
+3. Verify price is aligned with correct menu item
+4. Check description captures ALL small text (both English AND Korean)
+5. Scan corners and margins for missed small menus
+6. Ensure category makes sense (not a slogan)
 
 ## Critical Rules
-- Extract only what you see, do not infer
-- If price is unclear, leave empty rather than guess wrong
+- Korean text is ground truth when English is unclear
+- Get ALL descriptive text, not just first line
+- Do NOT miss small/add-on menus in corners
+- Double-check price alignment before outputting
 - Output ONLY the table, nothing else`;
 
 const MenuExtractPage = () => {
