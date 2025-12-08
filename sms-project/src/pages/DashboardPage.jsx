@@ -647,6 +647,8 @@ const DashboardPage = () => {
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>등록일</th>
+                          <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
+                          <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문고객수</th>
                           {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
                             <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
                           )}
@@ -694,6 +696,12 @@ const DashboardPage = () => {
                               </td>
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
                                 {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '-'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                                {store.order_count ? store.order_count.toLocaleString() : '0'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                                {store.customer_count ? store.customer_count.toLocaleString() : '0'}
                               </td>
                               {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
                                 <td style={{ padding: '12px 8px', fontSize: '13px' }}>
