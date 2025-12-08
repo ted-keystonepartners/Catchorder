@@ -150,7 +150,7 @@ const StoreFilterPanel = ({
           </div>
           <input
             type="text"
-            placeholder="매장명, 전화번호, 주소 검색"
+            placeholder="매장명, 전화번호, 주소, POS 검색"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{

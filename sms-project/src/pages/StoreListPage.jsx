@@ -186,7 +186,8 @@ const StoreListPage = () => {
         store.store_address?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         store.phone?.includes(searchTerm) ||
         store.store_phone?.includes(searchTerm) ||
-        store.owner_name?.toLowerCase().includes(searchTerm.toLowerCase());
+        store.owner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        store.pos_system?.toLowerCase().includes(searchTerm.toLowerCase());
       
       // 상태 필터 매핑 (새 상태값과 이전 상태값 모두 처리)
       const statusMapping = {
