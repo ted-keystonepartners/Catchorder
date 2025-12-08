@@ -835,6 +835,13 @@ const DashboardPage = () => {
                   {ownerStats.map((owner, index) => {
                     // owner_name이 API에서 제공되면 사용, 없으면 managersMap에서 찾기
                     const ownerId = owner.owner_id || owner.stats_type?.replace('owner:', '');
+                    console.log(`owner ${index}:`, {
+                      owner_id: owner.owner_id,
+                      owner_name: owner.owner_name,
+                      ownerId: ownerId,
+                      managersMapValue: managersMap[ownerId],
+                      managersMapKeys: Object.keys(managersMap)
+                    });
                     const displayName = owner.owner_name || managersMap[ownerId] || ownerId?.split('@')[0] || '미지정';
                     return (
                       <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
