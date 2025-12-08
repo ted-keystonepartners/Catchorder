@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth.js';
 import { getStoreDetail, updateStore, updateStoreAdditionalInfo, updateStoreBasicInfo, createStoreContact, getStoreContacts, deleteStoreContact, updateStoreStatus, createSalesLog, getSalesLogs, deleteSalesLog } from '../api/storeApi.js';
 import { apiClient } from '../api/client.js';
 import { formatPhoneInput } from '../utils/formatter.js';
+import { POS_LABELS } from '../utils/constants.js';
 import { createConsentLink, getConsentResponses, getConsentStatus } from '../api/consentApi.js';
 import { copyToClipboard } from '../utils/clipboard.js';
 import { useToast } from '../hooks/useToast.js';
@@ -1234,9 +1235,9 @@ const StoreDetailPage = () => {
                         }}
                       >
                         <option value="">POS 시스템을 선택해주세요</option>
-                        <option value="오케이포스">오케이포스</option>
-                        <option value="이지포스">이지포스</option>
-                        <option value="유니온포스">유니온포스</option>
+                        <option value="OKPOS">오케이포스</option>
+                        <option value="EASYPOS">이지포스</option>
+                        <option value="UNIONPOS">유니온포스</option>
                         <option value="기타">기타</option>
                       </select>
                       
@@ -1268,7 +1269,7 @@ const StoreDetailPage = () => {
                         color: '#1f2937',
                         margin: 0
                       }}>
-                        {additionalData.posSystem ? `${additionalData.posSystem}${additionalData.posSystem === '기타' && additionalData.posSystemBrand ? ` (${additionalData.posSystemBrand})` : ''}` : 'POS 정보 없음'}
+                        {additionalData.posSystem ? `${POS_LABELS[additionalData.posSystem] || additionalData.posSystem}${additionalData.posSystem === '기타' && additionalData.posSystemBrand ? ` (${additionalData.posSystemBrand})` : ''}` : 'POS 정보 없음'}
                       </p>
                     </div>
                   )}

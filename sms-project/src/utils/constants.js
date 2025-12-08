@@ -10,6 +10,15 @@
  */
 
 /**
+ * POS 시스템 라벨 정의
+ */
+export const POS_LABELS = {
+  OKPOS: '오케이포스',
+  EASYPOS: '이지포스',
+  UNIONPOS: '유니온포스'
+};
+
+/**
  * 매장 상태 정의
  * @typedef {Object} StoreStatusItem
  * @property {StoreStatusCode} code - 상태 코드

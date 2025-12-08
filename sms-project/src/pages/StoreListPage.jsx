@@ -10,7 +10,7 @@ import MainLayout from '../components/Layout/MainLayout.jsx';
 import StoreFilterPanel from '../components/Store/StoreFilterPanel.jsx';
 import StoreTable from '../components/Store/StoreTable.jsx';
 import { formatPhoneInput, getStatusLabel } from '../utils/formatter.js';
-import { STORE_STATUS } from '../utils/constants.js';
+import { STORE_STATUS, POS_LABELS } from '../utils/constants.js';
 
 const StoreListPage = () => {
   const navigate = useNavigate();
@@ -123,7 +123,7 @@ const StoreListPage = () => {
         store.store_address || '',
         store.store_phone || '',
         store.owner_name || '',
-        store.pos_system || '',
+        POS_LABELS[store.pos_system] || store.pos_system || '',
         managerName,
         getStatusLabel(store.status),
         store.created_at ? new Date(store.created_at).toISOString().split('T')[0] : '',
