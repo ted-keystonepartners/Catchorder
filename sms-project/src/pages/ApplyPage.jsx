@@ -9,6 +9,7 @@ const ApplyPage = () => {
     contact_phone: '',
     request_type: 'SIGNUP',
     payment_type: 'PREPAID',
+    pos_system: '',
     preferred_date: '',
     preferred_time: ''
   });
@@ -65,6 +66,13 @@ const ApplyPage = () => {
       setSubmitting(false);
       return;
     }
+    
+    // 가입/미팅 신청 시 POS 정보 필수
+    if ((formData.request_type === 'SIGNUP' || formData.request_type === 'MEETING') && !formData.pos_system) {
+      setError('POS 정보를 선택해주세요.');
+      setSubmitting(false);
+      return;
+    }
 
     // 전화번호 형식 검증 (010-0000-0000 형식)
     const phoneRegex = /^010-\d{4}-\d{4}$/;
@@ -75,10 +83,11 @@ const ApplyPage = () => {
     }
 
     try {
-      // 메뉴신청일 때는 결제유형과 희망방문일시 제외
+      // 메뉴신청일 때는 결제유형, POS정보, 희망방문일시 제외
       const submitData = { ...formData };
       if (formData.request_type === 'MENU') {
         delete submitData.payment_type;
+        delete submitData.pos_system;
         delete submitData.preferred_date;
         delete submitData.preferred_time;
       }
@@ -150,6 +159,7 @@ const ApplyPage = () => {
                 contact_phone: '',
                 request_type: 'SIGNUP',
                 payment_type: 'PREPAID',
+                pos_system: '',
                 preferred_date: '',
                 preferred_time: ''
               });
@@ -408,6 +418,47 @@ const ApplyPage = () => {
                       </label>
                     ))}
                   </div>
+                </div>
+
+                {/* POS 정보 */}
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    POS 정보 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    name="pos_system"
+                    value={formData.pos_system}
+                    onChange={handleChange}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <option value="">선택해주세요</option>
+                    <option value="OKPOS">오케이포스</option>
+                    <option value="EASYPOS">이지포스</option>
+                    <option value="UNIONPOS">유니온포스</option>
+                  </select>
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#dc2626',
+                    marginTop: '6px',
+                    margin: '6px 0 0 0'
+                  }}>
+                    ※ 오케이포스 / 이지포스 / 유니온포스 외의 POS를 사용하시는 경우 메뉴신청만 가능합니다.
+                  </p>
                 </div>
 
                 {/* 희망방문일 */}
