@@ -110,7 +110,7 @@ const MenuExtractPage = () => {
   const { success, error: showError, toasts, removeToast } = useToast();
   const fileInputRef = useRef(null);
   
-  const [image, setImage] = useState(null);
+  const [images, setImages] = useState([]);
   const [extractedData, setExtractedData] = useState([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -118,6 +118,8 @@ const MenuExtractPage = () => {
   const [progressMessage, setProgressMessage] = useState('');
   const [typingText, setTypingText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
+  const [totalImages, setTotalImages] = useState(0);
 
   // 프로그레스 메시지 목록
   const progressMessages = [
@@ -162,30 +164,28 @@ const MenuExtractPage = () => {
     });
   };
 
-  // 파일 업로드 처리
+  // 파일 업로드 처리 (여러 개 이미지 지원)
   const handleFileSelect = (files) => {
-    const imageFile = Array.from(files).find(file => 
+    const imageFiles = Array.from(files).filter(file => 
       file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg'
     );
 
-    if (!imageFile) {
+    if (imageFiles.length === 0) {
       showError('이미지 파일(PNG, JPG)만 업로드 가능합니다.');
       return;
     }
 
-    const newImage = {
+    // 기존 이미지들 URL 해제
+    images.forEach(img => URL.revokeObjectURL(img.preview));
+
+    const newImages = imageFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
-      file: imageFile,
-      preview: URL.createObjectURL(imageFile),
-      name: imageFile.name
-    };
+      file: file,
+      preview: URL.createObjectURL(file),
+      name: file.name
+    }));
 
-    // 기존 이미지가 있으면 URL 해제
-    if (image) {
-      URL.revokeObjectURL(image.preview);
-    }
-
-    setImage(newImage);
+    setImages(newImages);
     setExtractedData([]); // 새 이미지 업로드 시 이전 결과 초기화
   };
 
@@ -219,12 +219,22 @@ const MenuExtractPage = () => {
   };
 
   // 이미지 삭제
-  const removeImage = () => {
-    if (image) {
-      URL.revokeObjectURL(image.preview);
-      setImage(null);
-      setExtractedData([]);
+  const removeImage = (imageId) => {
+    const imageToRemove = images.find(img => img.id === imageId);
+    if (imageToRemove) {
+      URL.revokeObjectURL(imageToRemove.preview);
+      setImages(prev => prev.filter(img => img.id !== imageId));
+      if (images.length === 1) {
+        setExtractedData([]);
+      }
     }
+  };
+
+  // 모든 이미지 삭제
+  const removeAllImages = () => {
+    images.forEach(img => URL.revokeObjectURL(img.preview));
+    setImages([]);
+    setExtractedData([]);
   };
 
   // 마크다운 테이블 파싱
@@ -293,9 +303,42 @@ const MenuExtractPage = () => {
     return data.content[0].text;
   };
 
-  // 추출하기
+  // 여러 테이블 결과 합치기
+  const mergeTableResults = (allResults) => {
+    if (allResults.length === 0) return [];
+    
+    const mergedData = [];
+    let headerAdded = false;
+    
+    allResults.forEach((result, index) => {
+      if (result && result.length > 0) {
+        // 첫 번째 결과의 헤더만 추가
+        if (!headerAdded) {
+          mergedData.push(...result);
+          headerAdded = true;
+        } else {
+          // 나머지는 데이터 행만 추가 (헤더 제외)
+          // 헤더 행 판별: 카테고리, 메뉴, 가격 등의 단어가 포함되어 있으면 헤더로 간주
+          const dataRows = result.filter((row, rowIndex) => {
+            if (rowIndex === 0) {
+              const rowText = row.join(' ').toLowerCase();
+              return !rowText.includes('카테고리') && !rowText.includes('메뉴') && 
+                     !rowText.includes('가격') && !rowText.includes('category') && 
+                     !rowText.includes('menu') && !rowText.includes('price');
+            }
+            return true;
+          });
+          mergedData.push(...dataRows);
+        }
+      }
+    });
+    
+    return mergedData;
+  };
+
+  // 추출하기 (순차 처리)
   const handleExtract = async () => {
-    if (!image) {
+    if (images.length === 0) {
       showError('이미지를 먼저 업로드해주세요.');
       return;
     }
@@ -308,50 +351,52 @@ const MenuExtractPage = () => {
     setIsExtracting(true);
     setExtractedData([]);
     setCurrentProgress(0);
-    setProgressMessage(progressMessages[0]);
-
-    // 프로그레스 바 애니메이션
-    const progressInterval = setInterval(() => {
-      setCurrentProgress(prev => {
-        if (prev >= 90) {
-          clearInterval(progressInterval);
-          return 90;
-        }
-        return prev + Math.random() * 15;
-      });
-      
-      // 메시지 변경
-      setProgressMessage(prev => {
-        const currentIndex = progressMessages.indexOf(prev);
-        if (currentIndex < progressMessages.length - 1) {
-          return progressMessages[currentIndex + 1];
-        }
-        return prev;
-      });
-    }, 800);
+    setTotalImages(images.length);
+    setCurrentProcessingIndex(0);
+    
+    const allResults = [];
 
     try {
-      const markdownTable = await extractMenuFromImage(image);
-      const parsedData = parseMarkdownTable(markdownTable);
+      // 순차적으로 이미지 처리
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        setCurrentProcessingIndex(i + 1);
+        setProgressMessage(`${i + 1}/${images.length} 처리 중... (${image.name})`);
+        setCurrentProgress((i / images.length) * 100);
+        
+        try {
+          const markdownTable = await extractMenuFromImage(image);
+          const parsedData = parseMarkdownTable(markdownTable);
+          allResults.push(parsedData);
+        } catch (err) {
+          console.error(`이미지 ${image.name} 처리 실패:`, err);
+          // 개별 이미지 실패 시 계속 진행
+          showError(`${image.name} 처리 실패: ${err.message}`);
+        }
+      }
       
-      clearInterval(progressInterval);
+      // 모든 결과 합치기
+      const mergedData = mergeTableResults(allResults);
+      
       setCurrentProgress(100);
-      setProgressMessage('✅ 추출 완료!');
+      setProgressMessage('✅ 모든 이미지 추출 완료!');
       
       setTimeout(() => {
-        setExtractedData(parsedData);
-        success('메뉴 추출이 완료되었습니다!');
+        setExtractedData(mergedData);
+        success(`${images.length}개 이미지에서 메뉴 추출이 완료되었습니다!`);
         setCurrentProgress(0);
         setProgressMessage('');
       }, 500);
       
     } catch (err) {
-      clearInterval(progressInterval);
       console.error('추출 실패:', err);
-      showError(`추출 실패: ${err.message}`);
+      showError(err.message || '메뉴 추출에 실패했습니다.');
+      setCurrentProgress(0);
+      setProgressMessage('');
     } finally {
       setTimeout(() => {
         setIsExtracting(false);
+        setCurrentProcessingIndex(0);
       }, 500);
     }
   };
@@ -445,7 +490,7 @@ const MenuExtractPage = () => {
           }}>
           {/* 왼쪽: 이미지 업로드 영역 */}
           <div>
-            {!image ? (
+            {images.length === 0 ? (
               <div 
                 onClick={handleFileClick}
                 onDragOver={handleDragOver}
@@ -470,6 +515,7 @@ const MenuExtractPage = () => {
                   ref={fileInputRef}
                   type="file"
                   accept="image/png,image/jpeg,image/jpg"
+                  multiple
                   onChange={handleFileChange}
                   style={{ display: 'none' }}
                 />
@@ -501,7 +547,7 @@ const MenuExtractPage = () => {
                   fontSize: '13px', 
                   color: '#9ca3af' 
                 }}>
-                  PNG, JPG 파일 지원
+                  PNG, JPG 파일 지원 (여러 개 동시 선택 가능)
                 </p>
               </div>
             ) : (
@@ -524,10 +570,10 @@ const MenuExtractPage = () => {
                     fontWeight: '600',
                     color: '#374151'
                   }}>
-                    업로드된 이미지
+                    업로드된 이미지 ({images.length}개)
                   </h3>
                   <button
-                    onClick={removeImage}
+                    onClick={removeAllImages}
                     style={{
                       padding: '6px 12px',
                       backgroundColor: 'white',
@@ -548,40 +594,79 @@ const MenuExtractPage = () => {
                       e.currentTarget.style.borderColor = '#e5e7eb';
                     }}
                   >
-                    삭제
+                    모두 삭제
                   </button>
                 </div>
                 
                 <div style={{
                   flex: 1,
-                  backgroundColor: 'white',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  overflowY: 'auto',
+                  display: 'grid',
+                  gridTemplateColumns: images.length === 1 ? '1fr' : 'repeat(2, 1fr)',
+                  gap: '8px',
+                  padding: '8px'
                 }}>
-                  <img
-                    src={image.preview}
-                    alt={image.name}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      objectFit: 'contain'
-                    }}
-                  />
+                  {images.map(img => (
+                    <div key={img.id} style={{
+                      position: 'relative',
+                      backgroundColor: 'white',
+                      borderRadius: '8px',
+                      overflow: 'hidden',
+                      aspectRatio: '1',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}>
+                      <div style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: '4px'
+                      }}>
+                        <img
+                          src={img.preview}
+                          alt={img.name}
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '100%',
+                            objectFit: 'contain'
+                          }}
+                        />
+                      </div>
+                      <p style={{
+                        fontSize: '10px',
+                        color: '#6b7280',
+                        padding: '4px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {img.name}
+                      </p>
+                      <button
+                        onClick={() => removeImage(img.id)}
+                        style={{
+                          position: 'absolute',
+                          top: '4px',
+                          right: '4px',
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          backgroundColor: 'rgba(239, 68, 68, 0.9)',
+                          border: 'none',
+                          color: 'white',
+                          fontSize: '12px',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
                 </div>
-                
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  marginTop: '8px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap'
-                }}>
-                  {image.name}
-                </p>
               </div>
             )}
           </div>
@@ -596,7 +681,7 @@ const MenuExtractPage = () => {
             flexDirection: 'column',
             justifyContent: 'center'
           }}>
-            {!image ? (
+            {images.length === 0 ? (
               <div style={{ textAlign: 'center', color: '#9ca3af' }}>
                 <div style={{
                   width: '48px',
