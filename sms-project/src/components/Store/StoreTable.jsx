@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Table from '../ui/Table.jsx';
 import Button from '../ui/Button.jsx';
 import { getStatusLabel, formatDate, formatPhone } from '../../utils/formatter.js';
-import { LIFECYCLE } from '../../utils/constants.js';
+import { LIFECYCLE, POS_LABELS } from '../../utils/constants.js';
 import { getSalesLogs } from '../../api/storeApi.js';
 import { limitConcurrency } from '../../api/client.js';
 
@@ -193,7 +193,7 @@ const StoreTable = ({
           color: '#374151',
           fontWeight: '500'
         }}>
-          {store.pos_system || '-'}
+          {POS_LABELS[store.pos_system] || store.pos_system || '-'}
         </span>
       )
     },
