@@ -10,6 +10,7 @@ const TossHeader = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
+  const [showUserMenu, setShowUserMenu] = React.useState(false);
 
   const handleLogout = () => {
     logout();
@@ -69,8 +70,8 @@ const TossHeader = () => {
             </nav>
           </div>
 
-          {/* 사용자 정보 & 로그아웃 */}
-          <div className="flex items-center space-x-4">
+          {/* 사용자 정보 & 드롭다운 메뉴 */}
+          <div className="relative flex items-center space-x-4">
             <div className="hidden md:flex items-center space-x-3">
               <div className="text-right">
                 <div className="text-sm font-medium text-gray-900">
@@ -80,21 +81,52 @@ const TossHeader = () => {
                   {isAdmin ? '관리자' : '일반 사용자'}
                 </div>
               </div>
-              <div className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center">
+              <div 
+                className="w-8 h-8 bg-gradient-to-br from-gray-400 to-gray-500 rounded-full flex items-center justify-center cursor-pointer hover:from-gray-500 hover:to-gray-600 transition-all"
+                onClick={() => setShowUserMenu(!showUserMenu)}
+              >
                 <span className="text-white text-xs font-medium">
                   {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
                 </span>
               </div>
             </div>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              className="text-gray-500 hover:text-red-600"
-            >
-              로그아웃
-            </Button>
+            {/* 드롭다운 메뉴 */}
+            {showUserMenu && (
+              <>
+                <div 
+                  className="fixed inset-0 z-40" 
+                  onClick={() => setShowUserMenu(false)}
+                />
+                <div className="absolute right-0 top-12 mt-2 w-48 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
+                  {isAdmin && (
+                    <>
+                      <button
+                        onClick={() => {
+                          navigate('/managers');
+                          setShowUserMenu(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                      >
+                        <span>👥</span>
+                        <span>멤버 관리</span>
+                      </button>
+                      <div className="border-t border-gray-100 my-1" />
+                    </>
+                  )}
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setShowUserMenu(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2"
+                  >
+                    <span>🚪</span>
+                    <span>로그아웃</span>
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>

@@ -249,14 +249,48 @@ const ManagerListPage = () => {
               담당자 목록
             </h3>
             <div style={{ 
-              fontSize: '14px', 
-              color: '#8b95a1',
-              backgroundColor: '#f2f4f6',
-              padding: '4px 8px',
-              borderRadius: '12px',
-              fontWeight: '500'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
             }}>
-              {managers.length}명
+              <div style={{ 
+                fontSize: '14px', 
+                color: '#8b95a1',
+                backgroundColor: '#f2f4f6',
+                padding: '4px 8px',
+                borderRadius: '12px',
+                fontWeight: '500'
+              }}>
+                {managers.length}명
+              </div>
+              {isAdmin() && (
+                <button
+                  onClick={() => setShowAddManagerModal(true)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#f97316',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ea580c';
+                  }}
+                  onMouseOut={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f97316';
+                  }}
+                >
+                  <span>➕</span>
+                  담당자 추가
+                </button>
+              )}
             </div>
           </div>
 
