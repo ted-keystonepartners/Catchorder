@@ -88,32 +88,33 @@ const DashboardPage = () => {
   // 담당자 목록 가져오기
   const fetchManagers = async () => {
     try {
-      // API가 없으므로 하드코딩된 매핑 사용
-      // 실제 배포 시 API 구현 필요
-      const hardcodedManagers = {
-        'admin@example.com': '김관리',
-        'sales1@catchtable.co.kr': '김영업',
-        'sales2@catchtable.co.kr': '이영업', 
-        'sales3@catchtable.co.kr': '박영업',
-        'manager1@catchtable.co.kr': '최매니저',
-        'manager2@catchtable.co.kr': '정매니저',
-        'support@catchtable.co.kr': '서포트팀'
-      };
+      const response = await apiClient.get('/api/managers');
       
-      setManagersMap(hardcodedManagers);
-      
-      // 나중에 API가 구현되면 아래 코드 활성화
-      // const response = await apiClient.get('/api/managers');
-      // if (response.success && response.data && response.data.managers) {
-      //   const map = {};
-      //   response.data.managers.forEach(manager => {
-      //     const email = manager.user_id || manager.email;
-      //     if (email) {
-      //       map[email] = manager.name;
-      //     }
-      //   });
-      //   setManagersMap(map);
-      // }
+      if (response.success) {
+        const map = {};
+        
+        // 다양한 응답 구조 처리
+        let managersData = [];
+        if (response.data?.managers) {
+          managersData = response.data.managers;
+        } else if (Array.isArray(response.data)) {
+          managersData = response.data;
+        } else if (response.data?.data?.managers) {
+          managersData = response.data.data.managers;
+        }
+        
+        // 이메일-이름 매핑 생성
+        managersData.forEach(manager => {
+          if (manager && manager.email && manager.name) {
+            map[manager.email] = manager.name;
+          }
+        });
+        
+        setManagersMap(map);
+      } else {
+        console.error('담당자 API 호출 실패:', response.error);
+        setManagersMap({});
+      }
     } catch (error) {
       console.error('담당자 목록 조회 실패:', error);
     }
