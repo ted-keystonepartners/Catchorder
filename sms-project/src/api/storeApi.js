@@ -153,8 +153,12 @@ export const updateStoreAdditionalInfo = async (storeId, additionalData) => {
     const requestData = {
       address: additionalData.address,
       posSystem: additionalData.posSystem,
+      posSystemBrand: additionalData.posSystemBrand,
       orderSystem: additionalData.orderSystem,
-      brandName: additionalData.brandName
+      brandName: additionalData.brandName,
+      openingHours: additionalData.openingHours,
+      breakTime: additionalData.breakTime,
+      closedDays: additionalData.closedDays
     };
     
     const result = await apiClient.patch(`/api/stores/${storeId}/additional`, requestData);

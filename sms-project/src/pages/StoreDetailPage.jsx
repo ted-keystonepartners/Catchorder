@@ -70,7 +70,10 @@ const StoreDetailPage = () => {
     posSystem: '',
     posSystemBrand: '',
     orderSystem: '',
-    brandName: ''
+    brandName: '',
+    openingHours: '',
+    breakTime: '',
+    closedDays: ''
   });
   const [contacts, setContacts] = useState([]);
   const [showContactModal, setShowContactModal] = useState(false);
@@ -222,7 +225,10 @@ const StoreDetailPage = () => {
             posSystem: cachedData.pos_system || '',
             posSystemBrand: cachedData.pos_system_brand || '',
             orderSystem: cachedData.order_system || '',
-            brandName: cachedData.brand_name || ''
+            brandName: cachedData.brand_name || '',
+            openingHours: cachedData.opening_hours || '',
+            breakTime: cachedData.break_time || '',
+            closedDays: cachedData.closed_days || ''
           });
         }
         
@@ -255,7 +261,10 @@ const StoreDetailPage = () => {
             posSystem: storeData.pos_system || '',
             posSystemBrand: storeData.pos_system_brand || '',
             orderSystem: storeData.order_system || '',
-            brandName: storeData.brand_name || ''
+            brandName: storeData.brand_name || '',
+            openingHours: storeData.opening_hours || '',
+            breakTime: storeData.break_time || '',
+            closedDays: storeData.closed_days || ''
           });
           setError(null);
         } else {
@@ -286,7 +295,10 @@ const StoreDetailPage = () => {
         posSystem: store.pos_system || '',
         posSystemBrand: store.pos_system_brand || '',
         orderSystem: store.order_system || '',
-        brandName: store.brand_name || ''
+        brandName: store.brand_name || '',
+        openingHours: store.opening_hours || '',
+        breakTime: store.break_time || '',
+        closedDays: store.closed_days || ''
       });
     }
   }, [store]);
@@ -560,7 +572,10 @@ const StoreDetailPage = () => {
         posSystem: additionalData.posSystem,
         posSystemBrand: additionalData.posSystemBrand,
         orderSystem: additionalData.orderSystem,
-        brandName: additionalData.brandName
+        brandName: additionalData.brandName,
+        openingHours: additionalData.openingHours,
+        breakTime: additionalData.breakTime,
+        closedDays: additionalData.closedDays
       });
       
       if (response.success) {
@@ -574,6 +589,9 @@ const StoreDetailPage = () => {
           pos_system_brand: additionalData.posSystemBrand, // Lambda에서 반환하지 않음
           order_system: updatedData.orderSystem || additionalData.orderSystem,
           brand_name: updatedData.brandName || additionalData.brandName,
+          opening_hours: updatedData.openingHours || additionalData.openingHours,
+          break_time: updatedData.breakTime || additionalData.breakTime,
+          closed_days: updatedData.closedDays || additionalData.closedDays,
           updated_at: new Date().toISOString()
         }));
         
@@ -1321,6 +1339,135 @@ const StoreDetailPage = () => {
                         margin: 0
                       }}>
                         {additionalData.orderSystem ? `${additionalData.orderSystem}${additionalData.brandName ? ` (${additionalData.brandName})` : ''}` : '오더 시스템 정보 없음'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 영업시간 */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: '#6b7280',
+                    display: 'block',
+                    marginBottom: '8px'
+                  }}>
+                    영업시간
+                  </label>
+                  {isEditingAdditional ? (
+                    <input
+                      type="text"
+                      value={additionalData.openingHours}
+                      onChange={(e) => setAdditionalData(prev => ({ ...prev, openingHours: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                      }}
+                      placeholder="예: 10:00 ~ 22:00"
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#1f2937',
+                        margin: 0
+                      }}>
+                        {additionalData.openingHours || '영업시간 정보 없음'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 브레이크타임 */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: '#6b7280',
+                    display: 'block',
+                    marginBottom: '8px'
+                  }}>
+                    브레이크타임
+                  </label>
+                  {isEditingAdditional ? (
+                    <input
+                      type="text"
+                      value={additionalData.breakTime}
+                      onChange={(e) => setAdditionalData(prev => ({ ...prev, breakTime: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                      }}
+                      placeholder="예: 15:00 ~ 17:00"
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#1f2937',
+                        margin: 0
+                      }}>
+                        {additionalData.breakTime || '브레이크타임 정보 없음'}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* 휴무일 */}
+                <div>
+                  <label style={{ 
+                    fontSize: '12px', 
+                    fontWeight: '600', 
+                    color: '#6b7280',
+                    display: 'block',
+                    marginBottom: '8px'
+                  }}>
+                    휴무일
+                  </label>
+                  {isEditingAdditional ? (
+                    <input
+                      type="text"
+                      value={additionalData.closedDays}
+                      onChange={(e) => setAdditionalData(prev => ({ ...prev, closedDays: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                      }}
+                      placeholder="예: 매주 월요일"
+                    />
+                  ) : (
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px'
+                    }}>
+                      <p style={{ 
+                        fontSize: '14px', 
+                        color: '#1f2937',
+                        margin: 0
+                      }}>
+                        {additionalData.closedDays || '휴무일 정보 없음'}
                       </p>
                     </div>
                   )}
