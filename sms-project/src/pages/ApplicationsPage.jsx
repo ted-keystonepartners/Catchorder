@@ -13,6 +13,13 @@ import {
 } from '../api/applicationApi.js';
 import { apiClient } from '../api/client.js';
 
+// POS 시스템 라벨
+const POS_LABELS = {
+  OKPOS: '오케이포스',
+  EASYPOS: '이지포스',
+  UNIONPOS: '유니온포스'
+};
+
 const ApplicationsPage = () => {
   const { isAdmin } = useAuth();
   const navigate = useNavigate();
@@ -394,10 +401,7 @@ const ApplicationsPage = () => {
                         <div>
                           <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>POS 정보</p>
                           <p style={{ fontSize: '14px', color: '#111827' }}>
-                            {selectedApp.pos_system === 'OKPOS' ? '오케이포스' :
-                             selectedApp.pos_system === 'EASYPOS' ? '이지포스' :
-                             selectedApp.pos_system === 'UNIONPOS' ? '유니온포스' : 
-                             selectedApp.pos_system}
+                            {POS_LABELS[selectedApp.pos_system] || selectedApp.pos_system}
                           </p>
                         </div>
                       )}
