@@ -243,7 +243,7 @@ const ApplicationsPage = () => {
                     onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                   >
                     <td style={{ padding: '12px', fontSize: '13px', color: '#374151' }}>
-                      {new Date(app.created_at).toLocaleDateString('ko-KR')}
+                      {new Date(app.submitted_at || app.created_at).toLocaleDateString('ko-KR')}
                     </td>
                     <td style={{ padding: '12px', fontSize: '13px', color: '#374151' }}>
                       {REQUEST_TYPE_LABELS[app.request_type] || app.request_type}
@@ -340,7 +340,7 @@ const ApplicationsPage = () => {
                     <div>
                       <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>신청일</p>
                       <p style={{ fontSize: '14px', color: '#111827' }}>
-                        {new Date(selectedApp.created_at).toLocaleString('ko-KR')}
+                        {new Date(selectedApp.submitted_at || selectedApp.created_at).toLocaleString('ko-KR')}
                       </p>
                     </div>
                     <div>
