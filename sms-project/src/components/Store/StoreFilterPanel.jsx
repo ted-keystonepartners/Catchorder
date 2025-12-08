@@ -34,6 +34,9 @@ const StoreFilterPanel = ({
   setDateType,
   viewMode,
   setViewMode,
+  ownerFilter,
+  setOwnerFilter,
+  managers,
   isAdmin,
   onAddStore,
   onBulkUpload,
@@ -76,6 +79,7 @@ const StoreFilterPanel = ({
     setStatusFilter('all');
     setDateFilter('all');
     setDateType('created_at');
+    if (setOwnerFilter) setOwnerFilter('all');
   };
 
   return (
@@ -230,6 +234,32 @@ const StoreFilterPanel = ({
             </option>
           ))}
         </select>
+
+        {/* 담당자 필터 - 관리자만 표시 */}
+        {isAdmin && managers && managers.length > 0 && (
+          <select
+            value={ownerFilter}
+            onChange={(e) => setOwnerFilter(e.target.value)}
+            style={{
+              width: '140px',
+              padding: '8px 12px',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              backgroundColor: 'white',
+              outline: 'none',
+              cursor: 'pointer'
+            }}
+          >
+            <option value="all">전체 담당자</option>
+            <option value="unassigned">미배정</option>
+            {managers.map((manager) => (
+              <option key={manager.email} value={manager.email}>
+                {manager.name}
+              </option>
+            ))}
+          </select>
+        )}
 
         {/* 필터 초기화 버튼 */}
         <button

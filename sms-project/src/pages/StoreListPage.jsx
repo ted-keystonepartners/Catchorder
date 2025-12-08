@@ -28,6 +28,7 @@ const StoreListPage = () => {
   const [dateFilter, setDateFilter] = useState('all');
   const [dateType, setDateType] = useState('created_at'); // 'created_at' or 'updated_at'
   const [viewMode, setViewMode] = useState('table');
+  const [ownerFilter, setOwnerFilter] = useState('all'); // 담당자 필터 추가
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 50;
 
@@ -196,6 +197,10 @@ const StoreListPage = () => {
       const matchesStatus = statusFilter === 'all' || 
         (statusMapping[statusFilter] ? statusMapping[statusFilter].includes(store.status) : store.status === statusFilter);
       
+      // 담당자 필터 추가
+      const matchesOwner = ownerFilter === 'all' || 
+        (ownerFilter === 'unassigned' ? !store.owner_id : store.owner_id === ownerFilter);
+      
       // 날짜 필터 추가
       let matchesDate = true;
       if (dateFilter !== 'all') {
@@ -224,7 +229,7 @@ const StoreListPage = () => {
         }
       }
       
-      return matchesSearch && matchesStatus && matchesDate;
+      return matchesSearch && matchesStatus && matchesDate && matchesOwner;
     });
     
     // 상태 priority로 정렬
@@ -487,6 +492,9 @@ const StoreListPage = () => {
           setDateType={setDateType}
           viewMode={viewMode}
           setViewMode={setViewMode}
+          ownerFilter={ownerFilter}
+          setOwnerFilter={setOwnerFilter}
+          managers={managers}
           isAdmin={userIsAdmin}
           onAddStore={() => {
             setShowAddStoreModal(true);
