@@ -43,7 +43,7 @@ const InstallationModule = ({ store }) => {
 
   // 가입 완료 시 폴링 중지
   useEffect(() => {
-    if (store.status === 'ADMIN_SETTING' || store.status === 'QR_LINKING') {
+    if (store.status === 'ADMIN_SETTING' || store.status === 'QR_LINKING' || store.status === 'QR_MENU_ONLY') {
       stopPolling();
     }
   }, [store.status]);
@@ -161,6 +161,7 @@ const InstallationModule = ({ store }) => {
 
       case 'ADMIN_SETTING':
       case 'QR_LINKING':
+      case 'QR_MENU_ONLY':
         return (
           <div className="text-center py-6">
             <div className="w-12 h-12 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-4">

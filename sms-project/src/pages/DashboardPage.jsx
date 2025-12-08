@@ -15,6 +15,7 @@ const STATUS_LABELS = {
   REMOTE_INSTALL_SCHEDULED: "에이전트설치예정",
   ADMIN_SETTING: "어드민셋팅",
   QR_LINKING: "POS연동예정",
+  QR_MENU_ONLY: "QR메뉴만 사용",
   DEFECT_REPAIR: "하자보수중",
   QR_MENU_INSTALL: "최종설치완료",
   SERVICE_TERMINATED: "서비스해지",
@@ -224,6 +225,7 @@ const DashboardPage = () => {
       'REMOTE_INSTALL_SCHEDULED', // 에이전트설치예정
       'ADMIN_SETTING',         // 어드민셋팅
       'QR_LINKING',            // POS연동예정
+      'QR_MENU_ONLY',          // QR메뉴만 사용
       'DEFECT_REPAIR'          // 하자보수중
     ];
     

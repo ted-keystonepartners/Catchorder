@@ -626,6 +626,7 @@ const StoreDetailPage = () => {
       'REMOTE_INSTALL_SCHEDULED': { label: '에이전트설치예정', bg: '#fed7aa', text: '#ea580c' },
       'ADMIN_SETTING': { label: '어드민셋팅', bg: '#dcfce7', text: '#16a34a' },
       'QR_LINKING': { label: 'POS연동예정', bg: '#dcfce7', text: '#16a34a' },
+      'QR_MENU_ONLY': { label: 'QR메뉴만 사용', bg: '#cffafe', text: '#0891b2' },
       'DEFECT_REPAIR': { label: '하자보수중', bg: '#e0e7ff', text: '#4338ca' },
       'QR_MENU_INSTALL': { label: '최종설치완료', bg: '#ccfbf1', text: '#0f766e' },
       'SERVICE_TERMINATED': { label: '서비스해지', bg: '#fecaca', text: '#dc2626' },
@@ -2064,6 +2065,7 @@ const StoreDetailPage = () => {
                     <option value="REMOTE_INSTALL_SCHEDULED">에이전트설치예정</option>
                     <option value="ADMIN_SETTING">어드민셋팅</option>
                     <option value="QR_LINKING">POS연동예정</option>
+                    <option value="QR_MENU_ONLY">QR메뉴만 사용</option>
                     <option value="DEFECT_REPAIR">하자보수중</option>
                     <option value="QR_MENU_INSTALL">최종설치완료</option>
                     <option value="SERVICE_TERMINATED">서비스해지</option>

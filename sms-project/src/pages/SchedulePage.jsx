@@ -35,7 +35,7 @@ const SchedulePage = () => {
             firstVisitPending++;
           } else if (store.status === 'VISIT_COMPLETED') {
             completed++;
-          } else if (store.status === 'ADMIN_SETTING' || store.status === 'QR_LINKING') {
+          } else if (store.status === 'ADMIN_SETTING' || store.status === 'QR_LINKING' || store.status === 'QR_MENU_ONLY') {
             revisitPending++;
           }
         }

@@ -52,6 +52,7 @@ const StoreFilterPanel = ({
     { value: 'REMOTE_INSTALL_SCHEDULED', label: '에이전트설치예정' },
     { value: 'ADMIN_SETTING', label: '어드민셋팅' },
     { value: 'QR_LINKING', label: 'POS연동예정' },
+    { value: 'QR_MENU_ONLY', label: 'QR메뉴만 사용' },
     { value: 'DEFECT_REPAIR', label: '하자보수중' },
     { value: 'QR_MENU_INSTALL', label: '최종설치완료' },
     { value: 'SERVICE_TERMINATED', label: '서비스해지' },

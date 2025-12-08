@@ -3,7 +3,7 @@
  */
 
 /**
- * @typedef {'PRE_INTRODUCTION'|'VISIT_COMPLETED'|'REVISIT_SCHEDULED'|'INFO_REQUEST'|'REMOTE_INSTALL_SCHEDULED'|'ADMIN_SETTING'|'QR_LINKING'|'DEFECT_REPAIR'|'QR_MENU_INSTALL'|'SERVICE_TERMINATED'|'UNUSED_TERMINATED'|'PENDING'} StoreStatusCode
+ * @typedef {'PRE_INTRODUCTION'|'VISIT_COMPLETED'|'REVISIT_SCHEDULED'|'INFO_REQUEST'|'REMOTE_INSTALL_SCHEDULED'|'ADMIN_SETTING'|'QR_LINKING'|'QR_MENU_ONLY'|'DEFECT_REPAIR'|'QR_MENU_INSTALL'|'SERVICE_TERMINATED'|'UNUSED_TERMINATED'|'PENDING'} StoreStatusCode
  * @typedef {'P1'|'P2'|'P3'|'P4'} LifecycleCode
  * @typedef {'CALL'|'VISIT'|'SCHEDULE_CALL'|'SCHEDULE_VISIT'|'MEMO'} ActivityTypeCode
  * @typedef {'ADMIN'|'GENERAL'} RoleCode
@@ -67,40 +67,47 @@ export const STORE_STATUS = {
     description: 'POS 연동 예정인 매장',
     priority: 7
   },
+  QR_MENU_ONLY: {
+    code: 'QR_MENU_ONLY',
+    label: 'QR메뉴만 사용',
+    color: 'bg-cyan-100 text-cyan-700',
+    description: 'QR메뉴만 사용하는 매장',
+    priority: 8
+  },
   DEFECT_REPAIR: {
     code: 'DEFECT_REPAIR',
     label: '하자보수중',
     color: 'bg-indigo-100 text-indigo-700',
     description: '하자보수 진행 중인 매장',
-    priority: 8
+    priority: 9
   },
   QR_MENU_INSTALL: {
     code: 'QR_MENU_INSTALL',
     label: '최종설치완료',
     color: 'bg-teal-100 text-teal-700',
     description: '최종 설치가 완료된 매장',
-    priority: 9
+    priority: 10
   },
   SERVICE_TERMINATED: {
     code: 'SERVICE_TERMINATED',
     label: '서비스해지',
     color: 'bg-red-100 text-red-700',
     description: '서비스가 해지된 매장',
-    priority: 10
+    priority: 11
   },
   UNUSED_TERMINATED: {
     code: 'UNUSED_TERMINATED',
     label: '미이용해지',
     color: 'bg-red-200 text-red-800',
     description: '미이용으로 해지된 매장',
-    priority: 11
+    priority: 12
   },
   PENDING: {
     code: 'PENDING',
     label: '보류',
     color: 'bg-orange-100 text-orange-700',
     description: '검토가 보류된 매장',
-    priority: 12
+    priority: 13
   }
 };
 
