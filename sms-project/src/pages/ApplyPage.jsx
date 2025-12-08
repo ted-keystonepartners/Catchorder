@@ -19,10 +19,39 @@ const ApplyPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    
+    // 전화번호 자동 포맷팅
+    if (name === 'contact_phone') {
+      // 숫자만 추출
+      const numbers = value.replace(/[^0-9]/g, '');
+      
+      // 010으로 시작하지 않으면 입력 제한
+      if (numbers.length > 0 && !numbers.startsWith('010')) {
+        return;
+      }
+      
+      // 자동 하이픈 추가
+      let formattedPhone = '';
+      if (numbers.length <= 3) {
+        formattedPhone = numbers;
+      } else if (numbers.length <= 7) {
+        formattedPhone = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+      } else if (numbers.length <= 11) {
+        formattedPhone = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
+      } else {
+        return; // 11자리 초과 입력 방지
+      }
+      
+      setFormData(prev => ({
+        ...prev,
+        contact_phone: formattedPhone
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -37,10 +66,10 @@ const ApplyPage = () => {
       return;
     }
 
-    // 전화번호 형식 검증
-    const phoneRegex = /^[0-9-]+$/;
+    // 전화번호 형식 검증 (010-0000-0000 형식)
+    const phoneRegex = /^010-\d{4}-\d{4}$/;
     if (!phoneRegex.test(formData.contact_phone)) {
-      setError('올바른 전화번호 형식을 입력해주세요.');
+      setError('010-0000-0000 형식으로 입력해주세요.');
       setSubmitting(false);
       return;
     }
@@ -419,8 +448,7 @@ const ApplyPage = () => {
                   }}>
                     희망방문시간
                   </label>
-                  <input
-                    type="time"
+                  <select
                     name="preferred_time"
                     value={formData.preferred_time}
                     onChange={handleChange}
@@ -430,9 +458,27 @@ const ApplyPage = () => {
                       border: '1px solid #d1d5db',
                       borderRadius: '8px',
                       fontSize: '14px',
-                      outline: 'none'
+                      outline: 'none',
+                      backgroundColor: 'white'
                     }}
-                  />
+                  >
+                    <option value="">선택하세요</option>
+                    {(() => {
+                      const times = [];
+                      // 09:00부터 21:00까지 10분 단위
+                      for (let hour = 9; hour <= 21; hour++) {
+                        for (let minute = 0; minute < 60; minute += 10) {
+                          const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+                          times.push(
+                            <option key={timeStr} value={timeStr}>
+                              {timeStr}
+                            </option>
+                          );
+                        }
+                      }
+                      return times;
+                    })()}
+                  </select>
                 </div>
               </>
             )}
