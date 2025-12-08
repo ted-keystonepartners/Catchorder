@@ -83,6 +83,12 @@ const ApplicationsPage = () => {
   const handleStatusUpdate = async (status) => {
     if (!selectedApp) return;
 
+    // 가입신청 승인 시 담당자 필수 체크
+    if (status === 'APPROVED' && selectedApp.request_type === 'SIGNUP' && !modalData.assigned_owner_id) {
+      alert('담당자를 선택해주세요.');
+      return;
+    }
+
     try {
       const updateData = { status };
       
