@@ -11,8 +11,6 @@ const SchedulePage = () => {
   const { isAdmin } = useAuth();
   const { stores, isLoading: storesLoading, fetchStores } = useStores();
   const { success, error: showError, toasts, removeToast } = useToast();
-  const [managers, setManagers] = useState([]);
-  const [loadingManagers, setLoadingManagers] = useState(false);
 
   // 통계 계산
   const calculateStats = () => {
@@ -63,44 +61,13 @@ const SchedulePage = () => {
 
   const stats = calculateStats();
 
-  // 초기 데이터 로드 (stores와 managers)
+  // 초기 데이터 로드 (stores만 필요)
   useEffect(() => {
     // stores 가져오기
     if (!stores || stores.length === 0) {
       fetchStores();
     }
-    // managers 가져오기
-    fetchManagers();
   }, []);
-
-  const fetchManagers = async () => {
-    setLoadingManagers(true);
-    try {
-      const response = await apiClient.get('/api/managers');
-      
-      if (response.success) {
-        let managersData = [];
-        
-        if (response.data?.managers) {
-          managersData = response.data.managers;
-        } else if (Array.isArray(response.data)) {
-          managersData = response.data;
-        } else if (response.data?.data?.managers) {
-          managersData = response.data.data.managers;
-        }
-        
-        const managersWithEmail = managersData.filter(manager => 
-          manager && manager.email && manager.email.trim() && manager.name && manager.name.trim()
-        );
-        
-        setManagers(managersWithEmail);
-      }
-    } catch (error) {
-      showError('매니저 목록을 불러오는데 실패했습니다.');
-    } finally {
-      setLoadingManagers(false);
-    }
-  };
 
   return (
     <MainLayout>
@@ -310,10 +277,7 @@ const SchedulePage = () => {
         </div>
 
         {/* 캘린더 */}
-        <DashboardCalendar 
-          stores={stores} 
-          managers={managers}
-        />
+        <DashboardCalendar />
       </div>
     </MainLayout>
   );

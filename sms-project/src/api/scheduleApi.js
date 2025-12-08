@@ -130,104 +130,24 @@ export const VISIT_TYPE_OPTIONS = [
 
 /**
  * 모든 매장의 일정 조회
- * ADMIN 사용자는 /api/schedules/all 엔드포인트를 사용
- * @param {Array} stores - 매장 목록 (ADMIN이 아닌 경우 사용)
+ * 모든 사용자가 /api/schedules/all 엔드포인트 사용 (백엔드에서 권한별 필터링)
  * @param {string} month - 조회할 월 (YYYY-MM)
- * @param {boolean} isAdmin - 관리자 여부
  * @returns {Promise<Array>} 모든 매장의 일정 목록
  */
-export const getAllSchedules = async (stores, month, isAdmin = false) => {
-  // ADMIN 사용자는 전체 일정 조회 API 사용
-  if (isAdmin) {
-    try {
-      const url = `/api/schedules/all?month=${month}`;
-      const result = await apiClient.get(url);
-      
-      if (result.success) {
-        const schedules = result.data?.schedules || result.data || [];
-        // stores 데이터에서 매장명 매핑
-        const schedulesWithStoreName = schedules.map(schedule => {
-          // 다양한 ID 필드로 매장 찾기
-          const store = stores.find(s => {
-            const storeId = s.store_id || s.storeId || s.id || s.seq;
-            const scheduleStoreId = schedule.store_id || schedule.storeId;
-            return String(storeId) === String(scheduleStoreId);
-          });
-          
-          // 매장명 우선순위: API 응답 -> store 객체 -> 기본값
-          const storeName = schedule.store_name || 
-                          schedule.storeName || 
-                          store?.store_name || 
-                          store?.storeName || 
-                          store?.name || 
-                          '매장명 없음';
-          
-          // 담당자 정보도 포함
-          const ownerId = schedule.owner_id || schedule.ownerId || store?.owner_id || store?.ownerId;
-          
-          return {
-            ...schedule,
-            store_name: storeName,
-            owner_id: ownerId
-          };
-        });
-        return schedulesWithStoreName;
-      } else {
-        return [];
-      }
-    } catch (error) {
+export const getAllSchedules = async (month) => {
+  try {
+    const url = `/api/schedules/all?month=${month}`;
+    const result = await apiClient.get(url);
+    
+    if (result.success) {
+      // API 응답에 이미 store_name, owner_name이 포함되어 있음
+      const schedules = result.data?.schedules || result.data || [];
+      return schedules;
+    } else {
       return [];
     }
-  }
-  
-  // 일반 사용자는 기존 로직 사용 (개별 매장 조회)
-  if (!stores || stores.length === 0) {
-    return [];
-  }
-
-  try {
-    // 일정이 있을 가능성이 높은 매장만 필터링 (선택적)
-    // 또는 처음 10개 매장만 조회하여 성능 개선
-    const targetStores = stores.slice(0, 10); // 최대 10개 매장만 조회
-    
-    // Lambda Cold Start 대응: 순차 실행으로 변경
-    const scheduleResults = await sequentialExecute(
-      targetStores,
-      async (store) => {
-        const storeId = store.store_id || store.id;
-        const storeName = store.store_name || store.name;
-        
-        if (!storeId) {
-          return [];
-        }
-        
-        try {
-          const schedules = await getSchedules(storeId, month);
-          // 각 일정에 매장 정보 추가
-          if (Array.isArray(schedules) && schedules.length > 0) {
-            return schedules.map(schedule => ({
-              ...schedule,
-              store_id: storeId,
-              store_name: storeName
-            }));
-          }
-          return [];
-        } catch (error) {
-          // 개별 매장 실패는 조용히 처리 - 에러 로그 없음
-          return [];
-        }
-      },
-      100  // 각 요청 사이 100ms 지연
-    );
-    
-    // 에러가 있는 결과 필터링 및 평탄화
-    const allSchedules = scheduleResults
-      .filter(result => !result.error && Array.isArray(result))
-      .flat();
-    
-    return allSchedules;
   } catch (error) {
-    // 전체 일정 조회 실패 시 빈 배열 반환
+    console.error('일정 조회 실패:', error);
     return [];
   }
 };

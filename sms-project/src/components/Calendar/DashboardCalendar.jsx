@@ -6,8 +6,7 @@ import { useAuth } from '../../hooks/useAuth.js';
  * 대시보드용 캘린더 컴포넌트
  * 모든 매장의 일정을 표시
  */
-const DashboardCalendar = ({ stores = [], managers = [] }) => {
-  console.log('DashboardCalendar - stores:', stores?.length, 'managers:', managers?.length);
+const DashboardCalendar = () => {
   const { isAdmin } = useAuth();
   const isAdminUser = isAdmin(); // 한 번만 호출하여 값 저장
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -32,23 +31,14 @@ const DashboardCalendar = ({ stores = [], managers = [] }) => {
   const endDate = new Date(lastDay);
   endDate.setDate(endDate.getDate() + (6 - lastDay.getDay()));
 
-  // 매장 목록은 props로 받음 - fetchStores 제거
-
   // 모든 일정 가져오기
   const fetchAllSchedules = async () => {
-    // stores와 managers 모두 필요
-    if (stores.length === 0 || managers.length === 0) {
-      setSchedules([]);
-      setLoading(false);
-      return;
-    }
-    
     setLoading(true);
     
     try {
       const currentMonthStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
-      // ADMIN이면 isAdmin 플래그를 true로 전달
-      const schedulesData = await getAllSchedules(stores, currentMonthStr, isAdminUser);
+      // API에서 store_name, owner_name이 포함된 데이터를 받음
+      const schedulesData = await getAllSchedules(currentMonthStr);
       setSchedules(schedulesData || []);
     } catch (error) {
       setSchedules([]);
@@ -57,14 +47,10 @@ const DashboardCalendar = ({ stores = [], managers = [] }) => {
     }
   };
 
-  // stores와 managers가 모두 로드된 후에 일정 데이터 로드
+  // 월이 변경될 때 일정 데이터 로드
   useEffect(() => {
-    // stores와 managers 둘 다 있어야 함
-    if (stores.length === 0 || managers.length === 0) {
-      return; // 데이터 로딩 될 때까지 기다림
-    }
     fetchAllSchedules();
-  }, [stores, managers, currentDate.getMonth(), currentDate.getFullYear()]);
+  }, [currentDate.getMonth(), currentDate.getFullYear()]);
 
   // 날짜를 로컬 시간대 YYYY-MM-DD 형식으로 변환
   const formatLocalDate = (date) => {
@@ -519,31 +505,9 @@ const DashboardCalendar = ({ stores = [], managers = [] }) => {
                 gap: '12px'
               }}>
                 {getSchedulesForDate(selectedDate).map((schedule, index) => {
-                  // stores 배열에서 매장 찾기 (String으로 변환해서 비교)
-                  const store = stores.find(s => {
-                    const storeId = s.store_id || s.storeId || s.id || s.seq;
-                    const scheduleStoreId = schedule.store_id || schedule.storeId;
-                    return String(storeId) === String(scheduleStoreId);
-                  });
-                  
-                  // 매장명은 이미 schedule에 포함되어 있음 (getAllSchedules에서 처리)
+                  // API 응답에 이미 store_name과 owner_name이 포함되어 있음
                   const storeName = schedule.store_name || '매장명 없음';
-                  
-                  // 담당자 찾기 - schedule의 owner_id나 store의 ownerId 사용
-                  const ownerId = schedule.owner_id || store?.ownerId || store?.owner_id;
-                  
-                  // managers 배열에서 담당자 찾기
-                  const manager = ownerId ? managers.find(m => {
-                    // 다양한 필드로 매칭 시도
-                    return m.email === ownerId || 
-                           m.id === ownerId || 
-                           m.userId === ownerId ||
-                           m.user_id === ownerId ||
-                           String(m.id) === String(ownerId) ||
-                           String(m.userId) === String(ownerId);
-                  }) : null;
-                  
-                  const managerName = manager?.name || '미배정';
+                  const managerName = schedule.owner_name || '미배정';
                   
                   return (
                     <div
