@@ -102,7 +102,15 @@ const MainLayout = ({ children }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {/* 메인 메뉴 - 직접 나열 */}
             <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              {menuItems.map((item) => (
+              {menuItems
+                .filter(item => {
+                  // 주문입력 메뉴는 ADMIN만 볼 수 있음
+                  if (item.path === '/order-upload') {
+                    return user?.role === 'ADMIN';
+                  }
+                  return true;
+                })
+                .map((item) => (
                 <button
                   key={item.name}
                   onClick={() => {
