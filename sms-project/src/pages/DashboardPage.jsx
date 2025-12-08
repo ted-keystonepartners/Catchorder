@@ -690,7 +690,7 @@ const DashboardPage = () => {
                                 {store.store_name || store.name || '-'}
                               </td>
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
-                                {store.owner_name || managersMap[store.owner_id] || store.owner_id?.split('@')[0] || '-'}
+                                {managersMap[store.owner_id] || store.owner_name || store.owner_id?.split('@')[0] || '-'}
                               </td>
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
                                 {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '-'}
@@ -833,16 +833,9 @@ const DashboardPage = () => {
                 </thead>
                 <tbody>
                   {ownerStats.map((owner, index) => {
-                    // owner_name이 API에서 제공되면 사용, 없으면 managersMap에서 찾기
+                    // managersMap을 우선 체크, owner_name은 fallback으로만 사용
                     const ownerId = owner.owner_id || owner.stats_type?.replace('owner:', '');
-                    console.log(`owner ${index}:`, {
-                      owner_id: owner.owner_id,
-                      owner_name: owner.owner_name,
-                      ownerId: ownerId,
-                      managersMapValue: managersMap[ownerId],
-                      managersMapKeys: Object.keys(managersMap)
-                    });
-                    const displayName = owner.owner_name || managersMap[ownerId] || ownerId?.split('@')[0] || '미지정';
+                    const displayName = managersMap[ownerId] || owner.owner_name || ownerId?.split('@')[0] || '미지정';
                     return (
                       <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
                         <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>
