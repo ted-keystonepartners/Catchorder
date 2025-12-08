@@ -89,7 +89,7 @@ const ApplicationsPage = () => {
         updateData.memo = modalData.memo;
       }
 
-      const response = await updateApplication(selectedApp.id, updateData);
+      const response = await updateApplication(selectedApp.application_id, updateData);
       if (response.success) {
         alert(`신청이 ${STATUS_LABELS[status]}되었습니다.`);
         fetchApplications();
@@ -108,7 +108,7 @@ const ApplicationsPage = () => {
     if (!window.confirm('정말 삭제하시겠습니까?')) return;
 
     try {
-      const response = await deleteApplication(selectedApp.id);
+      const response = await deleteApplication(selectedApp.application_id);
       if (response.success) {
         alert('신청이 삭제되었습니다.');
         fetchApplications();
@@ -232,7 +232,7 @@ const ApplicationsPage = () => {
               <tbody>
                 {applications.map((app, index) => (
                   <tr
-                    key={app.id || index}
+                    key={app.application_id || index}
                     onClick={() => setSelectedApp(app)}
                     style={{
                       borderBottom: '1px solid #f3f4f6',
