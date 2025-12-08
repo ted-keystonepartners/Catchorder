@@ -88,36 +88,34 @@ const DashboardPage = () => {
   // 담당자 목록 가져오기
   const fetchManagers = async () => {
     try {
+      console.log('fetchManagers 시작');
       const response = await apiClient.get('/api/managers');
+      console.log('managers API 응답:', response);
       
       if (response.success) {
         const map = {};
-        
-        // 다양한 응답 구조 처리
         let managersData = [];
+        
         if (response.data?.managers) {
           managersData = response.data.managers;
         } else if (Array.isArray(response.data)) {
           managersData = response.data;
-        } else if (response.data?.data?.managers) {
-          managersData = response.data.data.managers;
         }
         
-        // 이메일-이름 매핑 생성
+        console.log('managersData:', managersData);
+        
         managersData.forEach(manager => {
-          if (manager && (manager.userId || manager.email) && manager.name) {
-            const key = manager.userId || manager.email;
+          const key = manager.userId || manager.email;
+          if (key && manager.name) {
             map[key] = manager.name;
           }
         });
         
+        console.log('최종 managersMap:', map);
         setManagersMap(map);
-      } else {
-        console.error('담당자 API 호출 실패:', response.error);
-        setManagersMap({});
       }
     } catch (error) {
-      console.error('담당자 목록 조회 실패:', error);
+      console.error('fetchManagers 에러:', error);
     }
   };
 
