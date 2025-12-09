@@ -132,7 +132,7 @@ const DashboardPage = () => {
       if (response.success && response.data?.daily_usage) {
         // 데이터가 있는 날짜만 필터링
         const filteredData = response.data.daily_usage.filter(
-          item => (item.active || 0) + (item.churned || 0) + (item.never_used || 0) > 0
+          item => (item.active || 0) + (item.inactive || 0) + (item.defect_repair || 0) + (item.terminated_pending || 0) > 0
         );
         setDailyUsageData(filteredData);
       }
@@ -569,7 +569,7 @@ const DashboardPage = () => {
                 gap: '12px',
                 marginBottom: '20px'
               }}>
-                {/* 이용중 카드 */}
+                {/* 이용 카드 */}
                 <div
                   onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'active' ? null : 'active')}
                   style={{
@@ -581,8 +581,8 @@ const DashboardPage = () => {
                     transition: 'all 0.2s'
                   }}
                 >
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>이용중</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#10b981', margin: 0 }}>
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>이용</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#10B981', margin: 0 }}>
                     {(overallStats.install_detail.summary.active || 0) + (overallStats.install_detail.summary.active_not_completed || 0)}
                   </p>
                 </div>
@@ -600,26 +600,8 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>미이용</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#f59e0b', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#FBBF24', margin: 0 }}>
                     {overallStats.install_detail.summary.inactive || 0}
-                  </p>
-                </div>
-
-                {/* 해지 카드 */}
-                <div
-                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'churned' ? null : 'churned')}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '8px',
-                    border: selectedInstallCategory === 'churned' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
-                    backgroundColor: selectedInstallCategory === 'churned' ? '#fff5f3' : 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>해지</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#ef4444', margin: 0 }}>
-                    {(overallStats.install_detail.summary.churned_service || 0) + (overallStats.install_detail.summary.churned_unused || 0)}
                   </p>
                 </div>
 
@@ -636,26 +618,28 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>하자보수</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#6366f1', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#F97316', margin: 0 }}>
                     {overallStats.install_detail.summary.repair || 0}
                   </p>
                 </div>
 
-                {/* 보류 카드 */}
+                {/* 해지/보류 카드 */}
                 <div
-                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'pending' ? null : 'pending')}
+                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'churned' ? null : 'churned')}
                   style={{
                     padding: '16px',
                     borderRadius: '8px',
-                    border: selectedInstallCategory === 'pending' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
-                    backgroundColor: selectedInstallCategory === 'pending' ? '#fff5f3' : 'white',
+                    border: selectedInstallCategory === 'churned' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
+                    backgroundColor: selectedInstallCategory === 'churned' ? '#fff5f3' : 'white',
                     cursor: 'pointer',
                     transition: 'all 0.2s'
                   }}
                 >
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>보류</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#64748b', margin: 0 }}>
-                    {overallStats.install_detail.summary.pending || 0}
+                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>해지/보류</p>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#EF4444', margin: 0 }}>
+                    {(overallStats.install_detail.summary.churned_service || 0) + 
+                     (overallStats.install_detail.summary.churned_unused || 0) + 
+                     (overallStats.install_detail.summary.pending || 0)}
                   </p>
                 </div>
               </div>
@@ -690,10 +674,11 @@ const DashboardPage = () => {
                           let storeList = [];
                           
                           if (selectedInstallCategory === 'churned') {
-                            // 해지 카테고리: churned_service와 churned_unused 합치기
+                            // 해지/보류 카테고리: churned_service, churned_unused, pending 합치기
                             const serviceChurned = (overallStats.install_detail.churned_service || []).map(s => ({...s, churnType: '서비스해지'}));
                             const unusedChurned = (overallStats.install_detail.churned_unused || []).map(s => ({...s, churnType: '미이용해지'}));
-                            storeList = [...serviceChurned, ...unusedChurned];
+                            const pending = (overallStats.install_detail.pending || []).map(s => ({...s, churnType: '보류'}));
+                            storeList = [...serviceChurned, ...unusedChurned, ...pending];
                           } else if (selectedInstallCategory === 'active') {
                             // 이용중 카테고리: active와 active_not_completed 합치기
                             const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
@@ -824,7 +809,7 @@ const DashboardPage = () => {
                   <YAxis 
                     domain={[0, (dataMax) => {
                       const maxValue = Math.max(...dailyUsageData.map(item => 
-                        (item.active || 0) + (item.churned || 0) + (item.never_used || 0)
+                        (item.active || 0) + (item.inactive || 0) + (item.defect_repair || 0) + (item.terminated_pending || 0)
                       ));
                       return maxValue + 20;
                     }]}
@@ -839,11 +824,14 @@ const DashboardPage = () => {
                   <Area type="monotone" dataKey="active" stackId="1" stroke="#10B981" fill="#10B981" name="이용매장">
                     <LabelList dataKey="active" position="center" style={{ fontSize: '11px', fill: 'white' }} />
                   </Area>
-                  <Area type="monotone" dataKey="churned" stackId="1" stroke="#F59E0B" fill="#F59E0B" name="홀드매장">
-                    <LabelList dataKey="churned" position="center" style={{ fontSize: '11px', fill: 'white' }} />
+                  <Area type="monotone" dataKey="inactive" stackId="1" stroke="#FBBF24" fill="#FBBF24" name="미이용매장">
+                    <LabelList dataKey="inactive" position="center" style={{ fontSize: '11px', fill: 'white' }} />
                   </Area>
-                  <Area type="monotone" dataKey="never_used" stackId="1" stroke="#6B7280" fill="#6B7280" name="미이용매장">
-                    <LabelList dataKey="never_used" position="center" style={{ fontSize: '11px', fill: 'white' }} />
+                  <Area type="monotone" dataKey="defect_repair" stackId="1" stroke="#F97316" fill="#F97316" name="하자보수">
+                    <LabelList dataKey="defect_repair" position="center" style={{ fontSize: '11px', fill: 'white' }} />
+                  </Area>
+                  <Area type="monotone" dataKey="terminated_pending" stackId="1" stroke="#EF4444" fill="#EF4444" name="해지/보류">
+                    <LabelList dataKey="terminated_pending" position="center" style={{ fontSize: '11px', fill: 'white' }} />
                   </Area>
                 </AreaChart>
               </ResponsiveContainer>
