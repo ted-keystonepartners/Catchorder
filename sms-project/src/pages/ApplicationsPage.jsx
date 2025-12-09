@@ -431,6 +431,31 @@ const ApplicationsPage = () => {
                   </div>
                 )}
 
+                {/* 메뉴신청일 때 테이블수 표시 */}
+                {selectedApp.request_type === 'MENU' && selectedApp.table_count && (
+                  <div style={{
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '20px'
+                  }}>
+                    <h4 style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      marginBottom: '12px'
+                    }}>
+                      메뉴 정보
+                    </h4>
+                    <div>
+                      <p style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>테이블수</p>
+                      <p style={{ fontSize: '14px', color: '#111827' }}>
+                        {selectedApp.table_count}개
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 {/* 처리 정보 */}
                 {selectedApp.status === 'PENDING' && (
                   <div style={{ marginBottom: '24px' }}>
