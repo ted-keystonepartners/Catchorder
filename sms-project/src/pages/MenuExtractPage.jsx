@@ -362,12 +362,21 @@ const MenuExtractPage = () => {
         const image = images[i];
         setCurrentProcessingIndex(i + 1);
         setProgressMessage(`${i + 1}/${images.length} 처리 중... (${image.name})`);
-        setCurrentProgress((i / images.length) * 100);
+        // 진행률 계산 수정: 시작 시점도 포함
+        const progressPercent = ((i + 0.5) / images.length) * 100;
+        setCurrentProgress(progressPercent);
+        
+        // UI 업데이트를 위한 짧은 지연
+        await new Promise(resolve => setTimeout(resolve, 50));
         
         try {
           const markdownTable = await extractMenuFromImage(image);
           const parsedData = parseMarkdownTable(markdownTable);
           allResults.push(parsedData);
+          
+          // 각 이미지 처리 완료 후 진행률 업데이트
+          const completedPercent = ((i + 1) / images.length) * 100;
+          setCurrentProgress(completedPercent);
         } catch (err) {
           console.error(`이미지 ${image.name} 처리 실패:`, err);
           // 개별 이미지 실패 시 계속 진행
