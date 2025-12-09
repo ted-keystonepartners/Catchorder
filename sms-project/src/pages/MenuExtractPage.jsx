@@ -121,6 +121,8 @@ const MenuExtractPage = () => {
   const [isTyping, setIsTyping] = useState(false);
   const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
   const [totalImages, setTotalImages] = useState(0);
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const progressIntervalRef = useRef(null);
 
   // 프로그레스 메시지 목록
   const progressMessages = [
@@ -150,6 +152,15 @@ const MenuExtractPage = () => {
       
       return () => clearInterval(typingInterval);
     }
+  }, []);
+
+  // 컴포넌트 언마운트 시 인터벌 정리
+  React.useEffect(() => {
+    return () => {
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+    };
   }, []);
 
   // 파일을 base64로 변환
@@ -337,6 +348,29 @@ const MenuExtractPage = () => {
     return mergedData;
   };
 
+  // 부드러운 프로그레스 애니메이션
+  const animateProgress = (targetProgress, duration = 2000) => {
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+    }
+    
+    const startProgress = animatedProgress;
+    const diff = targetProgress - startProgress;
+    const increment = diff / (duration / 50);
+    let current = startProgress;
+    
+    progressIntervalRef.current = setInterval(() => {
+      current += increment;
+      if ((increment > 0 && current >= targetProgress) || 
+          (increment < 0 && current <= targetProgress)) {
+        current = targetProgress;
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      setAnimatedProgress(current);
+    }, 50);
+  };
+
   // 추출하기 (순차 처리)
   const handleExtract = async () => {
     console.log('🚀 추출 시작');
@@ -350,15 +384,16 @@ const MenuExtractPage = () => {
       return;
     }
 
-    console.log('Setting isExtracting to true');
     setIsExtracting(true);
     setExtractedData([]);
     setCurrentProgress(0);
+    setAnimatedProgress(0);
     setTotalImages(images.length);
     setCurrentProcessingIndex(0);
+    setProgressMessage('추출 준비 중...');
     
-    // 강제로 UI 업데이트
-    await new Promise(resolve => setTimeout(resolve, 10));
+    // 초기 UI 업데이트
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     const allResults = [];
 
@@ -367,63 +402,77 @@ const MenuExtractPage = () => {
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         
-        // flushSync를 사용하여 즉시 UI 업데이트
-        flushSync(() => {
-          setCurrentProcessingIndex(i + 1);
-          setProgressMessage(`${i + 1}/${images.length} 처리 중... (${image.name})`);
-          // 진행률 계산 수정: 시작 시점도 포함
-          const progressPercent = ((i + 0.5) / images.length) * 100;
-          console.log('📊 Progress update:', progressPercent);
-          setCurrentProgress(progressPercent);
-        });
+        // 이미지 처리 시작
+        const startPercent = (i / images.length) * 100;
+        const targetPercent = ((i + 1) / images.length) * 100;
+        const midPercent = startPercent + (targetPercent - startPercent) * 0.7;
         
-        // UI 업데이트를 위한 짧은 지연
-        await new Promise(resolve => setTimeout(resolve, 100));
+        setCurrentProcessingIndex(i + 1);
+        setProgressMessage(`이미지 ${i + 1}/${images.length} 처리 중... (${image.name})`);
+        setCurrentProgress(startPercent);
+        
+        // 부드러운 애니메이션으로 중간 지점까지
+        animateProgress(midPercent, 3000);
         
         try {
           const markdownTable = await extractMenuFromImage(image);
           const parsedData = parseMarkdownTable(markdownTable);
           allResults.push(parsedData);
           
-          // 각 이미지 처리 완료 후 진행률 업데이트
-          flushSync(() => {
-            const completedPercent = ((i + 1) / images.length) * 100;
-            console.log('✅ Completed progress:', completedPercent);
-            setCurrentProgress(completedPercent);
-          });
+          // 처리 완료 후 목표 지점까지
+          setCurrentProgress(targetPercent);
+          animateProgress(targetPercent, 500);
+          setProgressMessage(`이미지 ${i + 1}/${images.length} 완료!`);
           
-          // UI 업데이트를 위한 추가 지연
-          await new Promise(resolve => setTimeout(resolve, 100));
+          // 짧은 대기
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
         } catch (err) {
           console.error(`이미지 ${image.name} 처리 실패:`, err);
-          // 개별 이미지 실패 시 계속 진행
           showError(`${image.name} 처리 실패: ${err.message}`);
+          // 실패해도 진행률은 업데이트
+          setCurrentProgress(targetPercent);
+          animateProgress(targetPercent, 300);
         }
       }
       
       // 모든 결과 합치기
       const mergedData = mergeTableResults(allResults);
       
+      // 완료 애니메이션
       setCurrentProgress(100);
+      animateProgress(100, 300);
       setProgressMessage('✅ 모든 이미지 추출 완료!');
       
       setTimeout(() => {
         setExtractedData(mergedData);
         success(`${images.length}개 이미지에서 메뉴 추출이 완료되었습니다!`);
+        setIsExtracting(false);
         setCurrentProgress(0);
+        setAnimatedProgress(0);
         setProgressMessage('');
-      }, 500);
+        setCurrentProcessingIndex(0);
+        
+        // 인터벌 정리
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+      }, 1000);
       
     } catch (err) {
       console.error('추출 실패:', err);
       showError(err.message || '메뉴 추출에 실패했습니다.');
       setCurrentProgress(0);
+      setAnimatedProgress(0);
       setProgressMessage('');
-    } finally {
-      setTimeout(() => {
-        setIsExtracting(false);
-        setCurrentProcessingIndex(0);
-      }, 500);
+      setIsExtracting(false);
+      
+      // 인터벌 정리
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
     }
   };
 
@@ -776,60 +825,113 @@ const MenuExtractPage = () => {
               </div>
             ) : isExtracting ? (
               <div>
-                {console.log('🎨 렌더링 - isExtracting:', isExtracting, 'currentProgress:', currentProgress)}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '12px',
-                  marginBottom: '16px'
+                  marginBottom: '20px'
                 }}>
                   <div style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '40px',
+                    height: '40px',
                     borderRadius: '50%',
-                    backgroundColor: '#FF3D00',
+                    background: 'linear-gradient(135deg, #FF3D00 0%, #FF6B00 100%)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    animation: 'pulse 2s infinite'
+                    animation: 'pulse 2s infinite',
+                    boxShadow: '0 2px 8px rgba(255, 61, 0, 0.3)'
                   }}>
-                    <svg width="16" height="16" fill="white" viewBox="0 0 24 24">
+                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24" style={{
+                      animation: 'spin 3s linear infinite'
+                    }}>
                       <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
                     </svg>
                   </div>
                   <div style={{ flex: 1 }}>
                     <p style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
+                      fontSize: '15px',
+                      fontWeight: '700',
                       color: '#111827',
-                      marginBottom: '4px'
+                      marginBottom: '6px'
                     }}>
                       AI가 메뉴를 분석하고 있어요
                     </p>
                     <p style={{
-                      fontSize: '12px',
-                      color: '#6b7280'
+                      fontSize: '13px',
+                      color: '#374151',
+                      fontWeight: '500'
                     }}>
-                      {progressMessage} (진행률: {Math.round(currentProgress)}%)
+                      {progressMessage}
                     </p>
+                  </div>
+                  <div style={{
+                    fontSize: '20px',
+                    fontWeight: '700',
+                    color: '#FF3D00',
+                    minWidth: '50px',
+                    textAlign: 'right'
+                  }}>
+                    {Math.round(animatedProgress || currentProgress)}%
                   </div>
                 </div>
                 
                 <div style={{
+                  position: 'relative',
                   width: '100%',
-                  height: '6px',
-                  backgroundColor: '#e5e7eb',
-                  borderRadius: '3px',
-                  overflow: 'hidden'
+                  height: '8px',
+                  backgroundColor: '#f3f4f6',
+                  borderRadius: '4px',
+                  overflow: 'hidden',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
                 }}>
+                  {/* 배경 애니메이션 */}
                   <div style={{
-                    width: `${currentProgress}%`,
-                    height: '100%',
-                    backgroundColor: '#FF3D00',
-                    borderRadius: '3px',
-                    transition: 'width 0.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'linear-gradient(90deg, transparent, rgba(255,61,0,0.1), transparent)',
+                    animation: 'shimmer 2s infinite linear'
                   }}/>
+                  
+                  {/* 실제 프로그레스 바 */}
+                  <div style={{
+                    width: `${animatedProgress || currentProgress}%`,
+                    height: '100%',
+                    background: 'linear-gradient(90deg, #FF3D00, #FF6B00)',
+                    borderRadius: '4px',
+                    transition: 'width 0.3s ease-out',
+                    boxShadow: '0 1px 2px rgba(255, 61, 0, 0.4)',
+                    position: 'relative'
+                  }}>
+                    {/* 빛나는 효과 */}
+                    <div style={{
+                      position: 'absolute',
+                      top: '1px',
+                      left: '2px',
+                      right: '2px',
+                      height: '2px',
+                      background: 'rgba(255,255,255,0.5)',
+                      borderRadius: '2px'
+                    }}/>
+                  </div>
                 </div>
+                
+                {/* 단계별 메시지 */}
+                <p style={{
+                  fontSize: '11px',
+                  color: '#9ca3af',
+                  textAlign: 'center',
+                  marginTop: '8px',
+                  fontStyle: 'italic'
+                }}>
+                  {animatedProgress < 30 ? '📝 텍스트 인식 중...' :
+                   animatedProgress < 60 ? '💰 가격 정보 추출 중...' :
+                   animatedProgress < 90 ? '📊 카테고리 분류 중...' :
+                   '✨ 마무리하는 중...'}
+                </p>
               </div>
             ) : (
               <div style={{ textAlign: 'center' }}>
@@ -1003,12 +1105,26 @@ const MenuExtractPage = () => {
 
       <style>{`
         @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.7; }
+          0%, 100% { 
+            opacity: 1;
+            transform: scale(1);
+          }
+          50% { 
+            opacity: 0.8;
+            transform: scale(1.05);
+          }
         }
         @keyframes blink {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
         }
       `}</style>
     </MainLayout>
