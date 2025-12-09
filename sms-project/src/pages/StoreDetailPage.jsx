@@ -2378,93 +2378,111 @@ const StoreDetailPage = () => {
                 </div>
               </div>
           </div>
-        </div>
-      </div>
-
-      {/* 최근 14일 이용내역 */}
-      {store?.seq && (
-        <div style={{
-          backgroundColor: 'white',
-          borderRadius: '12px',
-          padding: '24px',
-          border: '1px solid #e5e7eb',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{
-            fontSize: '18px',
-            fontWeight: '600',
-            color: '#111827',
-            marginBottom: '16px'
-          }}>
-            최근 14일 이용내역
-          </h3>
           
-          {dailyOrdersLoading ? (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-              데이터를 불러오는 중...
-            </div>
-          ) : dailyOrders ? (
-            <>
-              {/* 요약 표시 */}
-              {dailyOrders.summary && (
-                <div style={{
-                  padding: '12px 16px',
-                  backgroundColor: '#f9fafb',
-                  borderRadius: '8px',
-                  marginBottom: '16px',
-                  fontSize: '14px',
-                  color: '#374151'
-                }}>
-                  총 주문 <strong>{dailyOrders.summary.total_orders}</strong>건 | 
-                  총 주문고객 <strong>{dailyOrders.summary.total_customers}</strong>명
+          {/* 최근 14일 이용내역 - 회원가입서 아래 */}
+          {store?.seq && (
+            <div style={{ 
+                backgroundColor: 'white',
+                border: '1px solid #e5e7eb',
+                borderRadius: '12px',
+                padding: '24px',
+                marginBottom: '24px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+                  <h3 style={{ 
+                    fontSize: '16px', 
+                    fontWeight: '600', 
+                    color: '#1f2937',
+                    margin: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <div style={{
+                      width: '20px',
+                      height: '20px',
+                      backgroundColor: '#FF3D00',
+                      borderRadius: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <svg width="12" height="12" fill="white" viewBox="0 0 24 24">
+                        <path d="M7 11h2v2H7zm0-4h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zm0 4h2v2h-2zm-4 0h2v2h-2zm-4 8h2v2H7zm4 0h2v2h-2zm4 0h2v2h-2zM3 3h18v18H3V3zm2 2v14h14V5H5z"/>
+                      </svg>
+                    </div>
+                    최근 14일 이용내역
+                  </h3>
                 </div>
-              )}
-              
-              {/* 테이블 */}
-              {dailyOrders.daily_orders && dailyOrders.daily_orders.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                    <thead>
-                      <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                        <th style={{ padding: '12px', textAlign: 'left', fontSize: '14px', fontWeight: '600', color: '#374151' }}>날짜</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>주문수</th>
-                        <th style={{ padding: '12px', textAlign: 'center', fontSize: '14px', fontWeight: '600', color: '#374151' }}>주문고객수</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {dailyOrders.daily_orders.map((day, index) => {
-                        const date = new Date(day.date);
-                        const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-                        const dateStr = `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
-                        
-                        return (
-                          <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
-                            <td style={{ padding: '12px', fontSize: '14px', color: '#111827' }}>{dateStr}</td>
-                            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: day.order_count > 0 ? '#111827' : '#9ca3af' }}>
-                              {day.order_count || 0}
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'center', fontSize: '14px', color: day.customer_count > 0 ? '#111827' : '#9ca3af' }}>
-                              {day.customer_count || 0}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-                  주문 내역이 없습니다
-                </div>
-              )}
-            </>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
-              데이터를 불러올 수 없습니다
-            </div>
+                
+                {dailyOrdersLoading ? (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                    데이터를 불러오는 중...
+                  </div>
+                ) : dailyOrders ? (
+                  <>
+                    {/* 요약 표시 */}
+                    {dailyOrders.summary && (
+                      <div style={{
+                        padding: '12px 16px',
+                        backgroundColor: '#f9fafb',
+                        borderRadius: '8px',
+                        marginBottom: '16px',
+                        fontSize: '14px',
+                        color: '#374151'
+                      }}>
+                        총 주문 <strong>{dailyOrders.summary.total_orders}</strong>건 | 
+                        총 주문고객 <strong>{dailyOrders.summary.total_customers}</strong>명
+                      </div>
+                    )}
+                    
+                    {/* 테이블 */}
+                    {dailyOrders.daily_orders && dailyOrders.daily_orders.length > 0 ? (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
+                              <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>날짜</th>
+                              <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
+                              <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>고객수</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dailyOrders.daily_orders.map((day, index) => {
+                              const date = new Date(day.date);
+                              const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                              const dateStr = `${date.getMonth() + 1}/${date.getDate()} (${weekdays[date.getDay()]})`;
+                              
+                              return (
+                                <tr key={index} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                  <td style={{ padding: '8px', fontSize: '13px', color: '#111827' }}>{dateStr}</td>
+                                  <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px', color: day.order_count > 0 ? '#111827' : '#9ca3af' }}>
+                                    {day.order_count || 0}
+                                  </td>
+                                  <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px', color: day.customer_count > 0 ? '#111827' : '#9ca3af' }}>
+                                    {day.customer_count || 0}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                        주문 내역이 없습니다
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}>
+                    데이터를 불러올 수 없습니다
+                  </div>
+                )}
+              </div>
           )}
         </div>
-      )}
+      </div>
 
       {/* 동의서 응답 모달 */}
       {showConsentModal && (
