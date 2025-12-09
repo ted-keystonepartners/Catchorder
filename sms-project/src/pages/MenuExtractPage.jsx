@@ -371,6 +371,14 @@ const MenuExtractPage = () => {
     }, 50);
   };
 
+  // 단계적 프로그레스 애니메이션
+  const animateStepProgress = async (basePercent, steps) => {
+    for (const step of steps) {
+      animateProgress(basePercent + step.percent, step.duration);
+      await new Promise(resolve => setTimeout(resolve, step.duration));
+    }
+  };
+
   // 추출하기 (순차 처리)
   const handleExtract = async () => {
     console.log('🚀 추출 시작');
@@ -405,34 +413,52 @@ const MenuExtractPage = () => {
         // 이미지 처리 시작
         const startPercent = (i / images.length) * 100;
         const targetPercent = ((i + 1) / images.length) * 100;
-        const midPercent = startPercent + (targetPercent - startPercent) * 0.7;
+        const range = targetPercent - startPercent;
         
         setCurrentProcessingIndex(i + 1);
-        setProgressMessage(`이미지 ${i + 1}/${images.length} 처리 중... (${image.name})`);
+        setProgressMessage(`이미지 ${i + 1}/${images.length} 처리 중...`);
         setCurrentProgress(startPercent);
         
-        // 부드러운 애니메이션으로 중간 지점까지
-        animateProgress(midPercent, 3000);
+        // 단계적 프로그레스: 0 -> 30 -> 35 -> 60 -> 70 -> 80 -> 87 -> 100 (상대적 비율)
+        const progressSteps = [
+          { percent: range * 0.30, duration: 500 },   // 0 -> 30%
+          { percent: range * 0.05, duration: 200 },   // 30 -> 35%
+          { percent: range * 0.25, duration: 400 },   // 35 -> 60%
+          { percent: range * 0.10, duration: 300 },   // 60 -> 70%
+        ];
+        
+        // 비동기로 프로그레스 애니메이션 시작
+        const progressPromise = animateStepProgress(startPercent, progressSteps);
         
         try {
+          // API 호출과 동시에 프로그레스 진행
           const markdownTable = await extractMenuFromImage(image);
           const parsedData = parseMarkdownTable(markdownTable);
           allResults.push(parsedData);
           
-          // 처리 완료 후 목표 지점까지
+          // API 완료 후 나머지 프로그레스
+          await progressPromise; // 기존 애니메이션 완료 대기
+          
+          // 70 -> 80 -> 87 -> 100
+          animateProgress(startPercent + range * 0.80, 200); // -> 80%
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          animateProgress(startPercent + range * 0.87, 150); // -> 87%
+          await new Promise(resolve => setTimeout(resolve, 150));
+          
+          animateProgress(targetPercent, 200); // -> 100%
           setCurrentProgress(targetPercent);
-          animateProgress(targetPercent, 500);
           setProgressMessage(`이미지 ${i + 1}/${images.length} 완료!`);
           
-          // 짧은 대기
           await new Promise(resolve => setTimeout(resolve, 200));
           
         } catch (err) {
           console.error(`이미지 ${image.name} 처리 실패:`, err);
           showError(`${image.name} 처리 실패: ${err.message}`);
           // 실패해도 진행률은 업데이트
+          clearInterval(progressIntervalRef.current);
           setCurrentProgress(targetPercent);
-          animateProgress(targetPercent, 300);
+          setAnimatedProgress(targetPercent);
         }
       }
       
