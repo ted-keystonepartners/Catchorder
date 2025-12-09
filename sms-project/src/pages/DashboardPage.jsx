@@ -37,7 +37,7 @@ const DashboardPage = () => {
   const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
   const [dailyUsageData, setDailyUsageData] = useState([]);
   const [usageDateRange, setUsageDateRange] = useState({
-    start: '2025-12-01',
+    start: '2025-12-06',
     end: new Date().toISOString().split('T')[0]
   });
   
@@ -130,9 +130,9 @@ const DashboardPage = () => {
       const response = await apiClient.get(`/api/stats/daily-usage?start_date=${usageDateRange.start}&end_date=${usageDateRange.end}`);
       
       if (response.success && response.data?.daily_usage) {
-        // 데이터가 있는 날짜만 필터링
+        // 데이터가 있는 날짜만 필터링 (total_installed > 0)
         const filteredData = response.data.daily_usage.filter(
-          item => (item.active || 0) + (item.inactive || 0) + (item.defect_repair || 0) + (item.terminated_pending || 0) > 0
+          item => (item.total_installed || 0) > 0
         );
         setDailyUsageData(filteredData);
       }
@@ -582,7 +582,7 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>이용</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#10B981', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#3B82F6', margin: 0 }}>
                     {(overallStats.install_detail.summary.active || 0) + (overallStats.install_detail.summary.active_not_completed || 0)}
                   </p>
                 </div>
@@ -618,7 +618,7 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>하자보수</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#F97316', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#8B5CF6', margin: 0 }}>
                     {overallStats.install_detail.summary.repair || 0}
                   </p>
                 </div>
@@ -821,13 +821,13 @@ const DashboardPage = () => {
                     }}
                   />
                   <Legend />
-                  <Area type="monotone" dataKey="active" stackId="1" stroke="#10B981" fill="#10B981" name="이용매장">
+                  <Area type="monotone" dataKey="active" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="이용매장">
                     <LabelList dataKey="active" position="center" style={{ fontSize: '11px', fill: 'white' }} />
                   </Area>
                   <Area type="monotone" dataKey="inactive" stackId="1" stroke="#FBBF24" fill="#FBBF24" name="미이용매장">
                     <LabelList dataKey="inactive" position="center" style={{ fontSize: '11px', fill: 'white' }} />
                   </Area>
-                  <Area type="monotone" dataKey="defect_repair" stackId="1" stroke="#F97316" fill="#F97316" name="하자보수">
+                  <Area type="monotone" dataKey="defect_repair" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" name="하자보수">
                     <LabelList dataKey="defect_repair" position="center" style={{ fontSize: '11px', fill: 'white' }} />
                   </Area>
                   <Area type="monotone" dataKey="terminated_pending" stackId="1" stroke="#EF4444" fill="#EF4444" name="해지/보류">
