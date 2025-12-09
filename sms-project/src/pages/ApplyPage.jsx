@@ -527,21 +527,38 @@ const ApplyPage = () => {
                     }}
                   >
                     <option value="">선택하세요</option>
-                    {(() => {
-                      const times = [];
-                      // 09:00부터 21:00까지 10분 단위
-                      for (let hour = 9; hour <= 21; hour++) {
-                        for (let minute = 0; minute < 60; minute += 10) {
-                          const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                          times.push(
-                            <option key={timeStr} value={timeStr}>
-                              {timeStr}
-                            </option>
-                          );
-                        }
-                      }
-                      return times;
-                    })()}
+                    <option value="시간무관" style={{ fontWeight: '600' }}>시간무관</option>
+                    <optgroup label="오전 (09:00~12:00)">
+                      <option value="09:00">09:00</option>
+                      <option value="09:30">09:30</option>
+                      <option value="10:00">10:00</option>
+                      <option value="10:30">10:30</option>
+                      <option value="11:00">11:00</option>
+                      <option value="11:30">11:30</option>
+                    </optgroup>
+                    <optgroup label="오후 (12:00~18:00)">
+                      <option value="12:00">12:00</option>
+                      <option value="12:30">12:30</option>
+                      <option value="13:00">13:00</option>
+                      <option value="13:30">13:30</option>
+                      <option value="14:00">14:00</option>
+                      <option value="14:30">14:30</option>
+                      <option value="15:00">15:00</option>
+                      <option value="15:30">15:30</option>
+                      <option value="16:00">16:00</option>
+                      <option value="16:30">16:30</option>
+                      <option value="17:00">17:00</option>
+                      <option value="17:30">17:30</option>
+                    </optgroup>
+                    <optgroup label="저녁 (18:00~21:00)">
+                      <option value="18:00">18:00</option>
+                      <option value="18:30">18:30</option>
+                      <option value="19:00">19:00</option>
+                      <option value="19:30">19:30</option>
+                      <option value="20:00">20:00</option>
+                      <option value="20:30">20:30</option>
+                      <option value="21:00">21:00</option>
+                    </optgroup>
                   </select>
                 </div>
               </>
