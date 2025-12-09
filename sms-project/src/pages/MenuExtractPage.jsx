@@ -348,35 +348,22 @@ const MenuExtractPage = () => {
     return mergedData;
   };
 
-  // 부드러운 프로그레스 애니메이션
-  const animateProgress = (targetProgress, duration = 2000) => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-    }
+  // 가짜 프로그레스 애니메이션 (API 호출 중 계속 증가)
+  const startFakeProgress = (startPercent, maxPercent) => {
+    let current = startPercent;
+    setAnimatedProgress(current);
     
-    const startProgress = animatedProgress;
-    const diff = targetProgress - startProgress;
-    const increment = diff / (duration / 50);
-    let current = startProgress;
-    
-    progressIntervalRef.current = setInterval(() => {
-      current += increment;
-      if ((increment > 0 && current >= targetProgress) || 
-          (increment < 0 && current <= targetProgress)) {
-        current = targetProgress;
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
+    const interval = setInterval(() => {
+      if (current < maxPercent) {
+        // 점점 느려지게 증가
+        const remaining = maxPercent - current;
+        const increment = Math.max(0.3, remaining * 0.05);
+        current = Math.min(current + increment, maxPercent);
+        setAnimatedProgress(current);
       }
-      setAnimatedProgress(current);
-    }, 50);
-  };
-
-  // 단계적 프로그레스 애니메이션
-  const animateStepProgress = async (basePercent, steps) => {
-    for (const step of steps) {
-      animateProgress(basePercent + step.percent, step.duration);
-      await new Promise(resolve => setTimeout(resolve, step.duration));
-    }
+    }, 100);
+    
+    return interval;
   };
 
   // 추출하기 (순차 처리)
@@ -413,50 +400,37 @@ const MenuExtractPage = () => {
         // 이미지 처리 시작
         const startPercent = (i / images.length) * 100;
         const targetPercent = ((i + 1) / images.length) * 100;
-        const range = targetPercent - startPercent;
+        const maxFakePercent = startPercent + (targetPercent - startPercent) * 0.9; // 90%까지만
         
         setCurrentProcessingIndex(i + 1);
         setProgressMessage(`이미지 ${i + 1}/${images.length} 처리 중...`);
         setCurrentProgress(startPercent);
         
-        // 단계적 프로그레스: 0 -> 30 -> 35 -> 60 -> 70 -> 80 -> 87 -> 100 (상대적 비율)
-        const progressSteps = [
-          { percent: range * 0.30, duration: 500 },   // 0 -> 30%
-          { percent: range * 0.05, duration: 200 },   // 30 -> 35%
-          { percent: range * 0.25, duration: 400 },   // 35 -> 60%
-          { percent: range * 0.10, duration: 300 },   // 60 -> 70%
-        ];
-        
-        // 비동기로 프로그레스 애니메이션 시작
-        const progressPromise = animateStepProgress(startPercent, progressSteps);
+        // 가짜 프로그레스 시작 (API 호출 중 계속 증가)
+        const fakeProgressInterval = startFakeProgress(startPercent, maxFakePercent);
         
         try {
-          // API 호출과 동시에 프로그레스 진행
+          // API 호출
           const markdownTable = await extractMenuFromImage(image);
           const parsedData = parseMarkdownTable(markdownTable);
           allResults.push(parsedData);
           
-          // API 완료 후 나머지 프로그레스
-          await progressPromise; // 기존 애니메이션 완료 대기
+          // API 완료 후 interval 정리하고 100%로
+          clearInterval(fakeProgressInterval);
           
-          // 70 -> 80 -> 87 -> 100
-          animateProgress(startPercent + range * 0.80, 200); // -> 80%
-          await new Promise(resolve => setTimeout(resolve, 200));
-          
-          animateProgress(startPercent + range * 0.87, 150); // -> 87%
-          await new Promise(resolve => setTimeout(resolve, 150));
-          
-          animateProgress(targetPercent, 200); // -> 100%
+          // 부드럽게 100%로 완료
+          setAnimatedProgress(targetPercent);
           setCurrentProgress(targetPercent);
           setProgressMessage(`이미지 ${i + 1}/${images.length} 완료!`);
           
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 300));
           
         } catch (err) {
           console.error(`이미지 ${image.name} 처리 실패:`, err);
           showError(`${image.name} 처리 실패: ${err.message}`);
+          
           // 실패해도 진행률은 업데이트
-          clearInterval(progressIntervalRef.current);
+          clearInterval(fakeProgressInterval);
           setCurrentProgress(targetPercent);
           setAnimatedProgress(targetPercent);
         }
@@ -467,7 +441,7 @@ const MenuExtractPage = () => {
       
       // 완료 애니메이션
       setCurrentProgress(100);
-      animateProgress(100, 300);
+      setAnimatedProgress(100);
       setProgressMessage('✅ 모든 이미지 추출 완료!');
       
       setTimeout(() => {
@@ -478,12 +452,6 @@ const MenuExtractPage = () => {
         setAnimatedProgress(0);
         setProgressMessage('');
         setCurrentProcessingIndex(0);
-        
-        // 인터벌 정리
-        if (progressIntervalRef.current) {
-          clearInterval(progressIntervalRef.current);
-          progressIntervalRef.current = null;
-        }
       }, 1000);
       
     } catch (err) {
@@ -493,12 +461,6 @@ const MenuExtractPage = () => {
       setAnimatedProgress(0);
       setProgressMessage('');
       setIsExtracting(false);
-      
-      // 인터벌 정리
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
     }
   };
 
