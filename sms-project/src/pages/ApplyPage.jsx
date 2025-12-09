@@ -26,21 +26,17 @@ const ApplyPage = () => {
       // 숫자만 추출
       const numbers = value.replace(/[^0-9]/g, '');
       
-      // 010으로 시작하지 않으면 입력 제한
-      if (numbers.length > 0 && !numbers.startsWith('010')) {
+      // 11자리 초과 입력 방지
+      if (numbers.length > 11) {
         return;
       }
       
       // 자동 하이픈 추가
-      let formattedPhone = '';
-      if (numbers.length <= 3) {
-        formattedPhone = numbers;
-      } else if (numbers.length <= 7) {
-        formattedPhone = `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
-      } else if (numbers.length <= 11) {
-        formattedPhone = `${numbers.slice(0, 3)}-${numbers.slice(3, 7)}-${numbers.slice(7, 11)}`;
-      } else {
-        return; // 11자리 초과 입력 방지
+      let formattedPhone = numbers;
+      if (numbers.length > 3 && numbers.length <= 7) {
+        formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3);
+      } else if (numbers.length > 7) {
+        formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
       }
       
       setFormData(prev => ({
