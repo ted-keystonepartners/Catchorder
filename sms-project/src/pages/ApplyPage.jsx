@@ -12,7 +12,8 @@ const ApplyPage = () => {
     payment_type: 'PREPAID',
     pos_system: '',
     preferred_date: '',
-    preferred_time: ''
+    preferred_time: '',
+    table_count: ''
   });
 
   const [submitting, setSubmitting] = useState(false);
@@ -127,6 +128,20 @@ const ApplyPage = () => {
         return;
       }
     }
+    
+    // 메뉴신청 시 테이블수 필수 검증
+    if (formData.request_type === 'MENU') {
+      if (!formData.table_count) {
+        setError('테이블수를 입력해주세요.');
+        setSubmitting(false);
+        return;
+      }
+      if (isNaN(formData.table_count) || formData.table_count < 1) {
+        setError('올바른 테이블수를 입력해주세요.');
+        setSubmitting(false);
+        return;
+      }
+    }
 
     // 전화번호 형식 검증
     if (formData.phone_type === 'MOBILE') {
@@ -155,6 +170,10 @@ const ApplyPage = () => {
         delete submitData.pos_system;
         delete submitData.preferred_date;
         delete submitData.preferred_time;
+        delete submitData.phone_type;
+        // table_count는 포함
+      } else {
+        delete submitData.table_count;
       }
 
       await submitApplication(submitData);
@@ -227,7 +246,8 @@ const ApplyPage = () => {
                 payment_type: 'PREPAID',
                 pos_system: '',
                 preferred_date: '',
-                preferred_time: ''
+                preferred_time: '',
+                table_count: ''
               });
             }}
             style={{
@@ -461,6 +481,38 @@ const ApplyPage = () => {
                 />
               </div>
             </div>
+
+            {/* 메뉴신청일 때 테이블수 입력 */}
+            {formData.request_type === 'MENU' && (
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '6px'
+                }}>
+                  테이블수 <span style={{ color: '#ef4444' }}>*</span>
+                </label>
+                <input
+                  type="number"
+                  name="table_count"
+                  value={formData.table_count}
+                  onChange={handleChange}
+                  required
+                  min="1"
+                  style={{
+                    width: '100%',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                  placeholder="테이블 수를 입력해주세요"
+                />
+              </div>
+            )}
 
             {/* 조건부 필드 - 가입신청 또는 미팅신청일 때만 표시 */}
             {(formData.request_type === 'SIGNUP' || formData.request_type === 'MEETING') && (
