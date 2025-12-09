@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import { useToast } from '../hooks/useToast.js';
 import ToastContainer from '../components/ui/Toast.jsx';
 import MainLayout from '../components/Layout/MainLayout.jsx';
@@ -338,6 +339,7 @@ const MenuExtractPage = () => {
 
   // 추출하기 (순차 처리)
   const handleExtract = async () => {
+    console.log('🚀 추출 시작');
     if (images.length === 0) {
       showError('이미지를 먼저 업로드해주세요.');
       return;
@@ -348,11 +350,15 @@ const MenuExtractPage = () => {
       return;
     }
 
+    console.log('Setting isExtracting to true');
     setIsExtracting(true);
     setExtractedData([]);
     setCurrentProgress(0);
     setTotalImages(images.length);
     setCurrentProcessingIndex(0);
+    
+    // 강제로 UI 업데이트
+    await new Promise(resolve => setTimeout(resolve, 10));
     
     const allResults = [];
 
@@ -360,14 +366,19 @@ const MenuExtractPage = () => {
       // 순차적으로 이미지 처리
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        setCurrentProcessingIndex(i + 1);
-        setProgressMessage(`${i + 1}/${images.length} 처리 중... (${image.name})`);
-        // 진행률 계산 수정: 시작 시점도 포함
-        const progressPercent = ((i + 0.5) / images.length) * 100;
-        setCurrentProgress(progressPercent);
+        
+        // flushSync를 사용하여 즉시 UI 업데이트
+        flushSync(() => {
+          setCurrentProcessingIndex(i + 1);
+          setProgressMessage(`${i + 1}/${images.length} 처리 중... (${image.name})`);
+          // 진행률 계산 수정: 시작 시점도 포함
+          const progressPercent = ((i + 0.5) / images.length) * 100;
+          console.log('📊 Progress update:', progressPercent);
+          setCurrentProgress(progressPercent);
+        });
         
         // UI 업데이트를 위한 짧은 지연
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise(resolve => setTimeout(resolve, 100));
         
         try {
           const markdownTable = await extractMenuFromImage(image);
@@ -375,8 +386,14 @@ const MenuExtractPage = () => {
           allResults.push(parsedData);
           
           // 각 이미지 처리 완료 후 진행률 업데이트
-          const completedPercent = ((i + 1) / images.length) * 100;
-          setCurrentProgress(completedPercent);
+          flushSync(() => {
+            const completedPercent = ((i + 1) / images.length) * 100;
+            console.log('✅ Completed progress:', completedPercent);
+            setCurrentProgress(completedPercent);
+          });
+          
+          // UI 업데이트를 위한 추가 지연
+          await new Promise(resolve => setTimeout(resolve, 100));
         } catch (err) {
           console.error(`이미지 ${image.name} 처리 실패:`, err);
           // 개별 이미지 실패 시 계속 진행
@@ -759,6 +776,7 @@ const MenuExtractPage = () => {
               </div>
             ) : isExtracting ? (
               <div>
+                {console.log('🎨 렌더링 - isExtracting:', isExtracting, 'currentProgress:', currentProgress)}
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -792,7 +810,7 @@ const MenuExtractPage = () => {
                       fontSize: '12px',
                       color: '#6b7280'
                     }}>
-                      {progressMessage}
+                      {progressMessage} (진행률: {Math.round(currentProgress)}%)
                     </p>
                   </div>
                 </div>
