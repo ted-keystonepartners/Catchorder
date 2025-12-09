@@ -821,7 +821,14 @@ const DashboardPage = () => {
                       return `${date.getMonth() + 1}/${date.getDate()}`;
                     }}
                   />
-                  <YAxis />
+                  <YAxis 
+                    domain={[0, (dataMax) => {
+                      const maxValue = Math.max(...dailyUsageData.map(item => 
+                        (item.active || 0) + (item.churned || 0) + (item.never_used || 0)
+                      ));
+                      return maxValue + 20;
+                    }]}
+                  />
                   <Tooltip 
                     labelFormatter={(value) => {
                       const date = new Date(value);
