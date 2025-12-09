@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
 // 상태 라벨 매핑
@@ -130,7 +130,11 @@ const DashboardPage = () => {
       const response = await apiClient.get(`/api/stats/daily-usage?start_date=${usageDateRange.start}&end_date=${usageDateRange.end}`);
       
       if (response.success && response.data?.daily_usage) {
-        setDailyUsageData(response.data.daily_usage);
+        // 데이터가 있는 날짜만 필터링
+        const filteredData = response.data.daily_usage.filter(
+          item => (item.active || 0) + (item.churned || 0) + (item.never_used || 0) > 0
+        );
+        setDailyUsageData(filteredData);
       }
     } catch (error) {
       console.error('일별 이용 현황 가져오기 실패:', error);
@@ -825,9 +829,15 @@ const DashboardPage = () => {
                     }}
                   />
                   <Legend />
-                  <Area type="monotone" dataKey="active" stackId="1" stroke="#10B981" fill="#10B981" name="이용 중" />
-                  <Area type="monotone" dataKey="churned" stackId="1" stroke="#F59E0B" fill="#F59E0B" name="이탈" />
-                  <Area type="monotone" dataKey="never_used" stackId="1" stroke="#EF4444" fill="#EF4444" name="미온보딩" />
+                  <Area type="monotone" dataKey="active" stackId="1" stroke="#10B981" fill="#10B981" name="이용매장">
+                    <LabelList dataKey="active" position="center" style={{ fontSize: '11px', fill: 'white' }} />
+                  </Area>
+                  <Area type="monotone" dataKey="churned" stackId="1" stroke="#F59E0B" fill="#F59E0B" name="홀드매장">
+                    <LabelList dataKey="churned" position="center" style={{ fontSize: '11px', fill: 'white' }} />
+                  </Area>
+                  <Area type="monotone" dataKey="never_used" stackId="1" stroke="#6B7280" fill="#6B7280" name="미이용매장">
+                    <LabelList dataKey="never_used" position="center" style={{ fontSize: '11px', fill: 'white' }} />
+                  </Area>
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
