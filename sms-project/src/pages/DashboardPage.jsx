@@ -129,8 +129,14 @@ const DashboardPage = () => {
     try {
       const response = await apiClient.get(`/api/stats/daily-usage?start_date=${usageDateRange.start}&end_date=${usageDateRange.end}`);
       
-      if (response.success && response.data?.daily_usage) {
-        setDailyUsageData(response.data.daily_usage);
+      if (response.success && response.data) {
+        // summary를 제외한 날짜 데이터만 추출
+        const dailyData = Object.keys(response.data)
+          .filter(key => key !== 'summary')
+          .map(key => response.data[key])
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        setDailyUsageData(dailyData);
       }
     } catch (error) {
       console.error('일별 이용 현황 가져오기 실패:', error);
