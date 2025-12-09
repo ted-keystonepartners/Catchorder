@@ -37,7 +37,7 @@ const DashboardPage = () => {
   const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
   const [dailyUsageData, setDailyUsageData] = useState([]);
   const [usageDateRange, setUsageDateRange] = useState({
-    start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+    start: '2025-12-01',
     end: new Date().toISOString().split('T')[0]
   });
   
@@ -129,14 +129,8 @@ const DashboardPage = () => {
     try {
       const response = await apiClient.get(`/api/stats/daily-usage?start_date=${usageDateRange.start}&end_date=${usageDateRange.end}`);
       
-      if (response.success && response.data) {
-        // summary를 제외한 날짜 데이터만 추출
-        const dailyData = Object.keys(response.data)
-          .filter(key => key !== 'summary')
-          .map(key => response.data[key])
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
-        
-        setDailyUsageData(dailyData);
+      if (response.success && response.data?.daily_usage) {
+        setDailyUsageData(response.data.daily_usage);
       }
     } catch (error) {
       console.error('일별 이용 현황 가져오기 실패:', error);
@@ -831,9 +825,9 @@ const DashboardPage = () => {
                     }}
                   />
                   <Legend />
-                  <Area type="monotone" dataKey="active_today" stackId="1" stroke="#16a34a" fill="#16a34a" name="당일 이용" />
-                  <Area type="monotone" dataKey="inactive_with_history" stackId="1" stroke="#eab308" fill="#eab308" name="휴무 (과거 이용 있음)" />
-                  <Area type="monotone" dataKey="inactive_no_history" stackId="1" stroke="#6b7280" fill="#6b7280" name="미이용 (이용 기록 없음)" />
+                  <Area type="monotone" dataKey="active" stackId="1" stroke="#10B981" fill="#10B981" name="이용 중" />
+                  <Area type="monotone" dataKey="churned" stackId="1" stroke="#F59E0B" fill="#F59E0B" name="이탈" />
+                  <Area type="monotone" dataKey="never_used" stackId="1" stroke="#EF4444" fill="#EF4444" name="미온보딩" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
