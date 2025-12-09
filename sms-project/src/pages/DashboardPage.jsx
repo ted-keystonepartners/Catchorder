@@ -35,6 +35,11 @@ const DashboardPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [managersMap, setManagersMap] = useState({});
   const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
+  const [dailyUsageData, setDailyUsageData] = useState([]);
+  const [usageDateRange, setUsageDateRange] = useState({
+    start: new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split('T')[0],
+    end: new Date().toISOString().split('T')[0]
+  });
   
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
@@ -116,6 +121,19 @@ const DashboardPage = () => {
       }
     } catch (error) {
       console.error('fetchManagers 에러:', error);
+    }
+  };
+
+  // 일별 이용 현황 데이터 가져오기
+  const fetchDailyUsage = async () => {
+    try {
+      const response = await apiClient.get(`/api/stats/daily-usage?start_date=${usageDateRange.start}&end_date=${usageDateRange.end}`);
+      
+      if (response.success && response.data?.daily_usage) {
+        setDailyUsageData(response.data.daily_usage);
+      }
+    } catch (error) {
+      console.error('일별 이용 현황 가져오기 실패:', error);
     }
   };
 
@@ -204,6 +222,7 @@ const DashboardPage = () => {
     const loadData = async () => {
       await fetchManagers();  // 담당자 목록 먼저 로드
       await fetchTodayStats(); // 그 다음 통계 로드
+      await fetchDailyUsage();  // 일별 이용 현황 로드
     };
     loadData();
   }, []);
@@ -214,6 +233,11 @@ const DashboardPage = () => {
       fetchPeriodStats();
     }
   }, [selectedPeriod, overallStats]);
+
+  // 날짜 범위 변경 시 일별 이용 현황 재로드
+  useEffect(() => {
+    fetchDailyUsage();
+  }, [usageDateRange]);
 
   // 상태별 차트 데이터 준비
   const statusChartData = useMemo(() => {
@@ -744,7 +768,7 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* 매장분포 일별 차트 */}
+          {/* 일별 이용 현황 차트 */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -754,41 +778,57 @@ const DashboardPage = () => {
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                매장분포 일별 차트
+                일별 이용 현황
               </h3>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                {['7d', '30d', '90d'].map(period => (
-                  <button
-                    key={period}
-                    onClick={() => setSelectedPeriod(period)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
-                      backgroundColor: selectedPeriod === period ? '#FF3D00' : 'white',
-                      color: selectedPeriod === period ? 'white' : '#6b7280',
-                      fontSize: '12px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                  >
-                    {period === '7d' ? '최근 7일' : period === '30d' ? '최근 30일' : '최근 90일'}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={usageDateRange.start}
+                  onChange={(e) => setUsageDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '12px'
+                  }}
+                />
+                <span style={{ color: '#6b7280', fontSize: '12px' }}>~</span>
+                <input
+                  type="date"
+                  value={usageDateRange.end}
+                  onChange={(e) => setUsageDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '12px'
+                  }}
+                />
               </div>
             </div>
-            {periodData.length > 0 ? (
+            {dailyUsageData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={periodData}>
+                <AreaChart data={dailyUsageData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="date" />
+                  <XAxis 
+                    dataKey="date" 
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }}
+                  />
                   <YAxis />
-                  <Tooltip />
+                  <Tooltip 
+                    labelFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    }}
+                  />
                   <Legend />
-                  <Line type="monotone" dataKey="registered" stroke="#dc2626" strokeWidth={2} dot={false} name="가입" />
-                  <Line type="monotone" dataKey="installed" stroke="#ea580c" strokeWidth={2} dot={false} name="설치" />
-                  <Line type="monotone" dataKey="active" stroke="#16a34a" strokeWidth={2} dot={false} name="이용" />
-                </LineChart>
+                  <Area type="monotone" dataKey="active_today" stackId="1" stroke="#16a34a" fill="#16a34a" name="당일 이용" />
+                  <Area type="monotone" dataKey="inactive_with_history" stackId="1" stroke="#eab308" fill="#eab308" name="휴무 (과거 이용 있음)" />
+                  <Area type="monotone" dataKey="inactive_no_history" stackId="1" stroke="#6b7280" fill="#6b7280" name="미이용 (이용 기록 없음)" />
+                </AreaChart>
               </ResponsiveContainer>
             ) : (
               <div style={{ 
