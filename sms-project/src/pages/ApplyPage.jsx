@@ -6,6 +6,7 @@ const ApplyPage = () => {
     member_id: '',
     store_name: '',
     contact_name: '',
+    phone_type: 'MOBILE',
     contact_phone: '',
     request_type: 'SIGNUP',
     payment_type: 'PREPAID',
@@ -26,23 +27,63 @@ const ApplyPage = () => {
       // 숫자만 추출
       const numbers = value.replace(/[^0-9]/g, '');
       
-      // 11자리 초과 입력 방지
-      if (numbers.length > 11) {
-        return;
+      // 전화번호 유형에 따른 처리
+      if (formData.phone_type === 'MOBILE') {
+        // 휴대폰: 11자리 초과 입력 방지
+        if (numbers.length > 11) {
+          return;
+        }
+        
+        // 자동 하이픈 추가
+        let formattedPhone = numbers;
+        if (numbers.length > 3 && numbers.length <= 7) {
+          formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3);
+        } else if (numbers.length > 7) {
+          formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          contact_phone: formattedPhone
+        }));
+      } else {
+        // 일반전화
+        // 서울(02): 최대 10자리, 그 외: 최대 11자리
+        const isSeoul = numbers.startsWith('02');
+        const maxLength = isSeoul ? 10 : 11;
+        
+        if (numbers.length > maxLength) {
+          return;
+        }
+        
+        // 자동 하이픈 추가
+        let formattedPhone = numbers;
+        if (isSeoul) {
+          // 서울: 02-0000-0000
+          if (numbers.length > 2 && numbers.length <= 6) {
+            formattedPhone = numbers.slice(0, 2) + '-' + numbers.slice(2);
+          } else if (numbers.length > 6) {
+            formattedPhone = numbers.slice(0, 2) + '-' + numbers.slice(2, 6) + '-' + numbers.slice(6, 10);
+          }
+        } else {
+          // 그 외 지역: 000-000-0000 또는 000-0000-0000
+          if (numbers.length > 3 && numbers.length <= 7) {
+            formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3);
+          } else if (numbers.length > 7) {
+            // 7자리 또는 8자리 중간 번호 처리
+            if (numbers.length === 10) {
+              formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3, 6) + '-' + numbers.slice(6, 10);
+            } else {
+              formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
+            }
+          }
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          contact_phone: formattedPhone
+        }));
       }
-      
-      // 자동 하이픈 추가
-      let formattedPhone = numbers;
-      if (numbers.length > 3 && numbers.length <= 7) {
-        formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3);
-      } else if (numbers.length > 7) {
-        formattedPhone = numbers.slice(0, 3) + '-' + numbers.slice(3, 7) + '-' + numbers.slice(7, 11);
-      }
-      
-      setFormData(prev => ({
-        ...prev,
-        contact_phone: formattedPhone
-      }));
     } else {
       setFormData(prev => ({
         ...prev,
@@ -87,12 +128,23 @@ const ApplyPage = () => {
       }
     }
 
-    // 전화번호 형식 검증 (010-0000-0000 형식)
-    const phoneRegex = /^010-\d{4}-\d{4}$/;
-    if (!phoneRegex.test(formData.contact_phone)) {
-      setError('010-0000-0000 형식으로 입력해주세요.');
-      setSubmitting(false);
-      return;
+    // 전화번호 형식 검증
+    if (formData.phone_type === 'MOBILE') {
+      // 휴대폰: 010-0000-0000 형식
+      const mobileRegex = /^010-\d{4}-\d{4}$/;
+      if (!mobileRegex.test(formData.contact_phone)) {
+        setError('010-0000-0000 형식으로 입력해주세요.');
+        setSubmitting(false);
+        return;
+      }
+    } else {
+      // 일반전화: 지역번호-0000-0000 형식
+      const landlineRegex = /^(02|0[3-9][0-9])-\d{3,4}-\d{4}$/;
+      if (!landlineRegex.test(formData.contact_phone)) {
+        setError('올바른 전화번호 형식으로 입력해주세요. (예: 02-1234-5678, 031-123-4567)');
+        setSubmitting(false);
+        return;
+      }
     }
 
     try {
@@ -169,6 +221,7 @@ const ApplyPage = () => {
                 member_id: '',
                 store_name: '',
                 contact_name: '',
+                phone_type: 'MOBILE',
                 contact_phone: '',
                 request_type: 'SIGNUP',
                 payment_type: 'PREPAID',
@@ -372,22 +425,41 @@ const ApplyPage = () => {
               }}>
                 연락처 <span style={{ color: '#ef4444' }}>*</span>
               </label>
-              <input
-                type="tel"
-                name="contact_phone"
-                value={formData.contact_phone}
-                onChange={handleChange}
-                required
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  outline: 'none'
-                }}
-                placeholder="010-1234-5678"
-              />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <select
+                  name="phone_type"
+                  value={formData.phone_type}
+                  onChange={handleChange}
+                  style={{
+                    width: '120px',
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none',
+                    backgroundColor: 'white'
+                  }}
+                >
+                  <option value="MOBILE">휴대폰</option>
+                  <option value="LANDLINE">일반전화</option>
+                </select>
+                <input
+                  type="tel"
+                  name="contact_phone"
+                  value={formData.contact_phone}
+                  onChange={handleChange}
+                  required
+                  style={{
+                    flex: 1,
+                    padding: '10px 12px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    outline: 'none'
+                  }}
+                  placeholder={formData.phone_type === 'MOBILE' ? '010-1234-5678' : '02-1234-5678'}
+                />
+              </div>
             </div>
 
             {/* 조건부 필드 - 가입신청 또는 미팅신청일 때만 표시 */}
