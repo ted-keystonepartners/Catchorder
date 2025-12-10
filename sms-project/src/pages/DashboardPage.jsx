@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
+import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
 // 상태 라벨 매핑
@@ -487,38 +487,34 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               minHeight: '400px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                  일별 신규 설치
-                </h3>
-                {/* 담당자 범례를 제목 옆에 표시 */}
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  {installManagers.map((manager, index) => {
-                    const MANAGER_COLORS = [
-                      '#FF6B00', // 주황
-                      '#FF8C42', // 연주황
-                      '#FFA668', // 더 연한 주황
-                      '#FFC093', // 아주 연한 주황
-                      '#FFDCC1'  // 가장 연한 주황
-                    ];
-                    return (
-                      <span 
-                        key={manager}
-                        style={{
-                          padding: '4px 12px',
-                          fontSize: '12px',
-                          borderRadius: '9999px',
-                          color: 'white',
-                          fontWeight: '500',
-                          backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
-                        }}
-                      >
-                        {managersMap[manager] || manager.split('@')[0]}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                일별 신규 설치
+                {/* 담당자 범례를 제목 옆에 작은 배지로 표시 */}
+                {installManagers.map((manager, index) => {
+                  const MANAGER_COLORS = [
+                    '#FF6B00', // 주황
+                    '#FF8C42', // 연주황
+                    '#FFA668', // 더 연한 주황
+                    '#FFC093', // 아주 연한 주황
+                    '#FFDCC1'  // 가장 연한 주황
+                  ];
+                  return (
+                    <span 
+                      key={manager}
+                      style={{
+                        padding: '4px 12px',
+                        fontSize: '12px',
+                        borderRadius: '9999px',
+                        color: 'white',
+                        fontWeight: '500',
+                        backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
+                      }}
+                    >
+                      {managersMap[manager] || manager.split('@')[0]}
+                    </span>
+                  );
+                })}
+              </h3>
               {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
                 <ResponsiveContainer width="100%" height={320}>
@@ -531,7 +527,7 @@ const DashboardPage = () => {
                     <YAxis 
                       tick={{ fontSize: 12 }}
                       allowDecimals={false}
-                      domain={[0, 12]}
+                      domain={[0, 'dataMax + 2']}
                     />
                     <Tooltip 
                       formatter={(value, name) => [
@@ -604,7 +600,7 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* 설치완료 매장 상세 */}
+          {/* 매장 이용 현황 */}
           {overallStats?.install_detail?.summary && (
             <div style={{
               backgroundColor: 'white',
@@ -614,7 +610,10 @@ const DashboardPage = () => {
               marginBottom: '24px'
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
-                설치완료 매장 상세
+                매장 이용 현황
+                <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '400', marginLeft: '8px' }}>
+                  ({usageDateRange.start.split('-')[1]}/{usageDateRange.start.split('-')[2]} ~ {usageDateRange.end.split('-')[1]}/{usageDateRange.end.split('-')[2]} 기준)
+                </span>
               </h3>
               
               {/* 카테고리 카드들 */}
@@ -655,7 +654,7 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>미이용</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#FBBF24', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#60A5FA', margin: 0 }}>
                     {overallStats.install_detail.summary.inactive || 0}
                   </p>
                 </div>
@@ -673,30 +672,11 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>하자보수</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#8B5CF6', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#93C5FD', margin: 0 }}>
                     {overallStats.install_detail.summary.repair || 0}
                   </p>
                 </div>
 
-                {/* 해지/보류 카드 */}
-                <div
-                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'churned' ? null : 'churned')}
-                  style={{
-                    padding: '16px',
-                    borderRadius: '8px',
-                    border: selectedInstallCategory === 'churned' ? '2px solid #FF3D00' : '1px solid #e5e7eb',
-                    backgroundColor: selectedInstallCategory === 'churned' ? '#fff5f3' : 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                >
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>해지/보류</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#EF4444', margin: 0 }}>
-                    {(overallStats.install_detail.summary.churned_service || 0) + 
-                     (overallStats.install_detail.summary.churned_unused || 0) + 
-                     (overallStats.install_detail.summary.pending || 0)}
-                  </p>
-                </div>
               </div>
 
               {/* 선택된 카테고리의 매장 리스트 */}
@@ -716,10 +696,10 @@ const DashboardPage = () => {
                           <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>등록일</th>
                           <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
                           <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문고객수</th>
-                          {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
+                          {selectedInstallCategory === 'active' && (
                             <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
                           )}
-                          {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'churned' || selectedInstallCategory === 'repair' || selectedInstallCategory === 'pending') && (
+                          {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'repair') && (
                             <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문</th>
                           )}
                         </tr>
@@ -728,13 +708,7 @@ const DashboardPage = () => {
                         {(() => {
                           let storeList = [];
                           
-                          if (selectedInstallCategory === 'churned') {
-                            // 해지/보류 카테고리: churned_service, churned_unused, pending 합치기
-                            const serviceChurned = (overallStats.install_detail.churned_service || []).map(s => ({...s, churnType: '서비스해지'}));
-                            const unusedChurned = (overallStats.install_detail.churned_unused || []).map(s => ({...s, churnType: '미이용해지'}));
-                            const pending = (overallStats.install_detail.pending || []).map(s => ({...s, churnType: '보류'}));
-                            storeList = [...serviceChurned, ...unusedChurned, ...pending];
-                          } else if (selectedInstallCategory === 'active') {
+                          if (selectedInstallCategory === 'active') {
                             // 이용중 카테고리: active와 active_not_completed 합치기
                             const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
                             const notCompleted = (overallStats.install_detail.active_not_completed || []).map(s => ({...s, installType: '설치중'}));
@@ -771,21 +745,21 @@ const DashboardPage = () => {
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
                                 {store.customer_count ? store.customer_count.toLocaleString() : '0'}
                               </td>
-                              {(selectedInstallCategory === 'churned' || selectedInstallCategory === 'active') && (
+                              {selectedInstallCategory === 'active' && (
                                 <td style={{ padding: '12px 8px', fontSize: '13px' }}>
                                   <span style={{
                                     padding: '2px 8px',
                                     borderRadius: '4px',
                                     fontSize: '11px',
                                     fontWeight: '500',
-                                    backgroundColor: store.churnType === '서비스해지' ? '#fef2f2' : store.churnType === '미이용해지' ? '#fefce8' : store.installType === '설치중' ? '#fef3c7' : '#d1fae5',
-                                    color: store.churnType === '서비스해지' ? '#dc2626' : store.churnType === '미이용해지' ? '#ca8a04' : store.installType === '설치중' ? '#d97706' : '#059669'
+                                    backgroundColor: store.installType === '설치중' ? '#fef3c7' : '#d1fae5',
+                                    color: store.installType === '설치중' ? '#d97706' : '#059669'
                                   }}>
-                                    {store.churnType || store.installType}
+                                    {store.installType}
                                   </span>
                                 </td>
                               )}
-                              {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'churned' || selectedInstallCategory === 'repair' || selectedInstallCategory === 'pending') && (
+                              {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'repair') && (
                                 <td style={{ padding: '12px 8px', fontSize: '13px' }}>
                                   {store.hasOrder && (
                                     <span style={{
@@ -852,7 +826,7 @@ const DashboardPage = () => {
             </div>
             {dailyUsageData.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={dailyUsageData}>
+                <LineChart data={dailyUsageData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
                     dataKey="date" 
@@ -876,19 +850,10 @@ const DashboardPage = () => {
                     }}
                   />
                   <Legend />
-                  <Area type="monotone" dataKey="active" stackId="1" stroke="#3B82F6" fill="#3B82F6" name="이용매장">
-                    <LabelList dataKey="active" position="center" style={{ fontSize: '11px', fill: 'white' }} />
-                  </Area>
-                  <Area type="monotone" dataKey="inactive" stackId="1" stroke="#FBBF24" fill="#FBBF24" name="미이용매장">
-                    <LabelList dataKey="inactive" position="center" style={{ fontSize: '11px', fill: 'white' }} />
-                  </Area>
-                  <Area type="monotone" dataKey="defect_repair" stackId="1" stroke="#8B5CF6" fill="#8B5CF6" name="하자보수">
-                    <LabelList dataKey="defect_repair" position="center" style={{ fontSize: '11px', fill: 'white' }} />
-                  </Area>
-                  <Area type="monotone" dataKey="terminated_pending" stackId="1" stroke="#EF4444" fill="#EF4444" name="해지/보류">
-                    <LabelList dataKey="terminated_pending" position="center" style={{ fontSize: '11px', fill: 'white' }} />
-                  </Area>
-                </AreaChart>
+                  <Line type="monotone" dataKey="active" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} name="이용매장" />
+                  <Line type="monotone" dataKey="inactive" stroke="#60A5FA" strokeWidth={2} dot={{ r: 3 }} name="미이용매장" />
+                  <Line type="monotone" dataKey="defect_repair" stroke="#93C5FD" strokeWidth={2} dot={{ r: 3 }} name="하자보수" />
+                </LineChart>
               </ResponsiveContainer>
             ) : (
               <div style={{ 
