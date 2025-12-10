@@ -849,10 +849,10 @@ const DashboardPage = () => {
                       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                     }}
                   />
-                  <Legend />
                   <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} label={{ position: 'top', fontSize: 11, fill: '#3B82F6' }} name="이용매장" />
                   <Line type="monotone" dataKey="inactive" stroke="#6B7280" strokeWidth={2} dot={{ r: 3, fill: '#6B7280' }} label={{ position: 'top', fontSize: 11, fill: '#6B7280' }} name="미이용매장" />
                   <Line type="monotone" dataKey="defect_repair" stroke="#EF4444" strokeWidth={2} dot={{ r: 3, fill: '#EF4444' }} label={{ position: 'top', fontSize: 11, fill: '#EF4444' }} name="하자보수" />
+                  <Legend wrapperStyle={{ paddingTop: '10px' }} />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
