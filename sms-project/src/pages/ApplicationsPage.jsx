@@ -32,6 +32,10 @@ const ApplicationsPage = () => {
     assigned_owner_id: '',
     memo: ''
   });
+  
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 30;
 
   // 권한 체크
   useEffect(() => {
@@ -77,6 +81,7 @@ const ApplicationsPage = () => {
   useEffect(() => {
     fetchApplications();
     fetchManagers();
+    setCurrentPage(1); // 필터 변경 시 첫 페이지로 리셋
   }, [selectedStatus]);
 
   // 신청 상태 업데이트
@@ -216,6 +221,16 @@ const ApplicationsPage = () => {
               신청 내역이 없습니다
             </div>
           ) : (
+            <>
+              {/* 전체 건수 표시 */}
+              <div style={{
+                padding: '12px 16px',
+                borderBottom: '1px solid #e5e7eb',
+                fontSize: '13px',
+                color: '#6b7280'
+              }}>
+                전체 {applications.length}건 중 {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, applications.length)}건 표시
+              </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid #e5e7eb', backgroundColor: '#f9fafb' }}>
@@ -243,7 +258,15 @@ const ApplicationsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {applications.map((app, index) => (
+                {(() => {
+                  // 페이지네이션 계산
+                  const totalPages = Math.ceil(applications.length / itemsPerPage);
+                  const paginatedApplications = applications.slice(
+                    (currentPage - 1) * itemsPerPage,
+                    currentPage * itemsPerPage
+                  );
+                  
+                  return paginatedApplications.map((app, index) => (
                   <tr
                     key={app.application_id || index}
                     onClick={() => setSelectedApp(app)}
@@ -284,9 +307,170 @@ const ApplicationsPage = () => {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  ))
+                })()}
               </tbody>
             </table>
+            
+            {/* 페이지네이션 UI */}
+            {(() => {
+              const totalPages = Math.ceil(applications.length / itemsPerPage);
+              
+              if (totalPages <= 1) return null;
+              
+              // 표시할 페이지 번호 계산 (현재 페이지 주변 5개씩)
+              const pageNumbers = [];
+              const maxDisplay = 5; // 양쪽에 표시할 페이지 수
+              let startPage = Math.max(1, currentPage - maxDisplay);
+              let endPage = Math.min(totalPages, currentPage + maxDisplay);
+              
+              for (let i = startPage; i <= endPage; i++) {
+                pageNumbers.push(i);
+              }
+              
+              return (
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '16px',
+                  borderTop: '1px solid #e5e7eb'
+                }}>
+                  {/* 이전 페이지 버튼 */}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: currentPage === 1 ? '#d1d5db' : '#374151',
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      if (currentPage !== 1) {
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }}
+                  >
+                    이전
+                  </button>
+                  
+                  {/* 첫 페이지와 ... 표시 */}
+                  {startPage > 1 && (
+                    <>
+                      <button
+                        onClick={() => setCurrentPage(1)}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        1
+                      </button>
+                      {startPage > 2 && <span style={{ color: '#9ca3af' }}>...</span>}
+                    </>
+                  )}
+                  
+                  {/* 페이지 번호들 */}
+                  {pageNumbers.map(page => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      style={{
+                        padding: '8px 12px',
+                        fontSize: '13px',
+                        fontWeight: currentPage === page ? '600' : '500',
+                        color: currentPage === page ? 'white' : '#374151',
+                        backgroundColor: currentPage === page ? '#FF3D00' : 'white',
+                        border: `1px solid ${currentPage === page ? '#FF3D00' : '#e5e7eb'}`,
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        if (currentPage !== page) {
+                          e.currentTarget.style.backgroundColor = '#f9fafb';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (currentPage !== page) {
+                          e.currentTarget.style.backgroundColor = 'white';
+                        }
+                      }}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  {/* 마지막 페이지와 ... 표시 */}
+                  {endPage < totalPages && (
+                    <>
+                      {endPage < totalPages - 1 && <span style={{ color: '#9ca3af' }}>...</span>}
+                      <button
+                        onClick={() => setCurrentPage(totalPages)}
+                        style={{
+                          padding: '8px 12px',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          color: '#374151',
+                          backgroundColor: 'white',
+                          border: '1px solid #e5e7eb',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                  
+                  {/* 다음 페이지 버튼 */}
+                  <button
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      color: currentPage === totalPages ? '#d1d5db' : '#374151',
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      if (currentPage !== totalPages) {
+                        e.currentTarget.style.backgroundColor = '#f9fafb';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      e.currentTarget.style.backgroundColor = 'white';
+                    }}
+                  >
+                    다음
+                  </button>
+                </div>
+              );
+            })()}
+            </>
           )}
         </div>
 
