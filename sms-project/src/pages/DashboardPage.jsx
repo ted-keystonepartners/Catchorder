@@ -148,26 +148,20 @@ const DashboardPage = () => {
   // 일별 설치 현황 가져오기
   const fetchDailyInstalls = async () => {
     try {
-      // 12월 8일부터 오늘까지
-      const endDate = new Date();
-      const startDate = new Date('2024-12-08');
-      const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      // 14일 고정
+      const response = await apiClient.get('/api/stats/daily-installs?days=14');
       
-      console.log('🔍 일별 설치 API 호출 - days:', days);
-      const response = await apiClient.get(`/api/stats/daily-installs?days=${days}`);
       console.log('📦 dailyInstalls API 응답:', response);
-      console.log('📊 data:', response.data);
-      console.log('👥 managers:', response.managers);
       
-      if (response.success) {
-        // 새로운 API 응답 형식 처리
-        if (response.data && Array.isArray(response.data)) {
-          setDailyInstalls(response.data);
-          console.log('✅ dailyInstalls state 설정:', response.data);
-        }
-        if (response.managers && Array.isArray(response.managers)) {
-          setInstallManagers(response.managers);
-          console.log('✅ installManagers state 설정:', response.managers);
+      if (response.success && response.data && Array.isArray(response.data)) {
+        setDailyInstalls(response.data);
+        console.log('✅ dailyInstalls state 설정:', response.data);
+        
+        // data에서 managers 추출 (date 키 제외한 나머지가 담당자 이메일)
+        if (response.data.length > 0) {
+          const managers = Object.keys(response.data[0]).filter(key => key !== 'date');
+          console.log('👥 추출된 managers:', managers);
+          setInstallManagers(managers);
         }
       } else {
         console.error('❌ API 응답 실패:', response);
