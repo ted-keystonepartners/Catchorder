@@ -423,7 +423,7 @@ const DashboardPage = () => {
                   <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.install_completed || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#10b981', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
                     전환율 {overallStats?.conversion?.register_to_install || 0}%
                   </p>
                 </div>
@@ -446,7 +446,7 @@ const DashboardPage = () => {
                   <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.active || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#10b981', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
                     전환율 {overallStats?.conversion?.install_to_active || 0}%
                   </p>
                 </div>
@@ -469,7 +469,7 @@ const DashboardPage = () => {
                   <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.total_customer_count?.toLocaleString() || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
                     총 주문 {overallStats?.total_order_count?.toLocaleString() || 0}건
                   </p>
                 </div>
