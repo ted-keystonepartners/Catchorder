@@ -505,9 +505,9 @@ const DashboardPage = () => {
                       <span 
                         key={manager}
                         style={{
-                          padding: '2px 8px',
+                          padding: '4px 12px',
                           fontSize: '12px',
-                          borderRadius: '4px',
+                          borderRadius: '9999px',
                           color: 'white',
                           fontWeight: '500',
                           backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
@@ -589,7 +589,7 @@ const DashboardPage = () => {
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 설치진행 현황
-                <span style={{ fontSize: '12px', fontWeight: '500', backgroundColor: '#fff7ed', color: '#ea580c', padding: '2px 8px', borderRadius: '4px', border: '1px solid #fed7aa' }}>
+                <span style={{ padding: '4px 12px', fontSize: '12px', borderRadius: '9999px', backgroundColor: '#FFF7ED', color: '#FF6B00', fontWeight: '500' }}>
                   총 {totalInProgress}개
                 </span>
               </h3>
