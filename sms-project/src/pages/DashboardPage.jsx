@@ -654,7 +654,7 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>미이용</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#60A5FA', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#6B7280', margin: 0 }}>
                     {overallStats.install_detail.summary.inactive || 0}
                   </p>
                 </div>
@@ -672,7 +672,7 @@ const DashboardPage = () => {
                   }}
                 >
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>하자보수</p>
-                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#93C5FD', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '600', color: '#EF4444', margin: 0 }}>
                     {overallStats.install_detail.summary.repair || 0}
                   </p>
                 </div>
@@ -850,9 +850,9 @@ const DashboardPage = () => {
                     }}
                   />
                   <Legend />
-                  <Line type="monotone" dataKey="active" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} name="이용매장" />
-                  <Line type="monotone" dataKey="inactive" stroke="#60A5FA" strokeWidth={2} dot={{ r: 3 }} name="미이용매장" />
-                  <Line type="monotone" dataKey="defect_repair" stroke="#93C5FD" strokeWidth={2} dot={{ r: 3 }} name="하자보수" />
+                  <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} label={{ position: 'top', fontSize: 11, fill: '#3B82F6' }} name="이용매장" />
+                  <Line type="monotone" dataKey="inactive" stroke="#6B7280" strokeWidth={2} dot={{ r: 3, fill: '#6B7280' }} label={{ position: 'top', fontSize: 11, fill: '#6B7280' }} name="미이용매장" />
+                  <Line type="monotone" dataKey="defect_repair" stroke="#EF4444" strokeWidth={2} dot={{ r: 3, fill: '#EF4444' }} label={{ position: 'top', fontSize: 11, fill: '#EF4444' }} name="하자보수" />
                 </LineChart>
               </ResponsiveContainer>
             ) : (
