@@ -43,6 +43,7 @@ const DashboardPage = () => {
   
   // 일별 설치 데이터
   const [dailyInstalls, setDailyInstalls] = useState([]);
+  const [installManagers, setInstallManagers] = useState([]);
   
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
@@ -153,16 +154,14 @@ const DashboardPage = () => {
       const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
       
       const response = await apiClient.get(`/api/stats/daily-installs?days=${days}`);
-      if (response.success && response.data) {
-        // 12월 8일 이후 데이터만 필터링
-        const filteredData = response.data
-          .filter(item => new Date(item.date) >= startDate)
-          .map(item => ({
-            date: item.date,
-            displayDate: `${item.date.slice(5, 7)}/${item.date.slice(8, 10)}`,
-            count: item.count || 0
-          }));
-        setDailyInstalls(filteredData);
+      if (response.success) {
+        // 새로운 API 응답 형식 처리
+        if (response.data && Array.isArray(response.data)) {
+          setDailyInstalls(response.data);
+        }
+        if (response.managers && Array.isArray(response.managers)) {
+          setInstallManagers(response.managers);
+        }
       }
     } catch (error) {
       console.error('일별 설치 현황 가져오기 실패:', error);
@@ -537,33 +536,49 @@ const DashboardPage = () => {
               </h3>
               {dailyInstalls.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={dailyInstalls} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                  <BarChart data={dailyInstalls} margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
-                      dataKey="displayDate" 
-                      tick={{ fontSize: 12 }}
+                      dataKey="date" 
+                      tick={{ fontSize: 11 }}
                       angle={-45}
                       textAnchor="end"
                       height={60}
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
-                      domain={[0, dataMax => Math.ceil((dataMax || 1) * 1.2)]}
+                      allowDecimals={false}
                     />
                     <Tooltip 
-                      formatter={(value) => [`${value}건`, '설치']}
+                      formatter={(value, name) => [
+                        `${value}건`, 
+                        managersMap[name] || name.split('@')[0]
+                      ]}
                       labelFormatter={(label) => `날짜: ${label}`}
                     />
-                    <Line 
-                      type="monotone" 
-                      dataKey="count" 
-                      stroke="#10B981" 
-                      strokeWidth={2}
-                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
-                      activeDot={{ r: 6 }}
-                      name="설치 건수"
+                    <Legend 
+                      formatter={(value) => managersMap[value] || value.split('@')[0]}
+                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
                     />
-                  </LineChart>
+                    {/* 담당자별 막대 생성 */}
+                    {installManagers.map((manager, index) => {
+                      // 담당자별 색상
+                      const MANAGER_COLORS = [
+                        '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6',
+                        '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+                      ];
+                      
+                      return (
+                        <Bar 
+                          key={manager}
+                          dataKey={manager}
+                          stackId="install"
+                          fill={MANAGER_COLORS[index % MANAGER_COLORS.length]}
+                          name={manager}
+                        />
+                      );
+                    })}
+                  </BarChart>
                 </ResponsiveContainer>
               ) : (
                 <div style={{ 
