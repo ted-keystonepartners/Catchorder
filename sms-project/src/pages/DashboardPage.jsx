@@ -148,18 +148,23 @@ const DashboardPage = () => {
   // 일별 설치 현황 가져오기
   const fetchDailyInstalls = async () => {
     try {
-      // 14일 고정
       const response = await apiClient.get('/api/stats/daily-installs?days=14');
       
       console.log('📦 dailyInstalls API 응답:', response);
       
       if (response.success && response.data && Array.isArray(response.data)) {
-        setDailyInstalls(response.data);
-        console.log('✅ dailyInstalls state 설정:', response.data);
+        // 12/8 이후 데이터만 필터링
+        const filteredData = response.data.filter(item => item.date >= '12-08');
         
-        // data에서 managers 추출 (date 키 제외한 나머지가 담당자 이메일)
-        if (response.data.length > 0) {
-          const managers = Object.keys(response.data[0]).filter(key => key !== 'date');
+        setDailyInstalls(filteredData);
+        console.log('✅ dailyInstalls state 설정:', filteredData);
+        
+        // managers 추출 (date 제외, admin 제외)
+        if (filteredData.length > 0) {
+          const managers = Object.keys(filteredData[0])
+            .filter(key => key !== 'date')
+            .filter(key => key !== 'admin@catchtable.co.kr');
+          
           console.log('👥 추출된 managers:', managers);
           setInstallManagers(managers);
         }
