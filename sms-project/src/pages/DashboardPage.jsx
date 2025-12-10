@@ -534,6 +534,7 @@ const DashboardPage = () => {
                     <YAxis 
                       tick={{ fontSize: 12 }}
                       allowDecimals={false}
+                      domain={[0, 12]}
                     />
                     <Tooltip 
                       formatter={(value, name) => [
@@ -560,6 +561,7 @@ const DashboardPage = () => {
                           stackId="install"
                           fill={MANAGER_COLORS[index % MANAGER_COLORS.length]}
                           name={manager}
+                          label={index === installManagers.length - 1 ? { position: 'top', fill: '#111827', fontSize: 11, fontWeight: 600 } : null}
                         />
                       );
                     })}
