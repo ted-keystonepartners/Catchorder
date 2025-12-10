@@ -147,15 +147,22 @@ const DashboardPage = () => {
   // 일별 설치 현황 가져오기
   const fetchDailyInstalls = async () => {
     try {
-      const response = await apiClient.get('/api/stats/daily-installs?days=14');
+      // 12월 8일부터 오늘까지
+      const endDate = new Date();
+      const startDate = new Date('2024-12-08');
+      const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
+      
+      const response = await apiClient.get(`/api/stats/daily-installs?days=${days}`);
       if (response.success && response.data) {
-        // 날짜 형식 변환: "2025-12-10" → "12/10"
-        const formattedData = response.data.map(item => ({
-          date: item.date,
-          displayDate: `${item.date.slice(5, 7)}/${item.date.slice(8, 10)}`,
-          count: item.count || 0
-        }));
-        setDailyInstalls(formattedData);
+        // 12월 8일 이후 데이터만 필터링
+        const filteredData = response.data
+          .filter(item => new Date(item.date) >= startDate)
+          .map(item => ({
+            date: item.date,
+            displayDate: `${item.date.slice(5, 7)}/${item.date.slice(8, 10)}`,
+            count: item.count || 0
+          }));
+        setDailyInstalls(filteredData);
       }
     } catch (error) {
       console.error('일별 설치 현황 가져오기 실패:', error);
