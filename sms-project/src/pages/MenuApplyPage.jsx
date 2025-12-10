@@ -236,7 +236,7 @@ const MenuApplyPage = () => {
                 color: '#92400e',
                 marginBottom: '4px'
               }}>
-                테이블 위 QR메뉴판을 촬영해주세요
+                보내드린 QR메뉴판 설치 사진을 촬영해주세요
               </p>
               <p style={{
                 fontSize: '13px',
@@ -244,7 +244,7 @@ const MenuApplyPage = () => {
                 color: '#78350f',
                 margin: 0
               }}>
-                QR코드가 선명하게 보이도록 촬영하시면, 검수 후 즉시 주문 시스템이 활성화됩니다.
+                테이블에 설치하신 QR메뉴판 사진을 보내주시면, 검수 후 즉시 메뉴판이 활성화됩니다.
               </p>
             </div>
           </div>
