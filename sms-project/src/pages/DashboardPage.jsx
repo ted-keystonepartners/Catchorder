@@ -485,7 +485,7 @@ const DashboardPage = () => {
               borderRadius: '12px',
               padding: '24px',
               border: '1px solid #e5e7eb',
-              height: '350px'
+              minHeight: '400px'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
@@ -521,7 +521,7 @@ const DashboardPage = () => {
               </div>
               {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={dailyInstalls} margin={{ top: 10, right: 10, bottom: 30, left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
@@ -585,7 +585,7 @@ const DashboardPage = () => {
               borderRadius: '12px',
               padding: '24px',
               border: '1px solid #e5e7eb',
-              height: '350px'
+              minHeight: '400px'
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 설치진행 현황
@@ -593,7 +593,7 @@ const DashboardPage = () => {
                   총 {totalInProgress}개
                 </span>
               </h3>
-              <ResponsiveContainer width="100%" height={280}>
+              <ResponsiveContainer width="100%" height={320}>
                 <BarChart data={statusChartData} layout="vertical" margin={{ left: 10, right: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" domain={[0, chartMaxValue]} />
