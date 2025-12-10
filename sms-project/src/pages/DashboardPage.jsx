@@ -539,9 +539,38 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               height: '350px'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
-                일별 신규 설치
-              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  일별 신규 설치
+                </h3>
+                {/* 담당자 범례를 제목 옆에 표시 */}
+                <div style={{ display: 'flex', gap: '6px' }}>
+                  {installManagers.map((manager, index) => {
+                    const MANAGER_COLORS = [
+                      '#FF6B00', // 주황
+                      '#FF8C42', // 연주황
+                      '#FFA668', // 더 연한 주황
+                      '#FFC093', // 아주 연한 주황
+                      '#FFDCC1'  // 가장 연한 주황
+                    ];
+                    return (
+                      <span 
+                        key={manager}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '12px',
+                          borderRadius: '4px',
+                          color: 'white',
+                          fontWeight: '500',
+                          backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
+                        }}
+                      >
+                        {managersMap[manager] || manager.split('@')[0]}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
               {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
@@ -549,7 +578,7 @@ const DashboardPage = () => {
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 11 }}
+                      tick={{ fontSize: 12 }}
                       angle={-45}
                       textAnchor="end"
                       height={60}
@@ -565,16 +594,15 @@ const DashboardPage = () => {
                       ]}
                       labelFormatter={(label) => `날짜: ${label}`}
                     />
-                    <Legend 
-                      formatter={(value) => managersMap[value] || value.split('@')[0]}
-                      wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }}
-                    />
-                    {/* 담당자별 막대 생성 */}
+                    {/* Legend 제거 - 위에서 직접 표시 */}
+                    {/* 담당자별 막대 생성 - 주황색 계열로 통일 */}
                     {installManagers.map((manager, index) => {
-                      // 담당자별 색상
                       const MANAGER_COLORS = [
-                        '#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6',
-                        '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+                        '#FF6B00', // 주황
+                        '#FF8C42', // 연주황
+                        '#FFA668', // 더 연한 주황
+                        '#FFC093', // 아주 연한 주황
+                        '#FFDCC1'  // 가장 연한 주황
                       ];
                       
                       return (
