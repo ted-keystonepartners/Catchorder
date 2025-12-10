@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { Camera, Upload, CheckCircle } from 'lucide-react';
 
 const MenuApplyPage = () => {
   const [selectedImage, setSelectedImage] = useState(null);
@@ -137,7 +136,7 @@ const MenuApplyPage = () => {
                 transform: 'translate(-50%, -50%)',
                 textAlign: 'center'
               }}>
-                <Camera size={48} style={{ color: '#FF6B00', marginBottom: '12px' }} />
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}>📷</div>
                 <p style={{ 
                   fontSize: '16px',
                   fontWeight: '600',
@@ -240,13 +239,11 @@ const MenuApplyPage = () => {
             </>
           ) : uploadSuccess ? (
             <>
-              <CheckCircle size={20} />
-              업로드 완료!
+              ✅ 업로드 완료!
             </>
           ) : (
             <>
-              <Upload size={20} />
-              사진 제출하기
+              📤 사진 제출하기
             </>
           )}
         </button>
