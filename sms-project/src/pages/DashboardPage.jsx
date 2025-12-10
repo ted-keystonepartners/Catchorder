@@ -249,15 +249,13 @@ const DashboardPage = () => {
     
     // 설치진행 관련 상태만 표시 (이 순서대로)
     const statusOrder = [
-      'PRE_INTRODUCTION',      // 방문대기 (60개)
+      'PRE_INTRODUCTION',      // 방문대기
       'VISIT_COMPLETED',       // 방문완료
       'REVISIT_SCHEDULED',     // 재방문예정
       'INFO_REQUEST',          // 추가정보요청
       'REMOTE_INSTALL_SCHEDULED', // 에이전트설치예정
       'ADMIN_SETTING',         // 어드민셋팅
-      'QR_LINKING',            // POS연동예정
-      'QR_MENU_ONLY',          // QR메뉴만 사용
-      'DEFECT_REPAIR'          // 하자보수중
+      'QR_LINKING'             // POS연동예정
     ];
     
     const result = [];
