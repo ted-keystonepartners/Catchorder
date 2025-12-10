@@ -153,18 +153,27 @@ const DashboardPage = () => {
       const startDate = new Date('2024-12-08');
       const days = Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24));
       
+      console.log('🔍 일별 설치 API 호출 - days:', days);
       const response = await apiClient.get(`/api/stats/daily-installs?days=${days}`);
+      console.log('📦 dailyInstalls API 응답:', response);
+      console.log('📊 data:', response.data);
+      console.log('👥 managers:', response.managers);
+      
       if (response.success) {
         // 새로운 API 응답 형식 처리
         if (response.data && Array.isArray(response.data)) {
           setDailyInstalls(response.data);
+          console.log('✅ dailyInstalls state 설정:', response.data);
         }
         if (response.managers && Array.isArray(response.managers)) {
           setInstallManagers(response.managers);
+          console.log('✅ installManagers state 설정:', response.managers);
         }
+      } else {
+        console.error('❌ API 응답 실패:', response);
       }
     } catch (error) {
-      console.error('일별 설치 현황 가져오기 실패:', error);
+      console.error('❌ 일별 설치 현황 가져오기 실패:', error);
     }
   };
 
@@ -534,6 +543,7 @@ const DashboardPage = () => {
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
                 일별 신규 설치
               </h3>
+              {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
                 <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={dailyInstalls} margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
