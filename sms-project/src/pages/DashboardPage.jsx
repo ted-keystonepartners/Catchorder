@@ -560,9 +560,10 @@ const DashboardPage = () => {
                           padding: '2px 8px',
                           fontSize: '12px',
                           borderRadius: '4px',
-                          color: 'white',
+                          backgroundColor: '#fff7ed',
+                          color: '#ea580c',
                           fontWeight: '500',
-                          backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
+                          border: '1px solid #fed7aa'
                         }}
                       >
                         {managersMap[manager] || manager.split('@')[0]}
@@ -573,8 +574,8 @@ const DashboardPage = () => {
               </div>
               {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={dailyInstalls} margin={{ top: 20, right: 20, bottom: 40, left: 20 }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={dailyInstalls} margin={{ top: 10, right: 10, bottom: 30, left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="date" 
@@ -641,7 +642,7 @@ const DashboardPage = () => {
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 설치진행 현황
-                <span style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', backgroundColor: '#f3f4f6', padding: '2px 8px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '12px', fontWeight: '500', backgroundColor: '#fff7ed', color: '#ea580c', padding: '2px 8px', borderRadius: '4px', border: '1px solid #fed7aa' }}>
                   총 {totalInProgress}개
                 </span>
               </h3>
@@ -649,7 +650,7 @@ const DashboardPage = () => {
                 <BarChart data={statusChartData} layout="vertical" margin={{ left: 10, right: 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis type="number" domain={[0, chartMaxValue]} />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
+                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10 }} />
                   <Tooltip />
                   <Bar dataKey="value" fill="#FF6B00" label={{ position: 'right', fill: '#111827', fontSize: 12, fontWeight: 600 }} />
                 </BarChart>
