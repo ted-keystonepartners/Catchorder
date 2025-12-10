@@ -135,7 +135,7 @@ const MenuApplyPage = () => {
                 <div style={{
                   width: '56px',
                   height: '56px',
-                  backgroundColor: '#f2f4f6',
+                  backgroundColor: '#fff7ed',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
@@ -289,7 +289,7 @@ const MenuApplyPage = () => {
             <div style={{
               width: '56px',
               height: '56px',
-              backgroundColor: '#e8f5e9',
+              backgroundColor: '#fff7ed',
               borderRadius: '50%',
               display: 'flex',
               alignItems: 'center',
