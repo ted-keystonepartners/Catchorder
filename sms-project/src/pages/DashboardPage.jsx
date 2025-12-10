@@ -404,19 +404,6 @@ const DashboardPage = () => {
                     {overallStats?.funnel?.registered || 0}
                   </p>
                 </div>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  backgroundColor: '#fff5f3',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <svg width="24" height="24" fill="#FF3D00" viewBox="0 0 24 24">
-                    <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
-                  </svg>
-                </div>
               </div>
             </div>
 
@@ -439,19 +426,6 @@ const DashboardPage = () => {
                   <p style={{ fontSize: '12px', color: '#10b981', margin: '4px 0 0 0' }}>
                     전환율 {overallStats?.conversion?.register_to_install || 0}%
                   </p>
-                </div>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  backgroundColor: '#e0f2fe',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <svg width="24" height="24" fill="#0284c7" viewBox="0 0 24 24">
-                    <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-                  </svg>
                 </div>
               </div>
             </div>
@@ -476,19 +450,6 @@ const DashboardPage = () => {
                     전환율 {overallStats?.conversion?.install_to_active || 0}%
                   </p>
                 </div>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  backgroundColor: '#d1fae5',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <svg width="24" height="24" fill="#10b981" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
-                </div>
               </div>
             </div>
 
@@ -511,19 +472,6 @@ const DashboardPage = () => {
                   <p style={{ fontSize: '12px', color: '#6b7280', margin: '4px 0 0 0' }}>
                     총 주문 {overallStats?.total_order_count?.toLocaleString() || 0}건
                   </p>
-                </div>
-                <div style={{
-                  width: '48px',
-                  height: '48px',
-                  backgroundColor: '#f3e8ff',
-                  borderRadius: '12px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <svg width="24" height="24" fill="#7c3aed" viewBox="0 0 24 24">
-                    <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z"/>
-                  </svg>
                 </div>
               </div>
             </div>
