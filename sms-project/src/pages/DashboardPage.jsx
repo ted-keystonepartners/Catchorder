@@ -522,14 +522,11 @@ const DashboardPage = () => {
               {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
                 <ResponsiveContainer width="100%" height={320}>
-                  <BarChart data={dailyInstalls} margin={{ top: 10, right: 10, bottom: 30, left: 10 }}>
+                  <BarChart data={dailyInstalls} margin={{ left: 10, right: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="date" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
+                      tick={{ fontSize: 11 }}
                     />
                     <YAxis 
                       tick={{ fontSize: 12 }}
