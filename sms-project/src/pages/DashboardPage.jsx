@@ -560,10 +560,9 @@ const DashboardPage = () => {
                           padding: '2px 8px',
                           fontSize: '12px',
                           borderRadius: '4px',
-                          backgroundColor: '#fff7ed',
-                          color: '#ea580c',
+                          color: 'white',
                           fontWeight: '500',
-                          border: '1px solid #fed7aa'
+                          backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
                         }}
                       >
                         {managersMap[manager] || manager.split('@')[0]}
