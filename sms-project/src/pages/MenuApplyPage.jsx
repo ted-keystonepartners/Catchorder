@@ -82,26 +82,172 @@ const MenuApplyPage = () => {
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
-          padding: '20px',
+          padding: '24px',
           marginBottom: '16px'
         }}>
           <h2 style={{
             fontSize: '18px',
             fontWeight: '600',
             color: '#191f28',
-            marginBottom: '12px'
+            marginBottom: '20px'
           }}>
-            설치 사진을 올려주세요
+            간단한 3단계로 완료됩니다
           </h2>
-          <p style={{
-            fontSize: '15px',
-            lineHeight: '1.6',
-            color: '#626973',
-            margin: 0
+          
+          {/* 프로세스 설명 */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '24px',
+            position: 'relative'
           }}>
-            테이블에 설치된 QR메뉴판이 잘 보이도록 촬영해주세요.
-            검수 완료 후 주문 시스템이 활성화됩니다.
-          </p>
+            {/* 연결선 */}
+            <div style={{
+              position: 'absolute',
+              top: '28px',
+              left: '15%',
+              right: '15%',
+              height: '2px',
+              background: 'linear-gradient(90deg, #FF6B00 0%, #FF6B00 50%, #e5e8eb 50%, #e5e8eb 100%)',
+              zIndex: 0
+            }} />
+            
+            {/* Step 1 */}
+            <div style={{
+              flex: 1,
+              textAlign: 'center',
+              zIndex: 1
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                backgroundColor: '#FF6B00',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px',
+                fontSize: '24px',
+                color: 'white',
+                fontWeight: '700',
+                position: 'relative',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(255, 107, 0, 0.2)'
+              }}>
+                1
+              </div>
+              <p style={{
+                fontSize: '13px',
+                color: '#191f28',
+                fontWeight: '500',
+                margin: 0
+              }}>
+                사진 촬영
+              </p>
+            </div>
+
+            {/* Step 2 */}
+            <div style={{
+              flex: 1,
+              textAlign: 'center',
+              zIndex: 1
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                backgroundColor: '#FF6B00',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px',
+                fontSize: '24px',
+                color: 'white',
+                fontWeight: '700',
+                position: 'relative',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(255, 107, 0, 0.2)'
+              }}>
+                2
+              </div>
+              <p style={{
+                fontSize: '13px',
+                color: '#191f28',
+                fontWeight: '500',
+                margin: 0
+              }}>
+                검수 진행
+              </p>
+            </div>
+
+            {/* Step 3 */}
+            <div style={{
+              flex: 1,
+              textAlign: 'center',
+              zIndex: 1
+            }}>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                backgroundColor: '#f2f4f6',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 8px',
+                fontSize: '24px',
+                color: '#8b95a1',
+                fontWeight: '700',
+                position: 'relative',
+                border: '3px solid white',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)'
+              }}>
+                3
+              </div>
+              <p style={{
+                fontSize: '13px',
+                color: '#8b95a1',
+                fontWeight: '500',
+                margin: 0
+              }}>
+                시스템 활성화
+              </p>
+            </div>
+          </div>
+
+          {/* 설명 박스 */}
+          <div style={{
+            backgroundColor: '#fff7ed',
+            borderRadius: '12px',
+            padding: '16px',
+            display: 'flex',
+            alignItems: 'flex-start',
+            gap: '12px'
+          }}>
+            <span style={{
+              fontSize: '20px',
+              marginTop: '2px'
+            }}>📌</span>
+            <div>
+              <p style={{
+                fontSize: '14px',
+                fontWeight: '600',
+                color: '#92400e',
+                marginBottom: '4px'
+              }}>
+                테이블 위 QR메뉴판을 촬영해주세요
+              </p>
+              <p style={{
+                fontSize: '13px',
+                lineHeight: '1.5',
+                color: '#78350f',
+                margin: 0
+              }}>
+                QR코드가 선명하게 보이도록 촬영하시면, 검수 후 즉시 주문 시스템이 활성화됩니다.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* 업로드 섹션 */}
