@@ -22,6 +22,7 @@ import OrderUploadPage from './pages/OrderUploadPage.jsx';
 import SchedulePage from './pages/SchedulePage.jsx';
 import ApplyPage from './pages/ApplyPage.jsx';
 import ApplicationsPage from './pages/ApplicationsPage.jsx';
+import MenuApplyPage from './pages/MenuApplyPage.jsx';
 
 /**
  * 404 페이지 컴포넌트
@@ -179,6 +180,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/consent/:token" element={<ConsentFormPage />} />
         <Route path="/apply" element={<ApplyPage />} />
+        <Route path="/menuapply" element={<MenuApplyPage />} />
         
         {/* 동의서 응답 조회 페이지 (보호된 라우트) */}
         <Route 
