@@ -41,6 +41,9 @@ const DashboardPage = () => {
     end: new Date().toISOString().split('T')[0]
   });
   
+  // 일별 설치 데이터
+  const [dailyInstalls, setDailyInstalls] = useState([]);
+  
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState([]);
@@ -141,6 +144,24 @@ const DashboardPage = () => {
     }
   };
 
+  // 일별 설치 현황 가져오기
+  const fetchDailyInstalls = async () => {
+    try {
+      const response = await apiClient.get('/api/stats/daily-installs?days=14');
+      if (response.success && response.data) {
+        // 날짜 형식 변환: "2025-12-10" → "12/10"
+        const formattedData = response.data.map(item => ({
+          date: item.date,
+          displayDate: `${item.date.slice(5, 7)}/${item.date.slice(8, 10)}`,
+          count: item.count || 0
+        }));
+        setDailyInstalls(formattedData);
+      }
+    } catch (error) {
+      console.error('일별 설치 현황 가져오기 실패:', error);
+    }
+  };
+
   // 기간별 데이터 가져오기
   const fetchPeriodStats = async () => {
     try {
@@ -227,6 +248,7 @@ const DashboardPage = () => {
       await fetchManagers();  // 담당자 목록 먼저 로드
       await fetchTodayStats(); // 그 다음 통계 로드
       await fetchDailyUsage();  // 일별 이용 현황 로드
+      await fetchDailyInstalls(); // 일별 설치 현황 로드
     };
     loadData();
   }, []);
@@ -495,7 +517,7 @@ const DashboardPage = () => {
 
           {/* 차트 그리드 */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
-            {/* 퍼널 차트 */}
+            {/* 일별 신규 설치 차트 */}
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -504,21 +526,50 @@ const DashboardPage = () => {
               height: '350px'
             }}>
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
-                전환 퍼널
+                일별 신규 설치
               </h3>
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={funnelData} layout="horizontal" margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="name" />
-                  <YAxis domain={[0, dataMax => Math.ceil(dataMax * 1.2)]} />
-                  <Tooltip />
-                  <Bar dataKey="value" fill="#FF3D00" label={{ position: 'top', fill: '#374151', fontSize: 12, fontWeight: 600 }}>
-                    {funnelData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
+              {dailyInstalls.length > 0 ? (
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={dailyInstalls} margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis 
+                      dataKey="displayDate" 
+                      tick={{ fontSize: 12 }}
+                      angle={-45}
+                      textAnchor="end"
+                      height={60}
+                    />
+                    <YAxis 
+                      tick={{ fontSize: 12 }}
+                      domain={[0, dataMax => Math.ceil((dataMax || 1) * 1.2)]}
+                    />
+                    <Tooltip 
+                      formatter={(value) => [`${value}건`, '설치']}
+                      labelFormatter={(label) => `날짜: ${label}`}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="count" 
+                      stroke="#10B981" 
+                      strokeWidth={2}
+                      dot={{ fill: '#10B981', strokeWidth: 2, r: 4 }}
+                      activeDot={{ r: 6 }}
+                      name="설치 건수"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div style={{ 
+                  height: '280px', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: '#6b7280',
+                  fontSize: '14px'
+                }}>
+                  데이터를 불러오는 중...
+                </div>
+              )}
             </div>
 
             {/* 설치진행 현황 */}
