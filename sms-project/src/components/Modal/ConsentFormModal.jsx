@@ -65,7 +65,6 @@ const ConsentFormModal = ({ isOpen, onClose, storeId, storeName, storePhone, own
           setLastSubmittedAt(null);
         }
       } catch (err) {
-        console.log('동의서 응답 조회 실패:', err);
         resetForm();
         setHasExistingData(false);
         setLastSubmittedAt(null);

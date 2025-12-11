@@ -38,13 +38,10 @@ export const getConsentForm = async (storeId) => {
     throw new Error('매장 ID가 필요합니다.');
   }
 
-  console.log('🚀 동의서 폼 요청 - Store ID:', storeId);
 
   // 공개 API이므로 JWT 인증 비활성화
   const result = await apiClient.get(`/api/consent/form/${storeId}`, {}, { requireAuth: false });
   
-  console.log('📦 API 응답 원본:', result);
-  console.log('📦 API 응답 data 상세:', JSON.stringify(result.data, null, 2));
   
   if (!result) {
     console.error('❌ API 응답이 없습니다');
@@ -83,7 +80,6 @@ export const getConsentForm = async (storeId) => {
       last_submitted_at: result.data?.last_submitted_at || null
     };
     
-    console.log('✅ 포맷된 데이터:', formattedData);
     return formattedData;
   } else {
     throw new Error(result.error || '매장 정보 조회에 실패했습니다.');

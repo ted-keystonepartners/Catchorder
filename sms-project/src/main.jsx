@@ -14,7 +14,6 @@ if (typeof window !== 'undefined') {
     keys.forEach(key => {
       const value = localStorage.getItem(key);
       if (value && value.includes(oldApiUrl)) {
-        console.log('Removing cached data with old API URL from localStorage:', key);
         localStorage.removeItem(key);
       }
     });
@@ -28,7 +27,6 @@ if (typeof window !== 'undefined') {
     keys.forEach(key => {
       const value = sessionStorage.getItem(key);
       if (value && value.includes(oldApiUrl)) {
-        console.log('Removing cached data with old API URL from sessionStorage:', key);
         sessionStorage.removeItem(key);
       }
     });

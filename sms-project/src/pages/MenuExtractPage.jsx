@@ -273,7 +273,6 @@ const MenuExtractPage = () => {
     const base64Data = await fileToBase64(image.file);
     const imageType = image.file.type;
 
-    console.log('API Key:', import.meta.env.VITE_ANTHROPIC_API_KEY?.substring(0, 20));
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -368,7 +367,6 @@ const MenuExtractPage = () => {
 
   // 추출하기 (순차 처리)
   const handleExtract = async () => {
-    console.log('🚀 추출 시작');
     if (images.length === 0) {
       showError('이미지를 먼저 업로드해주세요.');
       return;

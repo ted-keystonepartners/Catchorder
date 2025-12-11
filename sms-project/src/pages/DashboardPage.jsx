@@ -102,9 +102,7 @@ const DashboardPage = () => {
   // 담당자 목록 가져오기
   const fetchManagers = async () => {
     try {
-      console.log('fetchManagers 시작');
       const response = await apiClient.get('/api/managers');
-      console.log('managers API 응답:', response);
       
       if (response.success) {
         const map = {};
@@ -116,7 +114,6 @@ const DashboardPage = () => {
           managersData = response.data;
         }
         
-        console.log('managersData:', managersData);
         
         managersData.forEach(manager => {
           const key = manager.userId || manager.email;
@@ -125,7 +122,6 @@ const DashboardPage = () => {
           }
         });
         
-        console.log('최종 managersMap:', map);
         setManagersMap(map);
       }
     } catch (error) {
@@ -187,14 +183,12 @@ const DashboardPage = () => {
     try {
       const response = await apiClient.get('/api/stats/daily-installs?days=14');
       
-      console.log('📦 dailyInstalls API 응답:', response);
       
       if (response.success && response.data && Array.isArray(response.data)) {
         // 12/8 이후 데이터만 필터링
         const filteredData = response.data.filter(item => item.date >= '12-08');
         
         setDailyInstalls(filteredData);
-        console.log('✅ dailyInstalls state 설정:', filteredData);
         
         // managers 추출 (date 제외, admin 제외)
         if (filteredData.length > 0) {
@@ -202,7 +196,6 @@ const DashboardPage = () => {
             .filter(key => key !== 'date')
             .filter(key => key !== 'admin@catchtable.co.kr');
           
-          console.log('👥 추출된 managers:', managers);
           setInstallManagers(managers);
         }
       } else {
@@ -559,7 +552,6 @@ const DashboardPage = () => {
                   );
                 })}
               </h3>
-              {console.log('🎨 차트 렌더링 - dailyInstalls:', dailyInstalls, 'installManagers:', installManagers, 'managersMap:', managersMap)}
               {dailyInstalls.length > 0 ? (
                 <ResponsiveContainer width="100%" height={320}>
                   <BarChart data={dailyInstalls} margin={{ left: 10, right: 40 }}>

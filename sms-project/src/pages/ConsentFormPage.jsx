@@ -54,12 +54,10 @@ const ConsentFormPage = () => {
         
         // 기존 동의서 응답 조회 (인증 없이는 실패할 수 있음)
         try {
-          console.log('📋 동의서 응답 조회 시도...');
           const responsesData = await getConsentResponses(storeId, 1, 10);
           
           if (responsesData && responsesData.responses && responsesData.responses.length > 0) {
             const latestResponse = responsesData.responses[0]; // 가장 최근 응답
-            console.log('✅ 기존 응답 발견:', latestResponse);
             
             // 기존 응답 데이터로 폼 채우기
             setFormData({
@@ -81,7 +79,6 @@ const ConsentFormPage = () => {
             const submittedDate = new Date(latestResponse.submitted_at).toLocaleDateString('ko-KR');
             success(`이전에 제출된 동의서 정보를 불러왔습니다. (제출일: ${submittedDate})`);
           } else {
-            console.log('📝 기존 응답 없음 - 빈 폼 표시');
             if (data.form_fields) {
               setFormData(data.form_fields);
             }
@@ -89,7 +86,6 @@ const ConsentFormPage = () => {
             setLastSubmittedAt(null);
           }
         } catch (err) {
-          console.log('⚠️ 동의서 응답 조회 실패 (인증 없는 접근일 수 있음):', err.message);
           // 실패 시 기본 폼 데이터 사용
           if (data.form_fields) {
             setFormData(data.form_fields);

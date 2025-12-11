@@ -178,31 +178,18 @@ const OrderUploadPage = () => {
 
   // DB 매장 목록 가져오기
   const fetchStores = async () => {
-    console.log("========== Fetching stores START ==========");
     setIsLoading(true);
     
     try {
-      console.log("Calling GET /api/stores...");
       const response = await apiClient.get('/api/stores');
-      console.log("API response received:", response);
-      console.log("Response success:", response.success);
-      console.log("Response data:", response.data);
-      console.log("Response error:", response.error);
       
       if (response.success) {
         // 다양한 응답 구조 처리
         const stores = response.data?.stores || response.data || response.stores || [];
-        console.log("Parsed stores array:", stores);
-        console.log("Stores count:", stores.length);
-        console.log("First 5 stores:", stores.slice(0, 5));
         
         // 데이터 검증
         if (Array.isArray(stores)) {
-          console.log("Stores is valid array");
           if (stores.length > 0) {
-            console.log("Sample store structure:", stores[0]);
-            console.log("Sample store seq:", stores[0]?.seq);
-            console.log("Sample store name:", stores[0]?.store_name);
           }
           setDbStores(stores);  // UI 업데이트용
           return stores;  // 직접 반환
@@ -224,16 +211,11 @@ const OrderUploadPage = () => {
       return [];  // 실패 시에도 빈 배열 반환
     } finally {
       setIsLoading(false);
-      console.log("========== Fetching stores END ==========");
-      console.log("Final dbStores state will be updated");
     }
   };
 
   // Claude API로 매핑 요청
   const requestMapping = async (storeNames, dbStoresList) => {
-    console.log("DB stores count:", dbStoresList.length);
-    console.log("DB stores sample:", dbStoresList.slice(0, 3));
-    console.log("CSV store names:", storeNames);
     
     const systemPrompt = `You are a store name matching expert. Match order data store names to DB store names.
 
@@ -294,7 +276,6 @@ match_type criteria:
       }
 
       const data = await response.json();
-      console.log("Claude response:", data);
       let responseText = data.content[0].text;
       // 마크다운 코드블록 제거
       responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();

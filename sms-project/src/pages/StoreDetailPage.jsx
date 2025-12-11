@@ -260,14 +260,6 @@ const StoreDetailPage = () => {
         if (response.success) {
           // Lambda에서 반환하는 데이터 구조: response.data.store
           const storeData = response.data.store || response.data;
-          console.log('🔍 API 응답 전체:', response);
-          console.log('🔍 storeData:', storeData);
-          console.log('🔍 추가 정보 필드들:');
-          console.log('  - store_address:', storeData.store_address);
-          console.log('  - pos_system:', storeData.pos_system);
-          console.log('  - pos_system_brand:', storeData.pos_system_brand);
-          console.log('  - order_system:', storeData.order_system);
-          console.log('  - brand_name:', storeData.brand_name);
           
           setStore(storeData);
           // 기본 정보 데이터 초기화
@@ -366,7 +358,6 @@ const StoreDetailPage = () => {
       if (response.success && response.data) {
         setContacts(response.data.contacts || []);
       } else {
-        console.log('직원 연락처 조회 실패 또는 데이터 없음:', response.error);
         setContacts([]);
       }
     } catch (error) {
@@ -395,10 +386,7 @@ const StoreDetailPage = () => {
           total: total,
           totalPages: totalPages
         }));
-        console.log('Sales Log 데이터:', sortedLogs);
-        console.log('Sales Log 페이지 정보:', { page, total, totalPages });
       } else {
-        console.log('Sales Log 조회 실패 또는 데이터 없음:', response.error);
         setSalesLogs([]);
       }
     } catch (error) {
@@ -488,7 +476,6 @@ const StoreDetailPage = () => {
   const handleSaveSalesLog = async () => {
     // 이미 저장 중이면 중단
     if (isSaving) {
-      console.log('이미 저장 중입니다.');
       return;
     }
 
@@ -499,7 +486,6 @@ const StoreDetailPage = () => {
       }
 
       setIsSaving(true);
-      console.log('Sales Log 저장 시작:', newLogContent.trim());
 
       const logData = {
         seq: store.seq,
@@ -511,7 +497,6 @@ const StoreDetailPage = () => {
       const response = await createSalesLog(storeId, logData);
       
       if (response.success) {
-        console.log('Sales Log 저장 성공');
         // 로그 목록 새로고침
         await fetchSalesLogs();
         // 입력 내용 초기화
@@ -532,7 +517,6 @@ const StoreDetailPage = () => {
       showError('저장 중 오류가 발생했습니다.');
     } finally {
       setIsSaving(false);
-      console.log('저장 프로세스 완료');
     }
   };
 
@@ -593,7 +577,6 @@ const StoreDetailPage = () => {
   const handleSaveAdditionalInfo = async () => {
     try {
       setIsSaving(true); // 로딩 시작
-      console.log('추가 정보 저장 시도:', additionalData);
       
       // updateStoreAdditionalInfo API 함수 사용 (PATCH 방식)
       const response = await updateStoreAdditionalInfo(storeId, {

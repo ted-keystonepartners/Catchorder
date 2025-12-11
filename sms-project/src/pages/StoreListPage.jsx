@@ -167,16 +167,6 @@ const StoreListPage = () => {
   const filteredStores = useMemo(() => {
     if (!stores) return [];
     
-    // 디버깅: 첫번째 매장의 owner 정보 확인
-    if (stores.length > 0 && ownerFilter !== 'all') {
-      console.log('First store owner info:', {
-        owner_id: stores[0].owner_id,
-        owner_name: stores[0].owner_name,
-        ownerFilter,
-        managers: managers.map(m => ({ email: m.email, name: m.name }))
-      });
-    }
-    
     // 필터링
     const filtered = stores.filter(store => {
       const matchesSearch = !searchTerm || 
