@@ -36,6 +36,7 @@ const DashboardPage = () => {
   const [managersMap, setManagersMap] = useState({});
   const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
   const [visibleCount, setVisibleCount] = useState(10);
+  const [salesLogs, setSalesLogs] = useState({});
   const [dailyUsageData, setDailyUsageData] = useState([]);
   const [usageDateRange, setUsageDateRange] = useState({
     start: '2025-12-06',
@@ -127,6 +128,38 @@ const DashboardPage = () => {
     } catch (error) {
       console.error('fetchManagers 에러:', error);
     }
+  };
+
+  // 영업로그 가져오기 (청크 단위 병렬 처리)
+  const fetchSalesLogsForStores = async (stores) => {
+    const CHUNK_SIZE = 5;
+    const logs = {};
+    
+    // stores를 CHUNK_SIZE 크기의 청크로 나누기
+    for (let i = 0; i < stores.length; i += CHUNK_SIZE) {
+      const chunk = stores.slice(i, i + CHUNK_SIZE);
+      
+      // 청크 내 모든 store의 로그를 병렬로 가져오기
+      const chunkPromises = chunk.map(async (store) => {
+        try {
+          const response = await apiClient.get(`/api/stores/${store.store_id}/sales-logs`);
+          if (response.success && response.data && response.data.length > 0) {
+            // 가장 최신 로그만 저장
+            const latestLog = response.data[0];
+            logs[store.store_id] = {
+              content: latestLog.content,
+              created_at: latestLog.created_at
+            };
+          }
+        } catch (error) {
+          console.error(`Failed to fetch sales logs for store ${store.store_id}:`, error);
+        }
+      });
+      
+      await Promise.all(chunkPromises);
+    }
+    
+    setSalesLogs(logs);
   };
 
   // 일별 이용 현황 데이터 가져오기
@@ -647,9 +680,15 @@ const DashboardPage = () => {
 
                 {/* 미이용 카드 */}
                 <div
-                  onClick={() => {
-                    setSelectedInstallCategory(selectedInstallCategory === 'inactive' ? null : 'inactive');
+                  onClick={async () => {
+                    const newCategory = selectedInstallCategory === 'inactive' ? null : 'inactive';
+                    setSelectedInstallCategory(newCategory);
                     setVisibleCount(10);
+                    
+                    // 미이용 탭 선택 시 영업로그 가져오기
+                    if (newCategory === 'inactive' && overallStats?.install_detail?.inactive) {
+                      fetchSalesLogsForStores(overallStats.install_detail.inactive);
+                    }
                   }}
                   style={{
                     padding: '16px',
@@ -668,9 +707,15 @@ const DashboardPage = () => {
 
                 {/* 하자보수 카드 */}
                 <div
-                  onClick={() => {
-                    setSelectedInstallCategory(selectedInstallCategory === 'repair' ? null : 'repair');
+                  onClick={async () => {
+                    const newCategory = selectedInstallCategory === 'repair' ? null : 'repair';
+                    setSelectedInstallCategory(newCategory);
                     setVisibleCount(10);
+                    
+                    // 하자보수 탭 선택 시 영업로그 가져오기
+                    if (newCategory === 'repair' && overallStats?.install_detail?.repair) {
+                      fetchSalesLogsForStores(overallStats.install_detail.repair);
+                    }
                   }}
                   style={{
                     padding: '16px',
@@ -704,13 +749,17 @@ const DashboardPage = () => {
                           <th style={{ width: '25%', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
                           <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
                           <th style={{ width: '100px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>설치일</th>
-                          <th style={{ width: '80px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
-                          <th style={{ width: '100px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문고객수</th>
-                          {selectedInstallCategory === 'active' && (
-                            <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
-                          )}
-                          {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'repair') && (
-                            <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문</th>
+                          {selectedInstallCategory === 'active' ? (
+                            <>
+                              <th style={{ width: '80px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
+                              <th style={{ width: '100px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문고객수</th>
+                              <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
+                            </>
+                          ) : (
+                            <>
+                              <th style={{ width: '200px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>최근 영업로그</th>
+                              <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문</th>
+                            </>
                           )}
                         </tr>
                       </thead>
@@ -757,41 +806,58 @@ const DashboardPage = () => {
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
                                 {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '-'}
                               </td>
-                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
-                                {store.order_count ? store.order_count.toLocaleString() : '0'}
-                              </td>
-                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
-                                {store.customer_count ? store.customer_count.toLocaleString() : '0'}
-                              </td>
-                              {selectedInstallCategory === 'active' && (
-                                <td style={{ padding: '12px 8px', fontSize: '13px' }}>
-                                  <span style={{
-                                    padding: '2px 8px',
-                                    borderRadius: '4px',
-                                    fontSize: '11px',
-                                    fontWeight: '500',
-                                    backgroundColor: store.installType === '설치중' ? '#fef3c7' : '#d1fae5',
-                                    color: store.installType === '설치중' ? '#d97706' : '#059669'
-                                  }}>
-                                    {store.installType}
-                                  </span>
-                                </td>
-                              )}
-                              {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'repair') && (
-                                <td style={{ padding: '12px 8px', fontSize: '13px' }}>
-                                  {store.hasOrder && (
+                              {selectedInstallCategory === 'active' ? (
+                                <>
+                                  <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                                    {store.order_count ? store.order_count.toLocaleString() : '0'}
+                                  </td>
+                                  <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                                    {store.customer_count ? store.customer_count.toLocaleString() : '0'}
+                                  </td>
+                                  <td style={{ padding: '12px 8px', fontSize: '13px' }}>
                                     <span style={{
                                       padding: '2px 8px',
                                       borderRadius: '4px',
                                       fontSize: '11px',
                                       fontWeight: '500',
-                                      backgroundColor: '#dbeafe',
-                                      color: '#1d4ed8'
+                                      backgroundColor: store.installType === '설치중' ? '#fef3c7' : '#d1fae5',
+                                      color: store.installType === '설치중' ? '#d97706' : '#059669'
                                     }}>
-                                      주문있음
+                                      {store.installType}
                                     </span>
-                                  )}
-                                </td>
+                                  </td>
+                                </>
+                              ) : (
+                                <>
+                                  <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
+                                    {(() => {
+                                      const log = salesLogs[store.store_id];
+                                      if (!log) return '-';
+                                      
+                                      const content = log.content.length > 20 ? 
+                                        log.content.substring(0, 20) + '...' : log.content;
+                                      
+                                      const date = new Date(log.created_at);
+                                      const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+                                      
+                                      return `${content} (${dateStr})`;
+                                    })()}
+                                  </td>
+                                  <td style={{ padding: '12px 8px', fontSize: '13px' }}>
+                                    {store.hasOrder && (
+                                      <span style={{
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        fontSize: '11px',
+                                        fontWeight: '500',
+                                        backgroundColor: '#dbeafe',
+                                        color: '#1d4ed8'
+                                      }}>
+                                        주문있음
+                                      </span>
+                                    )}
+                                  </td>
+                                </>
                               )}
                             </tr>
                           ));
