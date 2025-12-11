@@ -1108,9 +1108,11 @@ const DashboardPage = () => {
               </div>
             </div>
             
-            {activityReports.length > 0 ? (
+            {activityReports.filter(report => report.manager_id !== 'admin@catchtable.co.kr').length > 0 ? (
               <div>
-                {activityReports.map(report => (
+                {activityReports
+                  .filter(report => report.manager_id !== 'admin@catchtable.co.kr')
+                  .map(report => (
                   <div key={report.manager_id} style={{ 
                     backgroundColor: '#F9FAFB', 
                     borderRadius: '12px', 
@@ -1145,11 +1147,16 @@ const DashboardPage = () => {
                         <div style={{ fontSize: '13px', fontWeight: '500', color: '#10B981', marginBottom: '8px' }}>
                           📝 영업 로그 ({report.sales_logs.length}건)
                         </div>
-                        {report.sales_logs.map((log, idx) => (
-                          <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
-                            • {log.content && log.content.length > 30 ? log.content.slice(0, 30) + '...' : log.content}
-                          </div>
-                        ))}
+                        {report.sales_logs.map((log, idx) => {
+                          const storePrefix = log.store_name ? `[${log.store_name}] ` : log.seq ? `[${log.seq}] ` : '';
+                          const fullContent = storePrefix + (log.content || '');
+                          const displayContent = fullContent.length > 50 ? fullContent.slice(0, 50) + '...' : fullContent;
+                          return (
+                            <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
+                              • {displayContent}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                     
