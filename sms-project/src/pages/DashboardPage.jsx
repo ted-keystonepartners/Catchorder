@@ -38,6 +38,9 @@ const DashboardPage = () => {
   const [visibleCount, setVisibleCount] = useState(10);
   const [salesLogs, setSalesLogs] = useState({});
   const [dailyUsageData, setDailyUsageData] = useState([]);
+  const [activityDate, setActivityDate] = useState(new Date().toISOString().split('T')[0]);
+  const [activityReports, setActivityReports] = useState([]);
+  const [activitySummary, setActivitySummary] = useState(null);
   const [usageDateRange, setUsageDateRange] = useState({
     start: '2025-12-06',
     end: new Date().toISOString().split('T')[0]
@@ -313,6 +316,24 @@ const DashboardPage = () => {
     fetchDailyUsage();
   }, [usageDateRange]);
 
+  // 날짜 변경 시 활동 보고서 재로드
+  useEffect(() => {
+    const fetchActivityReport = async () => {
+      try {
+        const response = await apiClient.get(`/api/reports/daily-activity?date=${activityDate}`);
+        if (response.success) {
+          setActivityReports(response.data.reports || []);
+          setActivitySummary(response.data.summary || null);
+        }
+      } catch (error) {
+        console.error('업무 현황 조회 실패:', error);
+        setActivityReports([]);
+        setActivitySummary(null);
+      }
+    };
+    fetchActivityReport();
+  }, [activityDate]);
+
   // 상태별 차트 데이터 준비
   const statusChartData = useMemo(() => {
     if (!overallStats?.stats) return [];
@@ -367,17 +388,6 @@ const DashboardPage = () => {
     ];
   }, [overallStats]);
 
-  // 이탈 분석 데이터
-  const churnData = useMemo(() => {
-    if (!overallStats?.churn_analysis?.by_stage) return [];
-    
-    return Object.entries(overallStats.churn_analysis.by_stage)
-      .map(([key, value]) => ({
-        name: STATUS_LABELS[key] || key,
-        value: value
-      }))
-      .filter(item => item.value > 0);
-  }, [overallStats]);
 
   const COLORS = ['#FF3D00', '#FF6B00', '#FFA500', '#FFD700', '#32CD32', '#4169E1', '#9370DB', '#DC143C'];
 
@@ -1067,58 +1077,92 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* 이탈 분석 */}
+          {/* 담당자별 업무 현황 */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
             padding: '24px',
             border: '1px solid #e5e7eb'
           }}>
-            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
-              이탈 분석
-            </h3>
-            {overallStats?.churn_analysis?.total_churned > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px', alignItems: 'center' }}>
-                <div>
-                  <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 8px 0' }}>
-                    총 이탈 매장
-                  </p>
-                  <p style={{ fontSize: '32px', fontWeight: '700', color: '#dc2626', margin: 0 }}>
-                    {overallStats.churn_analysis.total_churned}
-                  </p>
-                </div>
-                <div>
-                  {churnData.length > 0 && (
-                    <ResponsiveContainer width="100%" height={200}>
-                      <PieChart>
-                        <Pie
-                          data={churnData}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="value"
-                        >
-                          {churnData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                담당자별 업무 현황
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                {activitySummary && (
+                  <span style={{ fontSize: '14px', color: '#6B7280' }}>
+                    상태변경 {activitySummary.total_status_changes || 0}건 | 영업로그 {activitySummary.total_sales_logs || 0}건
+                  </span>
+                )}
+                <input 
+                  type="date" 
+                  value={activityDate}
+                  onChange={(e) => setActivityDate(e.target.value)}
+                  style={{ 
+                    padding: '8px', 
+                    borderRadius: '8px', 
+                    border: '1px solid #e5e7eb',
+                    fontSize: '14px'
+                  }}
+                />
+              </div>
+            </div>
+            
+            {activityReports.length > 0 ? (
+              <div>
+                {activityReports.map(report => (
+                  <div key={report.manager_id} style={{ 
+                    backgroundColor: '#F9FAFB', 
+                    borderRadius: '12px', 
+                    padding: '20px', 
+                    marginBottom: '16px' 
+                  }}>
+                    {/* 담당자명 */}
+                    <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '16px', color: '#111827' }}>
+                      {managersMap[report.manager_id] || report.manager_id.split('@')[0]}
+                      <span style={{ marginLeft: '8px', fontSize: '14px', color: '#6B7280', fontWeight: '400' }}>
+                        ({report.total_activities}건)
+                      </span>
+                    </div>
+                    
+                    {/* 상태 변경 */}
+                    {report.status_changes && report.status_changes.length > 0 && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#3B82F6', marginBottom: '8px' }}>
+                          📋 상태 변경 ({report.status_changes.length}건)
+                        </div>
+                        {report.status_changes.map((change, idx) => (
+                          <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
+                            • {change.store_name}: {change.old_status} → {change.new_status}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* 영업 로그 */}
+                    {report.sales_logs && report.sales_logs.length > 0 && (
+                      <div>
+                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#10B981', marginBottom: '8px' }}>
+                          📝 영업 로그 ({report.sales_logs.length}건)
+                        </div>
+                        {report.sales_logs.map((log, idx) => (
+                          <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
+                            • {log.content && log.content.length > 30 ? log.content.slice(0, 30) + '...' : log.content}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* 활동 없음 */}
+                    {report.total_activities === 0 && (
+                      <div style={{ fontSize: '14px', color: '#9CA3AF' }}>활동 내역 없음</div>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '40px',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                이탈 데이터 없음
+              <div style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
+                해당 날짜에 활동 내역이 없습니다
               </div>
             )}
           </div>
