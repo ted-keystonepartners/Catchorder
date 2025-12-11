@@ -35,6 +35,7 @@ const DashboardPage = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [managersMap, setManagersMap] = useState({});
   const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
+  const [visibleCount, setVisibleCount] = useState(10);
   const [dailyUsageData, setDailyUsageData] = useState([]);
   const [usageDateRange, setUsageDateRange] = useState({
     start: '2025-12-06',
@@ -625,7 +626,10 @@ const DashboardPage = () => {
               }}>
                 {/* 이용 카드 */}
                 <div
-                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'active' ? null : 'active')}
+                  onClick={() => {
+                    setSelectedInstallCategory(selectedInstallCategory === 'active' ? null : 'active');
+                    setVisibleCount(10);
+                  }}
                   style={{
                     padding: '16px',
                     borderRadius: '8px',
@@ -643,7 +647,10 @@ const DashboardPage = () => {
 
                 {/* 미이용 카드 */}
                 <div
-                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'inactive' ? null : 'inactive')}
+                  onClick={() => {
+                    setSelectedInstallCategory(selectedInstallCategory === 'inactive' ? null : 'inactive');
+                    setVisibleCount(10);
+                  }}
                   style={{
                     padding: '16px',
                     borderRadius: '8px',
@@ -661,7 +668,10 @@ const DashboardPage = () => {
 
                 {/* 하자보수 카드 */}
                 <div
-                  onClick={() => setSelectedInstallCategory(selectedInstallCategory === 'repair' ? null : 'repair')}
+                  onClick={() => {
+                    setSelectedInstallCategory(selectedInstallCategory === 'repair' ? null : 'repair');
+                    setVisibleCount(10);
+                  }}
                   style={{
                     padding: '16px',
                     borderRadius: '8px',
@@ -690,17 +700,17 @@ const DashboardPage = () => {
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
-                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>번호</th>
-                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
-                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
-                          <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>등록일</th>
-                          <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
-                          <th style={{ padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문고객수</th>
+                          <th style={{ width: '50px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>번호</th>
+                          <th style={{ width: '25%', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
+                          <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
+                          <th style={{ width: '100px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>설치일</th>
+                          <th style={{ width: '80px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문수</th>
+                          <th style={{ width: '100px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문고객수</th>
                           {selectedInstallCategory === 'active' && (
-                            <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
+                            <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>구분</th>
                           )}
                           {(selectedInstallCategory === 'inactive' || selectedInstallCategory === 'repair') && (
-                            <th style={{ padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문</th>
+                            <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>주문</th>
                           )}
                         </tr>
                       </thead>
@@ -717,7 +727,15 @@ const DashboardPage = () => {
                             storeList = overallStats.install_detail[selectedInstallCategory] || [];
                           }
                           
-                          return storeList.map((store, index) => (
+                          // 주문고객수 기준 내림차순 정렬
+                          const sortedStores = [...storeList].sort((a, b) => 
+                            (b.customer_count || 0) - (a.customer_count || 0)
+                          );
+                          
+                          // visibleCount만큼만 표시
+                          const visibleStores = sortedStores.slice(0, visibleCount);
+                          
+                          return visibleStores.map((store, index) => (
                             <tr
                               key={store.store_id || index}
                               onClick={() => navigate(`/stores/${store.store_id}`)}
@@ -781,6 +799,46 @@ const DashboardPage = () => {
                       </tbody>
                     </table>
                   </div>
+                  {(() => {
+                    let storeList = [];
+                    
+                    if (selectedInstallCategory === 'active') {
+                      const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
+                      const notCompleted = (overallStats.install_detail.active_not_completed || []).map(s => ({...s, installType: '설치중'}));
+                      storeList = [...completed, ...notCompleted];
+                    } else {
+                      storeList = overallStats.install_detail[selectedInstallCategory] || [];
+                    }
+                    
+                    const sortedStores = [...storeList].sort((a, b) => 
+                      (b.customer_count || 0) - (a.customer_count || 0)
+                    );
+                    
+                    if (visibleCount < sortedStores.length) {
+                      return (
+                        <button 
+                          onClick={() => setVisibleCount(prev => prev + 10)}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            marginTop: '16px',
+                            backgroundColor: '#F3F4F6',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#6B7280',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E5E7EB'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                        >
+                          더보기 ({sortedStores.length - visibleCount}개 더)
+                        </button>
+                      );
+                    }
+                    return null;
+                  })()}
                 </div>
               )}
             </div>
