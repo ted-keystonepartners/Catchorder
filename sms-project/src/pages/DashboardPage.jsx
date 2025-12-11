@@ -1109,25 +1109,6 @@ const DashboardPage = () => {
             </div>
             
             {(() => {
-              // 매장명 찾는 함수
-              const getStoreNameBySeq = (seq) => {
-                if (!seq) return '';
-                
-                // 모든 카테고리의 매장 목록 합치기
-                const allStores = [
-                  ...(overallStats?.install_detail?.active || []),
-                  ...(overallStats?.install_detail?.active_not_completed || []),
-                  ...(overallStats?.install_detail?.inactive || []),
-                  ...(overallStats?.install_detail?.repair || []),
-                  ...(overallStats?.install_detail?.churned_service || []),
-                  ...(overallStats?.install_detail?.churned_unused || []),
-                  ...(overallStats?.install_detail?.pending || [])
-                ];
-                
-                const store = allStores.find(s => s.seq === seq || s.store_seq === seq);
-                return store?.store_name || store?.name || '';
-              };
-              
               const filteredReports = activityReports.filter(report => report.manager_id !== 'admin@catchtable.co.kr');
               
               return filteredReports.length > 0 ? (
@@ -1168,13 +1149,12 @@ const DashboardPage = () => {
                           📝 영업 로그 ({report.sales_logs.length}건)
                         </div>
                         {report.sales_logs.map((log, idx) => {
-                          const storeName = getStoreNameBySeq(log.seq);
-                          const storePrefix = storeName ? `[${storeName}] ` : '';
-                          const fullContent = storePrefix + (log.content || '');
-                          const displayContent = fullContent.length > 50 ? fullContent.slice(0, 50) + '...' : fullContent;
+                          const storeName = log.store_name || '';
+                          const content = log.content || '';
+                          const displayText = storeName ? `[${storeName}] - ${content}` : content;
                           return (
                             <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
-                              • {displayContent}
+                              • {displayText.length > 50 ? displayText.slice(0, 50) + '...' : displayText}
                             </div>
                           );
                         })}
