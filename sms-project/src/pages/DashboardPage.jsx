@@ -142,16 +142,16 @@ const DashboardPage = () => {
       const chunkPromises = chunk.map(async (store) => {
         try {
           const response = await apiClient.get(`/api/stores/${store.store_id}/sales-logs`);
-          if (response.success && response.data && response.data.length > 0) {
+          if (response.success && response.data && response.data.logs && response.data.logs.length > 0) {
             // 가장 최신 로그만 저장
-            const latestLog = response.data[0];
+            const latestLog = response.data.logs[0];
             logs[store.store_id] = {
               content: latestLog.content,
               created_at: latestLog.created_at
             };
           }
         } catch (error) {
-          console.error(`Failed to fetch sales logs for store ${store.store_id}:`, error);
+          // console.error 제거 (이미 제거됨)
         }
       });
       
