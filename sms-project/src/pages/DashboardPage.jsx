@@ -836,12 +836,8 @@ const DashboardPage = () => {
                     }}
                   />
                   <YAxis 
-                    domain={[0, (dataMax) => {
-                      const maxValue = Math.max(...dailyUsageData.map(item => 
-                        (item.active || 0) + (item.inactive || 0) + (item.defect_repair || 0) + (item.terminated_pending || 0)
-                      ));
-                      return maxValue + 20;
-                    }]}
+                    domain={[0, 80]}
+                    tick={{ fontSize: 12 }}
                   />
                   <Tooltip 
                     labelFormatter={(value) => {
