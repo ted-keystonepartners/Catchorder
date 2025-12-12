@@ -481,7 +481,7 @@ const DashboardPage = () => {
                     {overallStats?.funnel?.active || 0}
                   </p>
                   <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
-                    전환율 {overallStats?.conversion?.install_to_active || 0}%
+                    이용률 {overallStats?.conversion?.active_rate || 0}%
                   </p>
                 </div>
               </div>
@@ -504,7 +504,7 @@ const DashboardPage = () => {
                     {overallStats?.funnel?.churned || 0}
                   </p>
                   <p style={{ fontSize: '12px', color: '#EF4444', margin: '4px 0 0 0' }}>
-                    탈퇴율 {overallStats?.conversion?.churn_rate || 0}%
+                    해지율 {overallStats?.conversion?.churn_rate || 0}%
                   </p>
                 </div>
               </div>
