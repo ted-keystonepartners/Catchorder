@@ -662,9 +662,6 @@ const DashboardPage = () => {
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
                   설치진행 현황
                 </h3>
-                <span style={{ padding: '4px 12px', fontSize: '12px', borderRadius: '9999px', backgroundColor: '#FFF7ED', color: '#FF6B00', fontWeight: '500' }}>
-                  총 {totalInProgress}개
-                </span>
                 {/* 담당자 배지들 */}
                 {progressManagers.map((manager, idx) => {
                   const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
@@ -690,6 +687,7 @@ const DashboardPage = () => {
                   <Tooltip />
                   {progressManagers.map((manager, idx) => {
                     const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
+                    const isLastManager = idx === progressManagers.length - 1;
                     return (
                       <Bar 
                         key={manager}
@@ -697,7 +695,22 @@ const DashboardPage = () => {
                         stackId="progress"
                         fill={MANAGER_COLORS[idx % MANAGER_COLORS.length]}
                         name={managersMap[manager] || manager.split('@')[0]}
-                      />
+                      >
+                        {isLastManager && (
+                          <LabelList 
+                            dataKey={(data) => {
+                              // 각 행의 전체 합계 계산
+                              let sum = 0;
+                              progressManagers.forEach(m => {
+                                sum += data[m] || 0;
+                              });
+                              return sum > 0 ? sum : '';
+                            }}
+                            position="right"
+                            style={{ fontSize: 12, fontWeight: 600, fill: '#111827' }}
+                          />
+                        )}
+                      </Bar>
                     );
                   })}
                 </BarChart>
