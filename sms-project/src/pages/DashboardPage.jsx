@@ -370,6 +370,49 @@ const DashboardPage = () => {
     return statusChartData.reduce((sum, item) => sum + item.value, 0);
   }, [statusChartData]);
 
+  // 설치진행 현황 담당자별 데이터
+  const progressDataByManager = useMemo(() => {
+    if (!ownerStats || ownerStats.length === 0) return [];
+    
+    const statusOrder = [
+      'PRE_INTRODUCTION',
+      'VISIT_COMPLETED',
+      'REVISIT_SCHEDULED',
+      'INFO_REQUEST',
+      'REMOTE_INSTALL_SCHEDULED',
+      'ADMIN_SETTING',
+      'QR_LINKING'
+    ];
+    
+    // admin 제외한 담당자들
+    const filteredOwners = ownerStats.filter(o => o.owner_id !== 'admin@catchtable.co.kr');
+    
+    // 각 상태별로 담당자별 데이터 구성
+    const data = statusOrder.map(status => {
+      const row = { 
+        status, 
+        label: STATUS_LABELS[status]
+      };
+      
+      filteredOwners.forEach(owner => {
+        row[owner.owner_id] = owner.stats?.[status] || 0;
+      });
+      
+      return row;
+    });
+    
+    return data;
+  }, [ownerStats]);
+  
+  // 설치진행 담당자 목록
+  const progressManagers = useMemo(() => {
+    if (!ownerStats || ownerStats.length === 0) return [];
+    
+    return ownerStats
+      .filter(o => o.owner_id !== 'admin@catchtable.co.kr')
+      .map(o => o.owner_id);
+  }, [ownerStats]);
+
   // 퍼널 차트 데이터
   const funnelData = useMemo(() => {
     if (!overallStats?.funnel) return [];
@@ -615,19 +658,48 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               minHeight: '400px'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                설치진행 현황
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  설치진행 현황
+                </h3>
                 <span style={{ padding: '4px 12px', fontSize: '12px', borderRadius: '9999px', backgroundColor: '#FFF7ED', color: '#FF6B00', fontWeight: '500' }}>
                   총 {totalInProgress}개
                 </span>
-              </h3>
+                {/* 담당자 배지들 */}
+                {progressManagers.map((manager, idx) => {
+                  const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
+                  return (
+                    <span key={manager} style={{
+                      backgroundColor: MANAGER_COLORS[idx % MANAGER_COLORS.length],
+                      color: idx < 3 ? 'white' : '#111827',
+                      padding: '4px 12px',
+                      borderRadius: '9999px',
+                      fontSize: '12px',
+                      fontWeight: '500'
+                    }}>
+                      {managersMap[manager] || manager.split('@')[0]}
+                    </span>
+                  );
+                })}
+              </div>
               <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={statusChartData} layout="vertical" margin={{ left: 10, right: 40 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis type="number" domain={[0, chartMaxValue]} />
-                  <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 10 }} />
+                <BarChart data={progressDataByManager} layout="vertical" margin={{ left: 10, right: 40 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={true} vertical={false} />
+                  <XAxis type="number" />
+                  <YAxis dataKey="label" type="category" width={100} tick={{ fontSize: 10 }} />
                   <Tooltip />
-                  <Bar dataKey="value" fill="#FF6B00" label={{ position: 'right', fill: '#111827', fontSize: 12, fontWeight: 600 }} />
+                  {progressManagers.map((manager, idx) => {
+                    const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
+                    return (
+                      <Bar 
+                        key={manager}
+                        dataKey={manager}
+                        stackId="progress"
+                        fill={MANAGER_COLORS[idx % MANAGER_COLORS.length]}
+                        name={managersMap[manager] || manager.split('@')[0]}
+                      />
+                    );
+                  })}
                 </BarChart>
               </ResponsiveContainer>
             </div>
