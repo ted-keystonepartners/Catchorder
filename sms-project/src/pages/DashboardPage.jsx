@@ -460,9 +460,6 @@ const DashboardPage = () => {
                   <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.install_completed || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
-                    전환율 {overallStats?.conversion?.register_to_install || 0}%
-                  </p>
                 </div>
               </div>
             </div>
@@ -490,7 +487,7 @@ const DashboardPage = () => {
               </div>
             </div>
 
-            {/* 주문고객수 */}
+            {/* 해지/보류 */}
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -501,13 +498,13 @@ const DashboardPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
                   <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 8px 0' }}>
-                    주문고객수
+                    해지/보류
                   </p>
                   <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
-                    {overallStats?.total_customer_count?.toLocaleString() || 0}
+                    {overallStats?.funnel?.churned || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
-                    총 주문 {overallStats?.total_order_count?.toLocaleString() || 0}건
+                  <p style={{ fontSize: '12px', color: '#EF4444', margin: '4px 0 0 0' }}>
+                    탈퇴율 {overallStats?.conversion?.churn_rate || 0}%
                   </p>
                 </div>
               </div>
