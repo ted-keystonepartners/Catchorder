@@ -87,16 +87,19 @@ const SchedulePage = () => {
         fontFamily: "'SUIT', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif"
       }}>
         {/* 모바일 UI */}
-        <div className="md:hidden" style={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 150px)' }}>
-          {/* 날짜 선택 */}
+        <div className="md:hidden">
+          {/* 날짜 선택 - 헤더 바로 아래 고정 */}
           <div style={{
+            position: 'sticky',
+            top: '64px',  // 헤더 높이만큼
+            zIndex: 90,
+            backgroundColor: 'white',
+            borderBottom: '1px solid #e5e7eb',
+            padding: '16px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '20px',
-            padding: '20px 16px',
-            backgroundColor: 'white',
-            borderBottom: '1px solid #e5e7eb'
+            gap: '24px'
           }}>
             <button 
               onClick={prevDay}
@@ -110,23 +113,26 @@ const SchedulePage = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                fontSize: '18px',
-                color: '#374151'
+                fontSize: '20px',
+                color: '#374151',
+                transition: 'all 0.2s'
               }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
             >
               ‹
             </button>
-            <div style={{ textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', minWidth: '180px' }}>
               <p style={{ 
-                fontSize: '18px', 
+                fontSize: '17px', 
                 fontWeight: '600',
                 color: '#111827',
-                margin: '0 0 4px 0'
+                margin: '0 0 2px 0'
               }}>
                 {dateInfo.year}년 {dateInfo.month}월 {dateInfo.day}일
               </p>
               <p style={{ 
-                fontSize: '14px', 
+                fontSize: '13px', 
                 color: '#6b7280',
                 margin: 0
               }}>
@@ -145,16 +151,19 @@ const SchedulePage = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                fontSize: '18px',
-                color: '#374151'
+                fontSize: '20px',
+                color: '#374151',
+                transition: 'all 0.2s'
               }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
             >
               ›
             </button>
           </div>
 
           {/* 일정 리스트 */}
-          <div style={{ padding: '16px' }}>
+          <div style={{ padding: '16px', backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 200px)' }}>
             {loadingSchedules ? (
               <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
                 일정을 불러오는 중...
