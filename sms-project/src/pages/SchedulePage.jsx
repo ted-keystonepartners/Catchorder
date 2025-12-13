@@ -11,62 +11,67 @@ const SchedulePage = () => {
   const { isAdmin } = useAuth();
   const { stores, isLoading: storesLoading, fetchStores } = useStores();
   const { success, error: showError, toasts, removeToast } = useToast();
+  
+  // 모바일용 상태
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [schedules, setSchedules] = useState([]);
+  const [loadingSchedules, setLoadingSchedules] = useState(false);
 
-  // 통계 계산
-  const calculateStats = () => {
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-    
-    let monthlyTotal = 0;
-    let firstVisitPending = 0;
-    let revisitPending = 0;
-    let completed = 0;
-
-    stores.forEach(store => {
-      // 방문 예정일 확인
-      if (store.visitScheduleDate) {
-        const visitDate = new Date(store.visitScheduleDate);
-        if (visitDate.getMonth() === currentMonth && visitDate.getFullYear() === currentYear) {
-          monthlyTotal++;
-          
-          // 상태에 따라 분류
-          if (store.status === 'VISIT_PENDING') {
-            firstVisitPending++;
-          } else if (store.status === 'VISIT_COMPLETED') {
-            completed++;
-          } else if (store.status === 'ADMIN_SETTING' || store.status === 'QR_LINKING' || store.status === 'QR_MENU_ONLY') {
-            revisitPending++;
-          }
-        }
+  // 스케줄 데이터 가져오기
+  const fetchSchedules = async () => {
+    setLoadingSchedules(true);
+    try {
+      const response = await apiClient.get('/api/schedules');
+      if (response.success) {
+        setSchedules(response.data || []);
       }
-      
-      // 재방문 예정일 확인
-      if (store.revisitScheduleDate) {
-        const revisitDate = new Date(store.revisitScheduleDate);
-        if (revisitDate.getMonth() === currentMonth && revisitDate.getFullYear() === currentYear) {
-          monthlyTotal++;
-          revisitPending++;
-        }
-      }
-    });
-
-    return {
-      monthlyTotal,
-      firstVisitPending,
-      revisitPending,
-      completed
-    };
+    } catch (error) {
+      console.error('Failed to fetch schedules:', error);
+    } finally {
+      setLoadingSchedules(false);
+    }
   };
 
-  const stats = calculateStats();
+  // 선택된 날짜의 일정 필터링
+  const filteredSchedules = schedules.filter(schedule => {
+    const scheduleDate = new Date(schedule.visit_date);
+    return scheduleDate.toDateString() === selectedDate.toDateString();
+  });
 
-  // 초기 데이터 로드 (stores만 필요)
+  // 날짜 이동 함수
+  const prevDay = () => {
+    setSelectedDate(prev => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() - 1);
+      return d;
+    });
+  };
+
+  const nextDay = () => {
+    setSelectedDate(prev => {
+      const d = new Date(prev);
+      d.setDate(d.getDate() + 1);
+      return d;
+    });
+  };
+
+  // 날짜 포맷팅
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
+    const weekDay = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][date.getDay()];
+    return { year, month, day, weekDay };
+  };
+
+  const dateInfo = formatDate(selectedDate);
+
+  // 초기 데이터 로드
   useEffect(() => {
-    // stores 가져오기
     if (!stores || stores.length === 0) {
       fetchStores();
     }
+    fetchSchedules();
   }, []);
 
   return (
@@ -76,208 +81,148 @@ const SchedulePage = () => {
       <div style={{ 
         fontFamily: "'SUIT', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif"
       }}>
-        {/* 통계 카드 */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '16px',
-          marginBottom: '24px'
-        }}>
-          {/* 이번 달 일정 */}
+        {/* 모바일 UI */}
+        <div className="md:hidden" style={{ backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 150px)' }}>
+          {/* 날짜 선택 */}
           <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '20px',
+            padding: '20px 16px',
             backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            border: '1px solid #e5e7eb'
+            borderBottom: '1px solid #e5e7eb'
           }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: '0 0 4px 0',
-                  fontWeight: '500',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  이번 달 일정
-                </p>
-                <p style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  color: '#111827',
-                  margin: 0
-                }}>
-                  {stats.monthlyTotal}
-                </p>
-              </div>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#fff5f3',
-                borderRadius: '12px',
+            <button 
+              onClick={prevDay}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: '1px solid #e5e7eb',
+                backgroundColor: 'white',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: '#374151'
+              }}
+            >
+              ‹
+            </button>
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ 
+                fontSize: '18px', 
+                fontWeight: '600',
+                color: '#111827',
+                margin: '0 0 4px 0'
               }}>
-                <svg width="24" height="24" fill="#FF3D00" viewBox="0 0 24 24">
-                  <path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
-                </svg>
-              </div>
+                {dateInfo.year}년 {dateInfo.month}월 {dateInfo.day}일
+              </p>
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#6b7280',
+                margin: 0
+              }}>
+                {dateInfo.weekDay}
+              </p>
             </div>
+            <button 
+              onClick={nextDay}
+              style={{
+                width: '36px',
+                height: '36px',
+                borderRadius: '50%',
+                border: '1px solid #e5e7eb',
+                backgroundColor: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                fontSize: '18px',
+                color: '#374151'
+              }}
+            >
+              ›
+            </button>
           </div>
 
-          {/* 첫방문 예정 */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: '0 0 4px 0',
-                  fontWeight: '500',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
+          {/* 일정 리스트 */}
+          <div style={{ padding: '16px' }}>
+            {loadingSchedules ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
+                일정을 불러오는 중...
+              </div>
+            ) : filteredSchedules.length > 0 ? (
+              filteredSchedules.map((schedule, index) => (
+                <div key={index} style={{
+                  backgroundColor: 'white',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginBottom: '12px',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                  border: '1px solid #e5e7eb'
                 }}>
-                  첫방문 예정
-                </p>
-                <p style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  color: '#111827',
+                  <p style={{ 
+                    fontWeight: '600', 
+                    marginBottom: '8px',
+                    color: '#111827',
+                    fontSize: '16px'
+                  }}>
+                    {schedule.store_name}
+                  </p>
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '6px' }}>
+                    <span style={{ 
+                      fontSize: '14px', 
+                      color: schedule.visit_type === '첫방문' ? '#2563eb' : '#a855f7',
+                      fontWeight: '500'
+                    }}>
+                      {schedule.visit_type}
+                    </span>
+                    <span style={{ fontSize: '14px', color: '#6b7280' }}>·</span>
+                    <span style={{ fontSize: '14px', color: '#374151' }}>
+                      {schedule.visit_time || '시간 미정'}
+                    </span>
+                  </div>
+                  {schedule.owner_name && (
+                    <p style={{ 
+                      fontSize: '13px', 
+                      color: '#9ca3af',
+                      margin: 0
+                    }}>
+                      담당: {schedule.owner_name}
+                    </p>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div style={{ 
+                textAlign: 'center', 
+                padding: '60px 20px',
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <svg width="48" height="48" fill="none" stroke="#e5e7eb" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p style={{ 
+                  color: '#9ca3af',
+                  fontSize: '15px',
                   margin: 0
                 }}>
-                  {stats.firstVisitPending}
+                  이 날짜에 일정이 없습니다
                 </p>
               </div>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#e0f2fe',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="24" height="24" fill="#0284c7" viewBox="0 0 24 24">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* 재방문 예정 */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: '0 0 4px 0',
-                  fontWeight: '500',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  재방문 예정
-                </p>
-                <p style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  color: '#111827',
-                  margin: 0
-                }}>
-                  {stats.revisitPending}
-                </p>
-              </div>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#f3e8ff',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="24" height="24" fill="#7c3aed" viewBox="0 0 24 24">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          {/* 완료된 일정 */}
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '20px',
-            border: '1px solid #e5e7eb'
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}>
-              <div>
-                <p style={{
-                  fontSize: '12px',
-                  color: '#6b7280',
-                  margin: '0 0 4px 0',
-                  fontWeight: '500',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.5px'
-                }}>
-                  완료된 일정
-                </p>
-                <p style={{
-                  fontSize: '28px',
-                  fontWeight: '700',
-                  color: '#111827',
-                  margin: 0
-                }}>
-                  {stats.completed}
-                </p>
-              </div>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                backgroundColor: '#d1fae5',
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <svg width="24" height="24" fill="#10b981" viewBox="0 0 24 24">
-                  <path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/>
-                </svg>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* 캘린더 */}
-        <DashboardCalendar />
+        {/* 데스크탑 캘린더 */}
+        <div className="hidden md:block">
+          <DashboardCalendar />
+        </div>
       </div>
     </MainLayout>
   );
