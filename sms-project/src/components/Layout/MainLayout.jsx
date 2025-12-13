@@ -14,6 +14,7 @@ const MainLayout = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
   const { notification, hideNotification } = useUIStore();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showQRMenu, setShowQRMenu] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -67,6 +68,20 @@ const MainLayout = ({ children }) => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       )
+    },
+    {
+      name: 'QR메뉴',
+      adminOnly: true,
+      hasDropdown: true,
+      icon: (
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h0m-5 8h-2v-4m0-11v1m0 0h0m0 9h0m0-9h0m-4 9h2m-2 0h0m12 0h0m-4-9h0m0 9h0" />
+        </svg>
+      ),
+      children: [
+        { name: '신청관리', path: '/qr-menu' },
+        { name: '비치확인', path: '/qr-placements' }
+      ]
     }
   ];
 
@@ -125,39 +140,126 @@ const MainLayout = ({ children }) => {
                   return true;
                 })
                 .map((item) => (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    navigate(item.path);
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 12px',
-                    backgroundColor: location.pathname === item.path ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    if (location.pathname !== item.path) {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (location.pathname !== item.path) {
-                      e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    }
-                  }}
-                >
-                  {item.icon}
-                  <span>{item.name}</span>
-                </button>
+                item.hasDropdown ? (
+                  <div key={item.name} style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setShowQRMenu(!showQRMenu)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '8px 12px',
+                        backgroundColor: showQRMenu || item.children?.some(child => location.pathname === child.path) ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        if (!showQRMenu && !item.children?.some(child => location.pathname === child.path)) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (!showQRMenu && !item.children?.some(child => location.pathname === child.path)) {
+                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                        }
+                      }}
+                    >
+                      {item.icon}
+                      <span>{item.name}</span>
+                      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {showQRMenu && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        marginTop: '8px',
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                        border: '1px solid #e5e7eb',
+                        minWidth: '140px',
+                        zIndex: 50
+                      }}>
+                        {item.children?.map(child => (
+                          <button
+                            key={child.path}
+                            onClick={() => {
+                              navigate(child.path);
+                              setShowQRMenu(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              display: 'block',
+                              padding: '10px 16px',
+                              color: location.pathname === child.path ? '#FF3D00' : '#374151',
+                              backgroundColor: location.pathname === child.path ? '#FFF5F3' : 'transparent',
+                              border: 'none',
+                              textAlign: 'left',
+                              fontSize: '14px',
+                              fontWeight: location.pathname === child.path ? '600' : '500',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                              if (location.pathname !== child.path) {
+                                e.target.style.backgroundColor = '#f3f4f6';
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (location.pathname !== child.path) {
+                                e.target.style.backgroundColor = 'transparent';
+                              }
+                            }}
+                          >
+                            {child.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    key={item.name}
+                    onClick={() => {
+                      navigate(item.path);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      padding: '8px 12px',
+                      backgroundColor: location.pathname === item.path ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      if (location.pathname !== item.path) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (location.pathname !== item.path) {
+                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                      }
+                    }}
+                  >
+                    {item.icon}
+                    <span>{item.name}</span>
+                  </button>
+                )
               ))}
             </nav>
 

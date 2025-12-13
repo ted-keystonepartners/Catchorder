@@ -23,6 +23,9 @@ import SchedulePage from './pages/SchedulePage.jsx';
 import ApplyPage from './pages/ApplyPage.jsx';
 import ApplicationsPage from './pages/ApplicationsPage.jsx';
 import MenuApplyPage from './pages/MenuApplyPage.jsx';
+import MenuPhotoUploadPage from './pages/MenuPhotoUploadPage.jsx';
+import QRMenuManagementPage from './pages/QRMenuManagementPage.jsx';
+import QRPlacementsPage from './pages/QRPlacementsPage.jsx';
 
 /**
  * 404 페이지 컴포넌트
@@ -180,7 +183,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/consent/:token" element={<ConsentFormPage />} />
         <Route path="/apply" element={<ApplyPage />} />
-        <Route path="/menuapply" element={<MenuApplyPage />} />
+        <Route path="/menuapply" element={<MenuPhotoUploadPage />} />
         
         {/* 동의서 응답 조회 페이지 (보호된 라우트) */}
         <Route 
@@ -285,6 +288,26 @@ function App() {
             <ProtectedRoute>
               <SchedulePage />
             </ProtectedRoute>
+          } 
+        />
+        
+        {/* QR메뉴 관리 페이지 (ADMIN 전용) */}
+        <Route 
+          path="/qr-menu" 
+          element={
+            <AdminRoute>
+              <QRMenuManagementPage />
+            </AdminRoute>
+          } 
+        />
+        
+        {/* 비치사진 관리 페이지 (ADMIN 전용) */}
+        <Route 
+          path="/qr-placements" 
+          element={
+            <AdminRoute>
+              <QRPlacementsPage />
+            </AdminRoute>
           } 
         />
         
