@@ -22,6 +22,25 @@ const MainLayout = ({ children }) => {
     setSidebarOpen(false);
   }, [location.pathname]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      // Check if click is outside dropdown
+      if (openDropdown && !event.target.closest('.dropdown-container')) {
+        setOpenDropdown(null);
+      }
+      // Check if click is outside profile menu
+      if (showProfileMenu && !event.target.closest('.profile-menu-container')) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [openDropdown, showProfileMenu]);
+
   const handleLogout = async () => {
     await logout();
     navigate('/');
@@ -164,7 +183,7 @@ const MainLayout = ({ children }) => {
                 })
                 .map((item) => (
                 item.hasDropdown ? (
-                  <div key={item.name} style={{ position: 'relative' }}>
+                  <div key={item.name} className="dropdown-container" style={{ position: 'relative' }}>
                     <button
                       onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
                       style={{
@@ -287,7 +306,7 @@ const MainLayout = ({ children }) => {
             </nav>
 
             {/* 프로필 메뉴 */}
-            <div style={{ position: 'relative' }}>
+            <div className="profile-menu-container" style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 style={{
