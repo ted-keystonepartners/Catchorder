@@ -509,16 +509,17 @@ const StoreListPage = () => {
           onExport={() => {/* Export functionality to be implemented */}}
         />
 
-        {/* 매장 목록 */}
+        {/* 매장 목록 - 모바일에서는 박스 제거 */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           padding: '24px',
           border: '1px solid #e5e7eb'
         }}
-        className="md:p-6 p-4"
+        className="md:p-6 p-0 md:bg-white bg-transparent md:border border-0 md:rounded-2xl rounded-none"
         >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}
+          className="md:mb-5 mb-3">
             <h3 style={{ 
               fontSize: '18px', 
               fontWeight: '600', 
@@ -530,12 +531,11 @@ const StoreListPage = () => {
             }}
             className="text-base md:text-lg"
             >
-              <div style={{ 
+              <div className="hidden md:flex" style={{ 
                 width: '20px', 
                 height: '20px', 
                 backgroundColor: '#FF3D00', 
                 borderRadius: '4px',
-                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
@@ -544,12 +544,12 @@ const StoreListPage = () => {
                 </svg>
               </div>
               <span className="hidden md:inline">매장 목록 ({filteredStores.length}개)</span>
-              <span className="md:hidden">목록 ({filteredStores.length})</span>
+              <span className="md:hidden" style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>목록 ({filteredStores.length})</span>
             </h3>
             
-            {/* ADMIN 버튼들 */}
+            {/* ADMIN 버튼들 - 데스크탑에만 표시 */}
             {userIsAdmin && (
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div className="hidden md:flex" style={{ gap: '8px' }}>
                 <button
                   onClick={handleExport}
                   style={{
@@ -729,28 +729,28 @@ const StoreListPage = () => {
                     lineHeight: '1.6'
                   }}>
                     {store.store_address && (
-                      <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                        <span style={{ fontSize: '14px' }}>📍</span>
-                        <span style={{ flex: 1, color: '#6b7280' }}>{store.store_address}</span>
+                      <div style={{ marginBottom: '6px', color: '#6b7280' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '500' }}>주소: </span>
+                        <span style={{ fontSize: '12px' }}>{store.store_address}</span>
                       </div>
                     )}
-                    <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '14px' }}>📞</span>
-                      <span>{store.store_phone || '연락처 없음'}</span>
+                    <div style={{ marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>전화: </span>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{store.store_phone || '연락처 없음'}</span>
                     </div>
-                    <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '14px' }}>👤</span>
-                      <span>{managerName}</span>
+                    <div style={{ marginBottom: '6px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>담당자: </span>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>{managerName}</span>
                     </div>
                     {store.pos_system && (
-                      <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '14px' }}>💳</span>
-                        <span>{POS_LABELS[store.pos_system] || store.pos_system}</span>
+                      <div style={{ marginBottom: '6px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>POS: </span>
+                        <span style={{ fontSize: '12px', color: '#374151' }}>{POS_LABELS[store.pos_system] || store.pos_system}</span>
                       </div>
                     )}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '14px' }}>📅</span>
-                      <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                    <div>
+                      <span style={{ fontSize: '12px', fontWeight: '500', color: '#6b7280' }}>등록일: </span>
+                      <span style={{ fontSize: '12px', color: '#374151' }}>
                         {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '날짜 없음'}
                       </span>
                     </div>
@@ -897,6 +897,47 @@ const StoreListPage = () => {
           )}
         </div>
       </div>
+
+      {/* 모바일 플로팅 버튼 - ADMIN만 */}
+      {userIsAdmin && (
+        <button
+          className="md:hidden"
+          onClick={() => {
+            setShowAddStoreModal(true);
+            fetchManagers();
+          }}
+          style={{
+            position: 'fixed',
+            bottom: '20px',
+            right: '20px',
+            width: '56px',
+            height: '56px',
+            backgroundColor: '#FF3D00',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 50,
+            transition: 'all 0.2s'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.backgroundColor = '#e53e00';
+            e.currentTarget.style.transform = 'scale(1.05)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.backgroundColor = '#FF3D00';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+        >
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+        </button>
+      )}
 
       {/* 매장 추가 모달 - 토스 스타일 */}
       {showAddStoreModal && (
