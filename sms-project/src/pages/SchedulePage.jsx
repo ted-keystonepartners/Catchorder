@@ -87,7 +87,10 @@ const SchedulePage = () => {
         fontFamily: "'SUIT', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif"
       }}>
         {/* 모바일 UI */}
-        <div className="md:hidden">
+        <div className="md:hidden" style={{ 
+          margin: '-24px',  // MainLayout의 padding 제거
+          marginBottom: 0
+        }}>
           {/* 날짜 선택 - 헤더 바로 아래 고정 */}
           <div style={{
             position: 'sticky',
@@ -163,7 +166,7 @@ const SchedulePage = () => {
           </div>
 
           {/* 일정 리스트 */}
-          <div style={{ padding: '16px', backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 200px)' }}>
+          <div style={{ padding: '16px', backgroundColor: '#f9fafb', minHeight: 'calc(100vh - 200px)', marginTop: '0' }}>
             {loadingSchedules ? (
               <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>
                 일정을 불러오는 중...
