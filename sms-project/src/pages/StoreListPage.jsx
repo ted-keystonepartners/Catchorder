@@ -509,17 +509,29 @@ const StoreListPage = () => {
           onExport={() => {/* Export functionality to be implemented */}}
         />
 
-        {/* 매장 목록 - 모바일에서는 박스 제거 */}
-        <div style={{
+        {/* 모바일: 목록 텍스트만 표시 */}
+        <div className="md:hidden" style={{
+          padding: '0 16px',
+          marginBottom: '12px'
+        }}>
+          <h2 style={{
+            fontSize: '16px',
+            fontWeight: '600',
+            color: '#111827',
+            margin: 0
+          }}>
+            목록 ({filteredStores.length})
+          </h2>
+        </div>
+
+        {/* 데스크탑: 기존 박스 유지 */}
+        <div className="hidden md:block" style={{
           backgroundColor: 'white',
           borderRadius: '16px',
           padding: '24px',
           border: '1px solid #e5e7eb'
-        }}
-        className="md:p-6 p-0 md:bg-white bg-transparent md:border border-0 md:rounded-2xl rounded-none"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}
-          className="md:mb-5 mb-3">
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
             <h3 style={{ 
               fontSize: '18px', 
               fontWeight: '600', 
@@ -528,14 +540,13 @@ const StoreListPage = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
-            }}
-            className="text-base md:text-lg"
-            >
-              <div className="hidden md:flex" style={{ 
+            }}>
+              <div style={{ 
                 width: '20px', 
                 height: '20px', 
                 backgroundColor: '#FF3D00', 
                 borderRadius: '4px',
+                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
@@ -543,8 +554,7 @@ const StoreListPage = () => {
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </div>
-              <span className="hidden md:inline">매장 목록 ({filteredStores.length}개)</span>
-              <span className="md:hidden" style={{ fontSize: '16px', fontWeight: '600', color: '#111827' }}>목록 ({filteredStores.length})</span>
+              <span>매장 목록 ({filteredStores.length}개)</span>
             </h3>
             
             {/* ADMIN 버튼들 - 데스크탑에만 표시 */}
@@ -643,9 +653,65 @@ const StoreListPage = () => {
             )}
           </div>
 
-          {/* Mobile Card View */}
-          <div className="md:hidden">
-            {paginatedStores.map((store, index) => {
+          {/* Desktop Table View */}
+          <StoreTable
+            stores={paginatedStores}
+            loading={loading}
+            pagination={{
+              current: currentPage,
+              total: totalPages,
+              pageSize: itemsPerPage,
+              totalItems: filteredStores.length,
+              onPageChange: setCurrentPage
+            }}
+            isAdmin={userIsAdmin}
+            managers={managers}
+          />
+          
+          {paginatedStores.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+              <div style={{ 
+                width: '48px', 
+                height: '48px', 
+                backgroundColor: '#f3f4f6', 
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 16px'
+              }}>
+                <svg width="24" height="24" fill="#9ca3af" viewBox="0 0 24 24">
+                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+              </div>
+              <h3 style={{ 
+                fontSize: '16px', 
+                fontWeight: '500', 
+                color: '#111827',
+                margin: '0 0 8px 0'
+              }}>
+                {searchTerm || statusFilter !== 'all' 
+                  ? '검색 결과가 없습니다' 
+                  : '등록된 매장이 없습니다'
+                }
+              </h3>
+              <p style={{ 
+                fontSize: '14px', 
+                color: '#6b7280',
+                marginBottom: '16px'
+              }}>
+                {searchTerm || statusFilter !== 'all' 
+                  ? '다른 검색어를 시도해보세요'
+                  : '새로운 매장을 추가해보세요'
+                }
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Card View - 박스 밖에 독립적으로 배치 */}
+        <div className="md:hidden" style={{ padding: '0 16px' }}>
+          {paginatedStores.map((store, index) => {
               const manager = managers.find(m => m.email === store.owner_id);
               const managerName = manager?.name || store.owner_id || '미배정';
               
@@ -785,76 +851,59 @@ const StoreListPage = () => {
               );
             })}
             
-            {/* Mobile Pagination */}
-            {totalPages > 1 && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px',
-                marginTop: '20px',
-                paddingBottom: '20px'
-              }}>
-                <button
-                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: currentPage === 1 ? '#e5e7eb' : 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    color: currentPage === 1 ? '#9ca3af' : '#374151',
-                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  이전
-                </button>
-                <span style={{
-                  padding: '8px 16px',
+          
+          {/* Mobile Pagination */}
+          {totalPages > 1 && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '20px',
+              paddingBottom: '20px'
+            }}>
+              <button
+                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                disabled={currentPage === 1}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: currentPage === 1 ? '#e5e7eb' : 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
                   fontSize: '13px',
                   fontWeight: '500',
-                  color: '#374151'
-                }}>
-                  {currentPage} / {totalPages}
-                </span>
-                <button
-                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  style={{
-                    padding: '8px 12px',
-                    backgroundColor: currentPage === totalPages ? '#e5e7eb' : 'white',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: '500',
-                    color: currentPage === totalPages ? '#9ca3af' : '#374151',
-                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
-                  }}
-                >
-                  다음
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Desktop Table View */}
-          <div className="hidden md:block">
-            <StoreTable
-              stores={paginatedStores}
-              loading={loading}
-              pagination={{
-                current: currentPage,
-                total: totalPages,
-                pageSize: itemsPerPage,
-                totalItems: filteredStores.length,
-                onPageChange: setCurrentPage
-              }}
-              isAdmin={userIsAdmin}
-              managers={managers}
-            />
-          </div>
+                  color: currentPage === 1 ? '#9ca3af' : '#374151',
+                  cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                이전
+              </button>
+              <span style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: '500',
+                color: '#374151'
+              }}>
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                disabled={currentPage === totalPages}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: currentPage === totalPages ? '#e5e7eb' : 'white',
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: currentPage === totalPages ? '#9ca3af' : '#374151',
+                  cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                }}
+              >
+                다음
+              </button>
+            </div>
+          )}
           
           {paginatedStores.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
