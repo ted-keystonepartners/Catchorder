@@ -189,7 +189,7 @@ const ApplyPage = () => {
     return (
       <div style={{
         minHeight: '100vh',
-        backgroundColor: '#f9fafb',
+        background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -197,9 +197,10 @@ const ApplyPage = () => {
       }}>
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
+          borderRadius: '20px',
           padding: '40px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.1)',
+          boxShadow: '0 20px 40px rgba(249, 115, 22, 0.1)',
+          border: '1px solid rgba(249, 115, 22, 0.1)',
           maxWidth: '500px',
           width: '100%',
           textAlign: 'center'
@@ -252,14 +253,18 @@ const ApplyPage = () => {
             }}
             style={{
               padding: '12px 24px',
-              backgroundColor: '#FF3D00',
+              backgroundColor: '#F97316',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               fontSize: '16px',
               fontWeight: '600',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)'
             }}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#EA580C'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#F97316'}
           >
             새 신청하기
           </button>
@@ -271,40 +276,56 @@ const ApplyPage = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f9fafb',
-      padding: '40px 20px'
+      background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
+      padding: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
       <div style={{
-        maxWidth: '600px',
+        maxWidth: '500px',
+        width: '100%',
         margin: '0 auto'
       }}>
-        {/* 헤더 */}
+        {/* 로고 및 헤더 */}
         <div style={{
           textAlign: 'center',
-          marginBottom: '40px'
+          marginBottom: '32px'
         }}>
+          <div style={{
+            fontSize: '36px',
+            fontWeight: '900',
+            background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            marginBottom: '16px'
+          }}>
+            CatchOrder
+          </div>
           <h1 style={{
-            fontSize: '32px',
+            fontSize: '24px',
             fontWeight: '700',
             color: '#111827',
             marginBottom: '8px'
           }}>
-            캐치오더 신청하기
+            서비스 신청
           </h1>
           <p style={{
-            fontSize: '16px',
+            fontSize: '14px',
             color: '#6b7280'
           }}>
-            서비스 이용을 위해 아래 정보를 입력해주세요
+            간편하게 캐치오더 서비스를 시작하세요
           </p>
         </div>
 
-        {/* 폼 */}
+        {/* 폼 카드 */}
         <div style={{
           backgroundColor: 'white',
-          borderRadius: '16px',
-          padding: '32px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.05)'
+          borderRadius: '20px',
+          padding: '32px 24px',
+          boxShadow: '0 20px 40px rgba(249, 115, 22, 0.1)',
+          border: '1px solid rgba(249, 115, 22, 0.1)'
         }}>
           <form onSubmit={handleSubmit}>
             {/* 요청유형 */}
@@ -370,8 +391,11 @@ const ApplyPage = () => {
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#F97316'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 placeholder="캐치테이블 회원번호를 입력하세요"
               />
             </div>
@@ -399,8 +423,11 @@ const ApplyPage = () => {
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#F97316'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 placeholder="매장명을 입력하세요"
               />
             </div>
@@ -428,8 +455,11 @@ const ApplyPage = () => {
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
                   fontSize: '14px',
-                  outline: 'none'
+                  outline: 'none',
+                  transition: 'border-color 0.2s'
                 }}
+                onFocus={(e) => e.target.style.borderColor = '#F97316'}
+                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 placeholder="담당자 이름을 입력하세요"
               />
             </div>
@@ -457,8 +487,11 @@ const ApplyPage = () => {
                     borderRadius: '8px',
                     fontSize: '14px',
                     outline: 'none',
-                    backgroundColor: 'white'
+                    backgroundColor: 'white',
+                    transition: 'border-color 0.2s'
                   }}
+                  onFocus={(e) => e.target.style.borderColor = '#F97316'}
+                  onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
                 >
                   <option value="MOBILE">휴대폰</option>
                   <option value="LANDLINE">일반전화</option>
@@ -713,16 +746,19 @@ const ApplyPage = () => {
               disabled={submitting}
               style={{
                 width: '100%',
-                padding: '12px',
-                backgroundColor: submitting ? '#9ca3af' : '#FF3D00',
+                padding: '14px',
+                backgroundColor: submitting ? '#9ca3af' : '#F97316',
                 color: 'white',
                 border: 'none',
-                borderRadius: '8px',
+                borderRadius: '12px',
                 fontSize: '16px',
                 fontWeight: '600',
                 cursor: submitting ? 'not-allowed' : 'pointer',
-                transition: 'background-color 0.2s'
+                transition: 'all 0.2s',
+                boxShadow: submitting ? 'none' : '0 4px 14px rgba(249, 115, 22, 0.3)'
               }}
+              onMouseOver={(e) => { if (!submitting) e.target.style.backgroundColor = '#EA580C' }}
+              onMouseOut={(e) => { if (!submitting) e.target.style.backgroundColor = '#F97316' }}
             >
               {submitting ? '제출 중...' : '신청하기'}
             </button>

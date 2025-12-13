@@ -14,7 +14,7 @@ const MainLayout = ({ children }) => {
   const { user, logout, isAdmin } = useAuth();
   const { notification, hideNotification } = useUIStore();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showQRMenu, setShowQRMenu] = useState(false);
+  const [openDropdown, setOpenDropdown] = useState(null);
 
   const handleLogout = async () => {
     await logout();
@@ -23,55 +23,21 @@ const MainLayout = ({ children }) => {
 
   const menuItems = [
     {
-      name: '매장관리',
-      path: '/stores',
+      name: 'QR오더',
+      hasDropdown: true,
       icon: (
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
         </svg>
-      )
-    },
-    {
-      name: '일정관리',
-      path: '/schedule',
-      icon: (
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      )
-    },
-    {
-      name: '메뉴추출',
-      path: '/menu-extract',
-      icon: (
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-      )
-    },
-    {
-      name: '주문입력',
-      path: '/order-upload',
-      icon: (
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-        </svg>
-      )
-    },
-    {
-      name: '신청관리',
-      path: '/applications',
-      adminOnly: true,
-      icon: (
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
+      ),
+      children: [
+        { name: '가입신청', path: '/applications' },
+        { name: '매장관리', path: '/stores' },
+        { name: '방문일정', path: '/schedule' }
+      ]
     },
     {
       name: 'QR메뉴',
-      adminOnly: true,
       hasDropdown: true,
       icon: (
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,8 +45,22 @@ const MainLayout = ({ children }) => {
         </svg>
       ),
       children: [
-        { name: '신청관리', path: '/qr-menu' },
-        { name: '비치확인', path: '/qr-placements' }
+        { name: '가입신청', path: '/qr-menu' },
+        { name: '설치인증', path: '/qr-placements' }
+      ]
+    },
+    {
+      name: 'AI 기능',
+      hasDropdown: true,
+      icon: (
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+        </svg>
+      ),
+      children: [
+        { name: '메뉴추출', path: '/menu-extract' },
+        { name: '사진제작', path: '/menu-photo' },
+        { name: '주문입력', path: '/order-upload', adminOnly: true }
       ]
     }
   ];
@@ -129,9 +109,9 @@ const MainLayout = ({ children }) => {
             <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               {menuItems
                 .filter(item => {
-                  // 주문입력 메뉴는 ADMIN만 볼 수 있음
-                  if (item.path === '/order-upload') {
-                    return user?.role === 'ADMIN';
+                  // children 중 하나라도 adminOnly가 아닌 항목이 있으면 메뉴 표시
+                  if (item.children) {
+                    return item.children.some(child => !child.adminOnly || user?.role === 'ADMIN');
                   }
                   // adminOnly 메뉴는 ADMIN만 볼 수 있음
                   if (item.adminOnly) {
@@ -143,13 +123,13 @@ const MainLayout = ({ children }) => {
                 item.hasDropdown ? (
                   <div key={item.name} style={{ position: 'relative' }}>
                     <button
-                      onClick={() => setShowQRMenu(!showQRMenu)}
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
                         padding: '8px 12px',
-                        backgroundColor: showQRMenu || item.children?.some(child => location.pathname === child.path) ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+                        backgroundColor: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '8px',
@@ -159,12 +139,12 @@ const MainLayout = ({ children }) => {
                         transition: 'all 0.2s'
                       }}
                       onMouseOver={(e) => {
-                        if (!showQRMenu && !item.children?.some(child => location.pathname === child.path)) {
+                        if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
                           e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
                         }
                       }}
                       onMouseOut={(e) => {
-                        if (!showQRMenu && !item.children?.some(child => location.pathname === child.path)) {
+                        if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
                           e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
                         }
                       }}
@@ -175,7 +155,7 @@ const MainLayout = ({ children }) => {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                       </svg>
                     </button>
-                    {showQRMenu && (
+                    {openDropdown === item.name && (
                       <div style={{
                         position: 'absolute',
                         top: '100%',
@@ -188,12 +168,12 @@ const MainLayout = ({ children }) => {
                         minWidth: '140px',
                         zIndex: 50
                       }}>
-                        {item.children?.map(child => (
+                        {item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN').map(child => (
                           <button
                             key={child.path}
                             onClick={() => {
                               navigate(child.path);
-                              setShowQRMenu(false);
+                              setOpenDropdown(null);
                             }}
                             style={{
                               width: '100%',

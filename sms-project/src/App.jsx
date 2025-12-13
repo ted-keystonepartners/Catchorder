@@ -301,7 +301,7 @@ function App() {
           } 
         />
         
-        {/* 비치사진 관리 페이지 (ADMIN 전용) */}
+        {/* 부착인증 관리 페이지 (ADMIN 전용) */}
         <Route 
           path="/qr-placements" 
           element={

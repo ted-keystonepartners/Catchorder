@@ -108,17 +108,18 @@ const MenuPhotoUploadPage = () => {
             onClick={() => window.location.reload()}
             style={{
               padding: '12px 24px',
-              backgroundColor: '#FF6B00',
+              backgroundColor: '#F97316',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               fontSize: '16px',
               fontWeight: '600',
               cursor: 'pointer',
-              transition: 'background-color 0.2s'
+              transition: 'all 0.2s',
+              boxShadow: '0 4px 14px rgba(249, 115, 22, 0.3)'
             }}
-            onMouseOver={(e) => e.target.style.backgroundColor = '#FF8C40'}
-            onMouseOut={(e) => e.target.style.backgroundColor = '#FF6B00'}
+            onMouseOver={(e) => e.target.style.backgroundColor = '#EA580C'}
+            onMouseOut={(e) => e.target.style.backgroundColor = '#F97316'}
           >
             새로운 제출
           </button>
@@ -130,36 +131,56 @@ const MenuPhotoUploadPage = () => {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f9fafb',
-      padding: '40px 16px'
+      background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
+      padding: '20px',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
     }}>
       <div style={{
-        maxWidth: '600px',
+        maxWidth: '500px',
+        width: '100%',
         margin: '0 auto'
       }}>
-        <h1 style={{
-          fontSize: '32px',
-          fontWeight: '700',
-          color: '#111827',
-          marginBottom: '12px',
-          textAlign: 'center'
+        {/* 로고 및 헤더 */}
+        <div style={{
+          textAlign: 'center',
+          marginBottom: '32px'
         }}>
-          QR메뉴 비치 사진 제출
-        </h1>
-        <p style={{
-          fontSize: '16px',
-          color: '#6b7280',
-          marginBottom: '40px',
-          textAlign: 'center'
-        }}>
-          매장에 비치된 QR메뉴 사진을 업로드해주세요
-        </p>
+          <div style={{
+            fontSize: '36px',
+            fontWeight: '900',
+            background: 'linear-gradient(135deg, #F97316 0%, #EA580C 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            marginBottom: '16px'
+          }}>
+            CatchOrder
+          </div>
+          <h1 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            color: '#111827',
+            marginBottom: '8px'
+          }}>
+            QR메뉴 비치 인증
+          </h1>
+          <p style={{
+            fontSize: '14px',
+            color: '#6b7280'
+          }}>
+            매장에 비치된 QR메뉴 사진을 업로드해주세요
+          </p>
+        </div>
 
+        {/* 폼 카드 */}
         <form onSubmit={handleSubmit} style={{
           backgroundColor: 'white',
-          padding: '32px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)'
+          borderRadius: '20px',
+          padding: '32px 24px',
+          boxShadow: '0 20px 40px rgba(249, 115, 22, 0.1)',
+          border: '1px solid rgba(249, 115, 22, 0.1)'
         }}>
           {/* 매장명 입력 */}
           <div style={{ marginBottom: '24px' }}>
@@ -180,15 +201,15 @@ const MenuPhotoUploadPage = () => {
               required
               style={{
                 width: '100%',
-                padding: '12px',
-                fontSize: '16px',
-                border: '1px solid #e5e7eb',
+                padding: '10px 12px',
+                fontSize: '14px',
+                border: '1px solid #d1d5db',
                 borderRadius: '8px',
                 outline: 'none',
                 transition: 'border-color 0.2s'
               }}
-              onFocus={(e) => e.target.style.borderColor = '#FF6B00'}
-              onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
+              onFocus={(e) => e.target.style.borderColor = '#F97316'}
+              onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
             />
           </div>
 
@@ -299,14 +320,23 @@ const MenuPhotoUploadPage = () => {
             style={{
               width: '100%',
               padding: '14px',
-              backgroundColor: isSubmitting || !storeName || photos.length === 0 ? '#d1d5db' : '#FF6B00',
+              backgroundColor: isSubmitting || !storeName || photos.length === 0 ? '#9ca3af' : '#F97316',
               color: 'white',
               border: 'none',
-              borderRadius: '8px',
+              borderRadius: '12px',
               fontSize: '16px',
               fontWeight: '600',
               cursor: isSubmitting || !storeName || photos.length === 0 ? 'not-allowed' : 'pointer',
-              transition: 'background-color 0.2s'
+              transition: 'all 0.2s',
+              boxShadow: isSubmitting || !storeName || photos.length === 0 ? 'none' : '0 4px 14px rgba(249, 115, 22, 0.3)'
+            }}
+            onMouseOver={(e) => { 
+              if (!isSubmitting && storeName && photos.length > 0) 
+                e.target.style.backgroundColor = '#EA580C' 
+            }}
+            onMouseOut={(e) => { 
+              if (!isSubmitting && storeName && photos.length > 0) 
+                e.target.style.backgroundColor = '#F97316' 
             }}
           >
             {isSubmitting ? '제출 중...' : '제출하기'}
