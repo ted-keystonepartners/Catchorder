@@ -8,7 +8,6 @@ import { useStores } from '../hooks/useStores.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
 import StoreFilterPanel from '../components/Store/StoreFilterPanel.jsx';
-import MobileStoreFilter from '../components/Store/MobileStoreFilter.jsx';
 import StoreTable from '../components/Store/StoreTable.jsx';
 import { formatPhoneInput, getStatusLabel } from '../utils/formatter.js';
 import { STORE_STATUS, POS_LABELS } from '../utils/constants.js';
@@ -482,7 +481,11 @@ const StoreListPage = () => {
   }
 
   return (
-    <MainLayout>
+    <MainLayout 
+      searchTerm={searchTerm}
+      setSearchTerm={setSearchTerm}
+      showSearch={true}
+    >
 
       <div>
 
@@ -512,23 +515,6 @@ const StoreListPage = () => {
           />
         </div>
 
-        {/* 모바일 필터 */}
-        <div className="md:hidden">
-          <MobileStoreFilter
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            statusFilter={statusFilter}
-            setStatusFilter={setStatusFilter}
-            dateType={dateType}
-            setDateType={setDateType}
-            dateFilter={dateFilter}
-            setDateFilter={setDateFilter}
-            ownerFilter={ownerFilter}
-            setOwnerFilter={setOwnerFilter}
-            managers={managers}
-            isAdmin={userIsAdmin}
-          />
-        </div>
 
         {/* 모바일: 목록 텍스트만 표시 */}
         <div className="md:hidden" style={{

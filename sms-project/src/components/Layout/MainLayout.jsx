@@ -8,8 +8,11 @@ import MobileSidebar from './MobileSidebar';
  * MainLayout 컴포넌트
  * @param {Object} props
  * @param {React.ReactNode} props.children - 메인 콘텐츠
+ * @param {string} props.searchTerm - 검색어
+ * @param {function} props.setSearchTerm - 검색어 설정 함수
+ * @param {boolean} props.showSearch - 검색창 표시 여부
  */
-const MainLayout = ({ children }) => {
+const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout, isAdmin } = useAuth();
@@ -98,8 +101,9 @@ const MainLayout = ({ children }) => {
         backgroundColor: '#FF3D00',
         borderBottom: '1px solid #e5e7eb',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        position: 'relative',
-        zIndex: 30
+        position: 'sticky',
+        top: 0,
+        zIndex: 100
       }}>
         <div style={{
           display: 'flex',
@@ -443,6 +447,51 @@ const MainLayout = ({ children }) => {
             </div>
           </div>
         </div>
+        
+        {/* 모바일 검색창 - 헤더 안에 포함 */}
+        {showSearch && (
+          <div className="md:hidden" style={{
+            padding: '0 16px 12px 16px',
+            backgroundColor: '#FF3D00'
+          }}>
+            <div style={{ position: 'relative' }}>
+              <div style={{
+                position: 'absolute',
+                left: '12px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 1
+              }}>
+                <svg width="18" height="18" fill="none" stroke="#9ca3af" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </div>
+              <input
+                type="text"
+                placeholder="매장명, 전화번호 검색"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px',
+                  paddingLeft: '40px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '15px',
+                  backgroundColor: 'white',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+                onFocus={(e) => {
+                  e.target.style.boxShadow = '0 0 0 3px rgba(255, 255, 255, 0.3)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.boxShadow = 'none';
+                }}
+              />
+            </div>
+          </div>
+        )}
       </header>
 
       {/* New Mobile Sidebar Component */}
