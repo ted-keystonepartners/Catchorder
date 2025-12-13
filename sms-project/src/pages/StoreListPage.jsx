@@ -8,6 +8,7 @@ import { useStores } from '../hooks/useStores.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
 import StoreFilterPanel from '../components/Store/StoreFilterPanel.jsx';
+import MobileStoreFilter from '../components/Store/MobileStoreFilter.jsx';
 import StoreTable from '../components/Store/StoreTable.jsx';
 import { formatPhoneInput, getStatusLabel } from '../utils/formatter.js';
 import { STORE_STATUS, POS_LABELS } from '../utils/constants.js';
@@ -485,29 +486,49 @@ const StoreListPage = () => {
 
       <div>
 
-        {/* 필터 패널 */}
-        <StoreFilterPanel
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          dateFilter={dateFilter}
-          setDateFilter={setDateFilter}
-          dateType={dateType}
-          setDateType={setDateType}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          ownerFilter={ownerFilter}
-          setOwnerFilter={setOwnerFilter}
-          managers={managers}
-          isAdmin={userIsAdmin}
-          onAddStore={() => {
-            setShowAddStoreModal(true);
-            fetchManagers(); // 모달 열 때 담당자 목록 새로고침
-          }}
-          onBulkUpload={() => setShowExcelUploadModal(true)}
-          onExport={() => {/* Export functionality to be implemented */}}
-        />
+        {/* 데스크탑 필터 패널 */}
+        <div className="hidden md:block">
+          <StoreFilterPanel
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            dateType={dateType}
+            setDateType={setDateType}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+            ownerFilter={ownerFilter}
+            setOwnerFilter={setOwnerFilter}
+            managers={managers}
+            isAdmin={userIsAdmin}
+            onAddStore={() => {
+              setShowAddStoreModal(true);
+              fetchManagers(); // 모달 열 때 담당자 목록 새로고침
+            }}
+            onBulkUpload={() => setShowExcelUploadModal(true)}
+            onExport={() => {/* Export functionality to be implemented */}}
+          />
+        </div>
+
+        {/* 모바일 필터 */}
+        <div className="md:hidden">
+          <MobileStoreFilter
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            statusFilter={statusFilter}
+            setStatusFilter={setStatusFilter}
+            dateType={dateType}
+            setDateType={setDateType}
+            dateFilter={dateFilter}
+            setDateFilter={setDateFilter}
+            ownerFilter={ownerFilter}
+            setOwnerFilter={setOwnerFilter}
+            managers={managers}
+            isAdmin={userIsAdmin}
+          />
+        </div>
 
         {/* 모바일: 목록 텍스트만 표시 */}
         <div className="md:hidden" style={{

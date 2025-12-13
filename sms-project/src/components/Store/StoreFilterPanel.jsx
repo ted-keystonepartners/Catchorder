@@ -84,17 +84,17 @@ const StoreFilterPanel = ({
   };
 
   return (
-    <div className="md:bg-white md:rounded-2xl md:p-6 md:border md:mb-6 p-4 mb-4" style={{
+    <div style={{
       backgroundColor: 'white',
       borderRadius: '16px',
       padding: '24px',
       border: '1px solid #e5e7eb',
       marginBottom: '24px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      position: 'relative'
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
     }}>
-      {/* 제목 영역 - 데스크탑에만 표시 */}
-      <div className="hidden md:flex" style={{
+      {/* 제목 영역 */}
+      <div style={{
+        display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
         marginBottom: '20px'
@@ -128,8 +128,9 @@ const StoreFilterPanel = ({
         </div>
       </div>
 
-      {/* 데스크탑 필터 - 한 줄로 정리 */}
-      <div className="hidden md:flex" style={{
+      {/* 필터 영역 - 한 줄로 정리 */}
+      <div style={{
+        display: 'flex',
         gap: '10px',
         alignItems: 'center'
       }}>
@@ -293,135 +294,6 @@ const StoreFilterPanel = ({
           </svg>
           초기화
         </button>
-      </div>
-
-      {/* 모바일 필터 - 세로로 배치 */}
-      <div className="md:hidden" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* 모바일 검색창 */}
-        <div style={{ position: 'relative' }}>
-          <div style={{
-            position: 'absolute',
-            left: '12px',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            zIndex: 1
-          }}>
-            <svg width="18" height="18" fill="none" stroke="#9ca3af" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="매장명, 전화번호, 주소 검색"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              paddingLeft: '38px',
-              paddingRight: '12px',
-              paddingTop: '10px',
-              paddingBottom: '10px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s'
-            }}
-            onFocus={(e) => e.target.style.borderColor = '#FF3D00'}
-            onBlur={(e) => e.target.style.borderColor = '#e5e7eb'}
-          />
-        </div>
-        
-        {/* 모바일 필터 드롭다운 - 한 줄에 나란히 */}
-        <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-          {/* 상태 필터 */}
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '10px',
-              paddingRight: '30px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
-              backgroundColor: 'white',
-              outline: 'none',
-              cursor: 'pointer',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              appearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 8px center',
-              backgroundSize: '20px',
-              minHeight: '44px'
-            }}
-          >
-            {statusOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          {/* 정렬 필터 */}
-          <select
-            value={dateType}
-            onChange={(e) => setDateType(e.target.value)}
-            style={{
-              flex: 1,
-              padding: '10px',
-              paddingRight: '30px',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
-              backgroundColor: 'white',
-              outline: 'none',
-              cursor: 'pointer',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              appearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 8px center',
-              backgroundSize: '20px',
-              minHeight: '44px'
-            }}
-          >
-            {dateTypeOptions.map(option => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          {/* 초기화 버튼 */}
-          <button
-            onClick={handleResetFilters}
-            title="필터 초기화"
-            style={{
-              padding: '10px',
-              backgroundColor: '#f9fafb',
-              color: '#6b7280',
-              border: '1px solid #e5e7eb',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '500',
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              minHeight: '44px',
-              minWidth: '44px'
-            }}
-          >
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
-          </button>
-        </div>
       </div>
     </div>
   );
