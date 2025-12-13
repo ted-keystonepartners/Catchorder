@@ -97,7 +97,7 @@ const MainLayout = ({ children }) => {
           }}>
             {/* 햄버거 메뉴 버튼 (모바일) */}
             <button
-              className="md:hidden"
+              className="md:hidden flex"
               onClick={() => setSidebarOpen(!sidebarOpen)}
               style={{
                 padding: '8px',
@@ -105,7 +105,6 @@ const MainLayout = ({ children }) => {
                 border: 'none',
                 borderRadius: '8px',
                 cursor: 'pointer',
-                display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'background-color 0.2s'
