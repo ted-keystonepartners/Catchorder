@@ -461,26 +461,26 @@ const DashboardPage = () => {
         {/* 메인 대시보드 영역 - 전체 너비 사용 */}
         <div>
           {/* KPI 카드 */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-            gap: '16px',
-            marginBottom: '24px'
-          }}>
+          <div 
+            className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
+            style={{
+              marginBottom: '24px'
+            }}>
             {/* 전체 매장 */}
-            <div style={{
+            <div 
+              className="p-3 md:p-6"
+              style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 8px 0' }}>
+                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
                     전체 매장
                   </p>
-                  <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.registered || 0}
                   </p>
                 </div>
@@ -488,19 +488,20 @@ const DashboardPage = () => {
             </div>
 
             {/* 설치 완료 */}
-            <div style={{
+            <div 
+              className="p-3 md:p-6"
+              style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 8px 0' }}>
+                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
                     설치 완료
                   </p>
-                  <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.install_completed || 0}
                   </p>
                 </div>
@@ -508,22 +509,23 @@ const DashboardPage = () => {
             </div>
 
             {/* 이용 매장 */}
-            <div style={{
+            <div 
+              className="p-3 md:p-6"
+              style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 8px 0' }}>
+                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
                     이용 매장
                   </p>
-                  <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.active || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#FF6B00', margin: '4px 0 0 0' }}>
+                  <p className="text-xs" style={{ color: '#FF6B00', margin: '4px 0 0 0' }}>
                     이용률 {overallStats?.conversion?.active_rate || 0}%
                   </p>
                 </div>
@@ -531,22 +533,23 @@ const DashboardPage = () => {
             </div>
 
             {/* 해지/보류 */}
-            <div style={{
+            <div 
+              className="p-3 md:p-6"
+              style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '24px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0 0 8px 0' }}>
+                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
                     해지/보류
                   </p>
-                  <p style={{ fontSize: '32px', fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
                     {overallStats?.funnel?.churned || 0}
                   </p>
-                  <p style={{ fontSize: '12px', color: '#EF4444', margin: '4px 0 0 0' }}>
+                  <p className="text-xs" style={{ color: '#EF4444', margin: '4px 0 0 0' }}>
                     해지율 {overallStats?.conversion?.churn_rate || 0}%
                   </p>
                 </div>
