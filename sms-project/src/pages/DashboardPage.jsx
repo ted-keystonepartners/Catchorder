@@ -52,6 +52,15 @@ const DashboardPage = () => {
   
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
+  
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
@@ -581,56 +590,65 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* 차트 그리드 - 모바일: 1열, 데스크탑: 2열 */}
+          {/* 차트 그리드 - 모바일에서 숨김, 데스크탑: 2열 */}
+          {!isMobile && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: '24px' }}>
             {/* 일별 신규 설치 차트 */}
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '16px',
+              padding: isMobile ? '12px' : '24px',
               border: '1px solid #e5e7eb',
               minHeight: '300px'
             }}
-            className="md:p-6 md:min-h-[400px]"
+            className="md:min-h-[400px]"
             >
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                일별 신규 설치
-                {/* 담당자 범례를 제목 옆에 작은 배지로 표시 */}
-                {installManagers.map((manager, index) => {
-                  const MANAGER_COLORS = [
-                    '#FF6B00', // 주황
-                    '#FF8C42', // 연주황
-                    '#FFA668', // 더 연한 주황
-                    '#FFC093', // 아주 연한 주황
-                    '#FFDCC1'  // 가장 연한 주황
-                  ];
-                  return (
-                    <span 
-                      key={manager}
-                      style={{
-                        padding: '4px 12px',
-                        fontSize: '12px',
-                        borderRadius: '9999px',
-                        color: 'white',
-                        fontWeight: '500',
-                        backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
-                      }}
-                    >
-                      {managersMap[manager] || manager.split('@')[0]}
-                    </span>
-                  );
-                })}
-              </h3>
+              <div style={{ marginBottom: '12px' }}>
+                <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
+                  일별 신규 설치
+                </h3>
+                {/* 담당자 범례 - 모바일에서는 아래로, flex-wrap */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: '8px'
+                }}>
+                  {installManagers.map((manager, index) => {
+                    const MANAGER_COLORS = [
+                      '#FF6B00', // 주황
+                      '#FF8C42', // 연주황
+                      '#FFA668', // 더 연한 주황
+                      '#FFC093', // 아주 연한 주황
+                      '#FFDCC1'  // 가장 연한 주황
+                    ];
+                    return (
+                      <span 
+                        key={manager}
+                        style={{
+                          padding: '2px 8px',
+                          fontSize: '11px',
+                          borderRadius: '12px',
+                          color: 'white',
+                          fontWeight: '500',
+                          backgroundColor: MANAGER_COLORS[index % MANAGER_COLORS.length]
+                        }}
+                      >
+                        {managersMap[manager] || manager.split('@')[0]}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
               {dailyInstalls.length > 0 ? (
-                <ResponsiveContainer width="100%" height={250}>
-                  <BarChart data={dailyInstalls} margin={{ left: 10, right: 40 }}>
+                <ResponsiveContainer width="100%" height={isMobile ? 250 : 332}>
+                  <BarChart data={dailyInstalls} margin={{ top: 10, right: isMobile ? 20 : 40, left: isMobile ? 20 : 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
                       dataKey="date" 
                       tick={{ fontSize: 11 }}
                     />
                     <YAxis 
-                      tick={{ fontSize: 12 }}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
                       allowDecimals={false}
                       domain={[0, 'dataMax + 2']}
                     />
@@ -667,7 +685,7 @@ const DashboardPage = () => {
                 </ResponsiveContainer>
               ) : (
                 <div style={{ 
-                  height: '280px', 
+                  height: isMobile ? '280px' : '332px', 
                   display: 'flex', 
                   alignItems: 'center', 
                   justifyContent: 'center',
@@ -687,32 +705,38 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               minHeight: '400px'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+              <div style={{ marginBottom: '12px' }}>
+                <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
                   설치진행 현황
                 </h3>
-                {/* 담당자 배지들 */}
+                {/* 담당자 배지들 - 모바일에서는 아래로, flex-wrap */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: '8px'
+                }}>
                 {progressManagers.map((manager, idx) => {
                   const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
                   return (
                     <span key={manager} style={{
                       backgroundColor: MANAGER_COLORS[idx % MANAGER_COLORS.length],
                       color: idx < 3 ? 'white' : '#111827',
-                      padding: '4px 12px',
-                      borderRadius: '9999px',
-                      fontSize: '12px',
+                      padding: '2px 8px',
+                      borderRadius: '12px',
+                      fontSize: '11px',
                       fontWeight: '500'
                     }}>
                       {managersMap[manager] || manager.split('@')[0]}
                     </span>
                   );
                 })}
+                </div>
               </div>
               <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={progressDataByManager} layout="vertical" margin={{ left: 10, right: 40 }}>
+                <BarChart data={progressDataByManager} layout="vertical" margin={{ left: isMobile ? 20 : 10, right: isMobile ? 20 : 40 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" horizontal={true} vertical={false} />
-                  <XAxis type="number" />
-                  <YAxis dataKey="label" type="category" width={100} tick={{ fontSize: 10 }} />
+                  <XAxis type="number" tick={{ fontSize: isMobile ? 10 : 11 }} />
+                  <YAxis dataKey="label" type="category" width={isMobile ? 0 : 100} tick={isMobile ? false : { fontSize: 10 }} />
                   <Tooltip />
                   {progressManagers.map((manager, idx) => {
                     const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
@@ -746,9 +770,10 @@ const DashboardPage = () => {
               </ResponsiveContainer>
             </div>
           </div>
+          )}
 
-          {/* 매장 이용 현황 */}
-          {overallStats?.install_detail?.summary && (
+          {/* 매장 이용 현황 - 모바일에서 숨김 */}
+          {!isMobile && overallStats?.install_detail?.summary && (
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -1023,7 +1048,8 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* 일별 이용 현황 차트 */}
+          {/* 일별 이용 현황 차트 - 모바일에서 숨김 */}
+          {!isMobile && (
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -1101,8 +1127,10 @@ const DashboardPage = () => {
               </div>
             )}
           </div>
+          )}
 
-          {/* 담당자별 성과 테이블 */}
+          {/* 담당자별 성과 테이블 - 모바일에서 숨김 */}
+          {!isMobile && (
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
@@ -1179,33 +1207,55 @@ const DashboardPage = () => {
               </table>
             </div>
           </div>
+          )}
 
           {/* 담당자별 업무 현황 */}
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            padding: '24px',
+            padding: isMobile ? '16px' : '24px',
             border: '1px solid #e5e7eb'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+            {/* 헤더 섹션 */}
+            <div style={{ marginBottom: '16px' }}>
+              {/* 제목 - 무조건 한 줄 */}
+              <h3 style={{ 
+                fontSize: isMobile ? '15px' : '16px', 
+                fontWeight: '600', 
+                color: '#111827', 
+                margin: '0 0 8px 0',
+                whiteSpace: isMobile ? 'nowrap' : 'normal'
+              }}>
                 담당자별 업무 현황
               </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              
+              {/* 요약 + 날짜 - 모바일: 세로, 데스크탑: 가로 */}
+              <div style={{ 
+                display: 'flex',
+                flexDirection: isMobile ? 'column' : 'row',
+                justifyContent: isMobile ? 'flex-start' : 'space-between',
+                alignItems: isMobile ? 'stretch' : 'center',
+                gap: isMobile ? '8px' : '16px'
+              }}>
+                {/* 요약 텍스트 */}
                 {activitySummary && (
-                  <span style={{ fontSize: '14px', color: '#6B7280' }}>
-                    상태변경 {activitySummary.total_status_changes || 0}건 | 영업로그 {activitySummary.total_sales_logs || 0}건
+                  <span style={{ fontSize: isMobile ? '13px' : '14px', color: '#6B7280' }}>
+                    상태변경 {activitySummary.total_status_changes || 0}건 · 영업로그 {activitySummary.total_sales_logs || 0}건
                   </span>
                 )}
+                
+                {/* 날짜 선택기 */}
                 <input 
                   type="date" 
                   value={activityDate}
                   onChange={(e) => setActivityDate(e.target.value)}
                   style={{ 
-                    padding: '8px', 
+                    padding: isMobile ? '8px 12px' : '8px', 
                     borderRadius: '8px', 
                     border: '1px solid #e5e7eb',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    width: isMobile ? '100%' : 'auto',
+                    maxWidth: isMobile ? '100%' : '200px'
                   }}
                 />
               </div>
@@ -1219,26 +1269,52 @@ const DashboardPage = () => {
                 {filteredReports.map(report => (
                   <div key={report.manager_id} style={{ 
                     backgroundColor: '#F9FAFB', 
-                    borderRadius: '12px', 
-                    padding: '20px', 
-                    marginBottom: '16px' 
+                    borderRadius: isMobile ? '8px' : '12px', 
+                    padding: isMobile ? '12px' : '20px', 
+                    marginBottom: isMobile ? '12px' : '16px' 
                   }}>
                     {/* 담당자명 */}
-                    <div style={{ fontWeight: '600', fontSize: '16px', marginBottom: '16px', color: '#111827' }}>
-                      {managersMap[report.manager_id] || report.manager_id.split('@')[0]}
-                      <span style={{ marginLeft: '8px', fontSize: '14px', color: '#6B7280', fontWeight: '400' }}>
+                    <div style={{ 
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: isMobile ? '12px' : '16px'
+                    }}>
+                      <span style={{ 
+                        fontWeight: '600', 
+                        fontSize: isMobile ? '14px' : '16px', 
+                        color: '#111827' 
+                      }}>
+                        {managersMap[report.manager_id] || report.manager_id.split('@')[0]}
+                      </span>
+                      <span style={{ 
+                        fontSize: isMobile ? '13px' : '14px', 
+                        color: '#6B7280', 
+                        fontWeight: '400' 
+                      }}>
                         ({report.total_activities}건)
                       </span>
                     </div>
                     
                     {/* 상태 변경 */}
                     {report.status_changes && report.status_changes.length > 0 && (
-                      <div style={{ marginBottom: '12px' }}>
-                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#3B82F6', marginBottom: '8px' }}>
-                          📋 상태 변경 ({report.status_changes.length}건)
+                      <div style={{ marginBottom: isMobile ? '10px' : '12px' }}>
+                        <div style={{ 
+                          fontSize: isMobile ? '12px' : '13px', 
+                          fontWeight: '500', 
+                          color: '#3B82F6', 
+                          marginBottom: isMobile ? '6px' : '8px' 
+                        }}>
+                          {isMobile ? '▸ 상태 변경' : '📋 상태 변경'} ({report.status_changes.length}건)
                         </div>
                         {report.status_changes.map((change, idx) => (
-                          <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
+                          <div key={idx} style={{ 
+                            fontSize: isMobile ? '12px' : '14px', 
+                            color: '#374151', 
+                            marginLeft: isMobile ? '16px' : '20px', 
+                            marginBottom: '4px',
+                            wordBreak: 'break-word'
+                          }}>
                             • {change.store_name}: {change.old_status} → {change.new_status}
                           </div>
                         ))}
@@ -1248,16 +1324,28 @@ const DashboardPage = () => {
                     {/* 영업 로그 */}
                     {report.sales_logs && report.sales_logs.length > 0 && (
                       <div>
-                        <div style={{ fontSize: '13px', fontWeight: '500', color: '#10B981', marginBottom: '8px' }}>
-                          📝 영업 로그 ({report.sales_logs.length}건)
+                        <div style={{ 
+                          fontSize: isMobile ? '12px' : '13px', 
+                          fontWeight: '500', 
+                          color: '#10B981', 
+                          marginBottom: isMobile ? '6px' : '8px' 
+                        }}>
+                          {isMobile ? '▸ 영업 로그' : '📝 영업 로그'} ({report.sales_logs.length}건)
                         </div>
                         {report.sales_logs.map((log, idx) => {
                           const storeName = log.store_name || '';
                           const content = log.content || '';
                           const displayText = storeName ? `[${storeName}] - ${content}` : content;
+                          const truncateLength = isMobile ? 40 : 50;
                           return (
-                            <div key={idx} style={{ fontSize: '14px', color: '#374151', marginLeft: '20px', marginBottom: '4px' }}>
-                              • {displayText.length > 50 ? displayText.slice(0, 50) + '...' : displayText}
+                            <div key={idx} style={{ 
+                              fontSize: isMobile ? '12px' : '14px', 
+                              color: '#374151', 
+                              marginLeft: isMobile ? '16px' : '20px', 
+                              marginBottom: '4px',
+                              wordBreak: 'break-word'
+                            }}>
+                              • {displayText.length > truncateLength ? displayText.slice(0, truncateLength) + '...' : displayText}
                             </div>
                           );
                         })}
