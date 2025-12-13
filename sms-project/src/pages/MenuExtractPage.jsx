@@ -3,12 +3,14 @@ import { flushSync } from 'react-dom';
 import { useToast } from '../hooks/useToast.js';
 import ToastContainer from '../components/ui/Toast.jsx';
 import MainLayout from '../components/Layout/MainLayout.jsx';
+import { AIProgressBar, useAIProgress } from '../components/common/AIProgressBar.jsx';
 
 // SYSTEM_PROMPT 상수
 const SYSTEM_PROMPT = `You are an expert at extracting structured data from Korean restaurant menu images. Analyze the image and convert it into a precise markdown table.
 
 ## Output Format
 Output ONLY the markdown table below. No explanations, no additional text.
+Start your response with "| Category |"
 
 | Category | Menu Name | Price | Description |
 | :--- | :--- | :--- | :--- |
@@ -17,23 +19,14 @@ Output ONLY the markdown table below. No explanations, no additional text.
 
 ### 1. Category Detection
 - Section headers (large text, underlined, boxed, decorative dividers) are categories
-- Standard categories: "Salad", "Appetizer", "Rice", "Pasta", "Main", "Bread", "Side", "Dessert", "Beverage", "Set Menu"
-- Normalize decorative text to standard categories:
-  - "Salad & Appetizer" → "Salad & Appetizer"
-  - "WE SERVE HOMEMADE DISHES" → "Main" (this is a slogan, not category)
-  - "HERE'S OUR SPECIAL PLATE" → ignore (slogan)
+- Standard categories: "Salad", "Appetizer", "Rice", "Pasta", "Risotto", "Main", "Brunch", "Bread", "Side", "Dessert", "Beverage", "Set Menu"
+- Korean category mapping: "밥류" → "Rice", "면류" → "Noodle", "안주류" → "Appetizer", "음료" → "Beverage"
 - If unclear, use the nearest valid section header above
 
-### 2. Menu Name - CRITICAL: Korean is Primary
+### 2. Menu Name
 - Korean text is MORE RELIABLE than English for OCR
 - If English seems garbled but Korean is clear → reconstruct English from Korean
-- Examples:
-  - English "POLO" + Korean "풀포" → correct to "PULPO" (풀포 = pulpo = octopus)
-  - English "PTERANUKI" + Korean "떡볶이" → correct to "TTEOKBOKKI"
-  - English "TOPOKIMBA" + Korean "투움바" → correct to "TOYOUMBA"
-- Format: "ENGLISH NAME (한글명)"
-- If only Korean exists, use Korean only
-- If only English exists, use English only
+- Format: Use the English name as primary, keep Korean if no English exists
 
 ### 3. Price Normalization
 - Convert ALL prices to integer KRW (remove commas, ₩, 원, dots)
@@ -45,67 +38,56 @@ Output ONLY the markdown table below. No explanations, no additional text.
 - Price is usually RIGHT-ALIGNED or connected by dots to menu name
 - Do NOT mix up prices between adjacent menu items
 - No price found → leave empty
+- Size variations: "S 5,000 / M 7,000" → use base price, note sizes in description
 
-### 4. Description Extraction - CRITICAL: Get ALL text
-- Capture ALL smaller text near the menu item
-- Include BOTH:
-  - English ingredients (e.g., "Sea Urchin, Amaebi, Nori, Soy sauce")
-  - Korean description (e.g., "우니와 단새우의 조화로운 덮밥")
-- Combine with " / " separator: "Sea Urchin, Amaebi, Nori / 우니와 단새우의 조화"
-- Do NOT stop at first line - get ALL descriptive text for that menu item
-- No description → leave empty
+### 4. Description - EXACT COPY RULE (CRITICAL)
+
+LOCATION:
+- Description is the SMALLER TEXT directly BELOW the menu name
+- Usually 1-2 lines of Korean text
+- Same column alignment as the menu name
+
+EXTRACTION METHOD:
+- COPY the Korean text EXACTLY as written in the image
+- Include English description if present: "English text / 한글 설명"
+- Do NOT translate Korean to English
+- Do NOT summarize or rephrase
+- Do NOT invent descriptions that aren't visible
+
+IF UNREADABLE:
+- Leave the cell EMPTY
+- Do NOT guess or generate plausible descriptions
 
 ### 5. Special Markers
 - ★, ☆, 추천, BEST, NEW → prepend "[Signature]" to description
-- "한정", "Limited", "매일 한정" → prepend "[Limited]" to description
+- "한정", "Limited" → prepend "[Limited]" to description
 - "품절", "Sold Out" → prepend "[Sold Out]" to description
 
 ### 6. Exclude (DO NOT extract)
-- Store name, logo, slogan ("HERE'S OUR", "FOLLOW US", etc.)
-- SNS accounts, website URLs (@instagram, .com, .kr)
+- Store name, logo, slogan
+- SNS accounts, website URLs
 - Business hours, phone numbers
-- Individual components of set menus (summarize in set description)
-- Decorative text, page numbers
+- Allergen notices, footnotes
 
-### 7. Set Menu Handling
+### 7. Set Menu / Options
 - Extract as ONE row with category "Set Menu"
-- List selection options in description
-- Include set price and conditions (e.g., "For 2-3 people, free drink included")
-- DO NOT create separate rows for each component
+- "OR +2,000" variations → note in description, use base price
 
-### 8. Sub-menus and Add-ons - CRITICAL: Extract ALL items
-- Extract ALL menu items including:
-  - Small add-on items (추가메뉴, 토핑, 사이드)
-  - Items in corners or margins of the menu
-  - Items with smaller font size
-  - Items in separate small boxes
-- These often appear:
-  - At bottom of sections
-  - In sidebars or margins
-  - As "+금액" options next to main items
-- If add-on has no clear category, use "Side" or "Add-on"
-- Example: "+2,000 치즈추가" → Side | 치즈추가 | 2000 | 토핑 옵션
+### 8. Scan Thoroughly
+- Check ALL corners and margins
+- Extract small add-on items
+- Don't miss items in decorative borders
 
-### 9. Option Prices (OR +금액)
-- When menu shows "OR +2,000" or similar variations:
-  - Base menu: extract with base price
-  - Add option info to description: "Option: +2000 for upgrade"
-- Do NOT create separate row for option price
+## STRICT OUTPUT RULES
+1. Start response with "| Category |" - no preamble
+2. No text after the table
+3. If image is unreadable, output only the header row
+4. Empty description cell is BETTER than fabricated description
 
-### 10. Verification Steps (do this before output)
-1. Read Korean name first for each item
-2. Check if English matches Korean pronunciation - correct if not
-3. Verify price is aligned with correct menu item
-4. Check description captures ALL small text (both English AND Korean)
-5. Scan corners and margins for missed small menus
-6. Ensure category makes sense (not a slogan)
-
-## Critical Rules
-- Korean text is ground truth when English is unclear
-- Get ALL descriptive text, not just first line
-- Do NOT miss small/add-on menus in corners
-- Double-check price alignment before outputting
-- Output ONLY the table, nothing else`;
+## HALLUCINATION WARNING
+You must ONLY extract text that is VISIBLE in the image.
+If you cannot clearly read the description text below a menu item, leave that cell EMPTY.
+Do NOT generate plausible-sounding Korean descriptions.`;
 
 const MenuExtractPage = () => {
   const { success, error: showError, toasts, removeToast } = useToast();
@@ -115,90 +97,45 @@ const MenuExtractPage = () => {
   const [extractedData, setExtractedData] = useState([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
-  const [currentProgress, setCurrentProgress] = useState(0);
-  const [progressMessage, setProgressMessage] = useState('');
   const [typingText, setTypingText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [currentProcessingIndex, setCurrentProcessingIndex] = useState(0);
-  const [totalImages, setTotalImages] = useState(0);
-  const [animatedProgress, setAnimatedProgress] = useState(0);
-  const progressIntervalRef = useRef(null);
+  const [error, setError] = useState(null);
+  
+  // 새로운 프로그레스 훅 사용
+  const { isRunning, start: startProgress, complete: completeProgress, reset: resetProgress } = useAIProgress();
 
-  // 프로그레스 메시지 목록
-  const progressMessages = [
-    '🔍 이미지를 분석하고 있습니다...',
-    '📝 메뉴 텍스트를 인식하는 중...',
-    '💰 가격 정보를 추출하는 중...',
-    '📊 카테고리를 분류하는 중...',
-    '✨ 데이터를 정리하는 중...'
-  ];
+  // Typing animation effect
+  useEffect(() => {
+    const fullText = '메뉴판 이미지를 업로드하면 AI가 자동으로 메뉴 정보를 추출합니다';
+    let currentText = '';
+    let index = 0;
 
-  // 타이핑 애니메이션
-  React.useEffect(() => {
-    if (!isTyping) {
-      setIsTyping(true);
-      const text = '메뉴판 이미지를 업로드하면 AI가 자동으로 메뉴 정보를 추출합니다';
-      let currentIndex = 0;
-      
-      const typingInterval = setInterval(() => {
-        if (currentIndex <= text.length) {
-          setTypingText(text.slice(0, currentIndex));
-          currentIndex++;
-        } else {
-          clearInterval(typingInterval);
-          setIsTyping(false);
-        }
-      }, 30);
-      
-      return () => clearInterval(typingInterval);
-    }
-  }, []);
-
-  // 컴포넌트 언마운트 시 인터벌 정리
-  React.useEffect(() => {
-    return () => {
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
+    setIsTyping(true);
+    const typingInterval = setInterval(() => {
+      if (index < fullText.length) {
+        currentText += fullText[index];
+        setTypingText(currentText);
+        index++;
+      } else {
+        clearInterval(typingInterval);
+        setIsTyping(false);
       }
-    };
+    }, 50);
+
+    return () => clearInterval(typingInterval);
   }, []);
 
-  // 파일을 base64로 변환
+  // 파일 -> base64 변환
   const fileToBase64 = (file) => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
+      reader.readAsDataURL(file);
       reader.onload = () => {
         const base64 = reader.result.split(',')[1];
         resolve(base64);
       };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
+      reader.onerror = (error) => reject(error);
     });
-  };
-
-  // 파일 업로드 처리 (여러 개 이미지 지원)
-  const handleFileSelect = (files) => {
-    const imageFiles = Array.from(files).filter(file => 
-      file.type === 'image/png' || file.type === 'image/jpeg' || file.type === 'image/jpg'
-    );
-
-    if (imageFiles.length === 0) {
-      showError('이미지 파일(PNG, JPG)만 업로드 가능합니다.');
-      return;
-    }
-
-    // 기존 이미지들 URL 해제
-    images.forEach(img => URL.revokeObjectURL(img.preview));
-
-    const newImages = imageFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      file: file,
-      preview: URL.createObjectURL(file),
-      name: file.name
-    }));
-
-    setImages(newImages);
-    setExtractedData([]); // 새 이미지 업로드 시 이전 결과 초기화
   };
 
   // 드래그 앤 드롭 핸들러
@@ -217,17 +154,43 @@ const MenuExtractPage = () => {
     setIsDragging(false);
     
     const files = e.dataTransfer.files;
-    handleFileSelect(files);
+    if (files.length > 0) {
+      handleFileChange({ target: { files } });
+    }
   };
 
-  // 파일 선택 클릭
   const handleFileClick = () => {
     fileInputRef.current?.click();
   };
 
+  // 파일 업로드 처리 (여러 개 이미지 지원)
   const handleFileChange = (e) => {
-    const files = e.target.files;
-    handleFileSelect(files);
+    const files = Array.from(e.target.files);
+    
+    const validFiles = files.filter(file => {
+      if (!file.type.match(/^image\/(png|jpeg|jpg)$/)) {
+        showError('이미지 파일(PNG, JPG)만 업로드 가능합니다.');
+        return false;
+      }
+      return true;
+    });
+
+    // 기존 이미지들 URL 해제
+    images.forEach(img => {
+      if (img.preview) {
+        URL.revokeObjectURL(img.preview);
+      }
+    });
+
+    const newImages = validFiles.map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file,
+      name: file.name,
+      preview: URL.createObjectURL(file)
+    }));
+
+    setImages(newImages);
+    setExtractedData([]); // 새 이미지 업로드 시 이전 결과 초기화
   };
 
   // 이미지 삭제
@@ -255,10 +218,8 @@ const MenuExtractPage = () => {
     setImages([]);
     setExtractedData([]);
     setIsExtracting(false);
-    setProgressMessage('');
-    setCurrentProgress(0);
-    setAnimatedProgress(0);
     setError(null);
+    resetProgress();
   };
 
   // 마크다운 테이블 파싱
@@ -362,136 +323,84 @@ const MenuExtractPage = () => {
     return mergedData;
   };
 
-  // 가짜 프로그레스 애니메이션 (API 호출 중 계속 증가)
-  const startFakeProgress = (startPercent, maxPercent) => {
-    let current = startPercent;
-    setAnimatedProgress(current);
-    
-    const interval = setInterval(() => {
-      if (current < maxPercent) {
-        // 점점 느려지게 증가
-        const remaining = maxPercent - current;
-        const increment = Math.max(0.3, remaining * 0.05);
-        current = Math.min(current + increment, maxPercent);
-        setAnimatedProgress(current);
-      }
-    }, 100);
-    
-    return interval;
-  };
-
   // 추출하기 (순차 처리)
   const handleExtract = async () => {
-    if (images.length === 0) {
+    if (!images.length) {
       showError('이미지를 먼저 업로드해주세요.');
-      return;
-    }
-
-    if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
-      showError('API 키가 설정되지 않았습니다.');
       return;
     }
 
     setIsExtracting(true);
     setExtractedData([]);
-    setCurrentProgress(0);
-    setAnimatedProgress(0);
-    setTotalImages(images.length);
-    setCurrentProcessingIndex(0);
-    setProgressMessage('추출 준비 중...');
+    setError(null);
     
-    // 초기 UI 업데이트
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    const allResults = [];
+    // 프로그레스 시작
+    startProgress('menuExtract');
 
     try {
+      // API 키 체크
+      if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
+        throw new Error('API 키가 설정되지 않았습니다.');
+      }
+
+      const allResults = [];
+
       // 순차적으로 이미지 처리
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
-        
-        // 이미지 처리 시작
-        const startPercent = (i / images.length) * 100;
-        const targetPercent = ((i + 1) / images.length) * 100;
-        const maxFakePercent = startPercent + (targetPercent - startPercent) * 0.9; // 90%까지만
-        
-        setCurrentProcessingIndex(i + 1);
-        setProgressMessage(`이미지 ${i + 1}/${images.length} 처리 중...`);
-        setCurrentProgress(startPercent);
-        
-        // 가짜 프로그레스 시작 (API 호출 중 계속 증가)
-        const fakeProgressInterval = startFakeProgress(startPercent, maxFakePercent);
-        
+
         try {
-          // API 호출
-          const markdownTable = await extractMenuFromImage(image);
-          const parsedData = parseMarkdownTable(markdownTable);
-          allResults.push(parsedData);
+          const result = await extractMenuFromImage(images[i]);
           
-          // API 완료 후 interval 정리하고 100%로
-          clearInterval(fakeProgressInterval);
-          
-          // 부드럽게 100%로 완료
-          setAnimatedProgress(targetPercent);
-          setCurrentProgress(targetPercent);
-          setProgressMessage(`이미지 ${i + 1}/${images.length} 완료!`);
-          
-          await new Promise(resolve => setTimeout(resolve, 300));
-          
+          if (result) {
+            const parsedTable = parseMarkdownTable(result);
+            allResults.push(parsedTable);
+          }
         } catch (err) {
           console.error(`이미지 ${image.name} 처리 실패:`, err);
-          showError(`${image.name} 처리 실패: ${err.message}`);
-          
-          // 실패해도 진행률은 업데이트
-          clearInterval(fakeProgressInterval);
-          setCurrentProgress(targetPercent);
-          setAnimatedProgress(targetPercent);
+          showError(`이미지 ${image.name} 처리 실패: ${err.message}`);
         }
       }
-      
+
       // 모든 결과 합치기
-      const mergedData = mergeTableResults(allResults);
+      const mergedTable = mergeTableResults(allResults);
       
-      // 완료 애니메이션
-      setCurrentProgress(100);
-      setAnimatedProgress(100);
-      setProgressMessage('✅ 모든 이미지 추출 완료!');
+      // 모든 이미지 처리 완료
+      completeProgress();
+      
+      flushSync(() => {
+        setExtractedData(mergedTable);
+      });
+      
+      success(`${images.length}개 이미지에서 메뉴 추출이 완료되었습니다!`);
       
       setTimeout(() => {
-        setExtractedData(mergedData);
-        success(`${images.length}개 이미지에서 메뉴 추출이 완료되었습니다!`);
         setIsExtracting(false);
-        setCurrentProgress(0);
-        setAnimatedProgress(0);
-        setProgressMessage('');
-        setCurrentProcessingIndex(0);
-      }, 1000);
+      }, 500);
       
-    } catch (err) {
-      console.error('추출 실패:', err);
-      showError(err.message || '메뉴 추출에 실패했습니다.');
-      setCurrentProgress(0);
-      setAnimatedProgress(0);
-      setProgressMessage('');
+    } catch (error) {
+      console.error('추출 오류:', error);
+      showError(error.message);
       setIsExtracting(false);
+      resetProgress();
     }
   };
 
   // 복사하기
   const handleCopy = () => {
-    if (extractedData.length === 0) {
-      showError('복사할 데이터가 없습니다.');
-      return;
-    }
+    if (extractedData.length === 0) return;
 
     const tsvData = convertToTSV(extractedData);
-    navigator.clipboard.writeText(tsvData)
-      .then(() => {
-        success('복사완료! 엑셀에 붙여넣기 할 수 있습니다.');
-      })
-      .catch(() => {
-        showError('복사에 실패했습니다.');
-      });
+    
+    // BOM 추가 (UTF-8)
+    const bom = '\uFEFF';
+    const dataWithBom = bom + tsvData;
+    
+    navigator.clipboard.writeText(dataWithBom).then(() => {
+      success('테이블이 클립보드에 복사되었습니다! 엑셀에 붙여넣기하세요.');
+    }).catch(err => {
+      showError('복사 실패: ' + err.message);
+    });
   };
 
   return (
@@ -800,115 +709,7 @@ const MenuExtractPage = () => {
                 </p>
               </div>
             ) : isExtracting ? (
-              <div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #FF3D00 0%, #FF6B00 100%)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    animation: 'pulse 2s infinite',
-                    boxShadow: '0 2px 8px rgba(255, 61, 0, 0.3)'
-                  }}>
-                    <svg width="20" height="20" fill="white" viewBox="0 0 24 24" style={{
-                      animation: 'spin 3s linear infinite'
-                    }}>
-                      <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
-                    </svg>
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <p style={{
-                      fontSize: '15px',
-                      fontWeight: '700',
-                      color: '#111827',
-                      marginBottom: '6px'
-                    }}>
-                      AI가 메뉴를 분석하고 있어요
-                    </p>
-                    <p style={{
-                      fontSize: '13px',
-                      color: '#374151',
-                      fontWeight: '500'
-                    }}>
-                      {progressMessage}
-                    </p>
-                  </div>
-                  <div style={{
-                    fontSize: '20px',
-                    fontWeight: '700',
-                    color: '#FF3D00',
-                    minWidth: '50px',
-                    textAlign: 'right'
-                  }}>
-                    {Math.round(animatedProgress || currentProgress)}%
-                  </div>
-                </div>
-                
-                <div style={{
-                  position: 'relative',
-                  width: '100%',
-                  height: '8px',
-                  backgroundColor: '#f3f4f6',
-                  borderRadius: '4px',
-                  overflow: 'hidden',
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)'
-                }}>
-                  {/* 배경 애니메이션 */}
-                  <div style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: 'linear-gradient(90deg, transparent, rgba(255,61,0,0.1), transparent)',
-                    animation: 'shimmer 2s infinite linear'
-                  }}/>
-                  
-                  {/* 실제 프로그레스 바 */}
-                  <div style={{
-                    width: `${animatedProgress || currentProgress}%`,
-                    height: '100%',
-                    background: 'linear-gradient(90deg, #FF3D00, #FF6B00)',
-                    borderRadius: '4px',
-                    transition: 'width 0.3s ease-out',
-                    boxShadow: '0 1px 2px rgba(255, 61, 0, 0.4)',
-                    position: 'relative'
-                  }}>
-                    {/* 빛나는 효과 */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '1px',
-                      left: '2px',
-                      right: '2px',
-                      height: '2px',
-                      background: 'rgba(255,255,255,0.5)',
-                      borderRadius: '2px'
-                    }}/>
-                  </div>
-                </div>
-                
-                {/* 단계별 메시지 */}
-                <p style={{
-                  fontSize: '11px',
-                  color: '#9ca3af',
-                  textAlign: 'center',
-                  marginTop: '8px',
-                  fontStyle: 'italic'
-                }}>
-                  {animatedProgress < 30 ? '📝 텍스트 인식 중...' :
-                   animatedProgress < 60 ? '💰 가격 정보 추출 중...' :
-                   animatedProgress < 90 ? '📊 카테고리 분류 중...' :
-                   '✨ 마무리하는 중...'}
-                </p>
-              </div>
+              <AIProgressBar preset="menuExtract" />
             ) : (
               <div style={{ textAlign: 'center' }}>
                 <div style={{
@@ -1069,121 +870,72 @@ const MenuExtractPage = () => {
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: '6px',
+                  gap: '8px',
                   transition: 'all 0.2s'
                 }}
-                onMouseOver={(e) => {
-                  e.currentTarget.style.backgroundColor = '#E65100';
-                }}
-                onMouseOut={(e) => {
-                  e.currentTarget.style.backgroundColor = '#FF3D00';
-                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#10b981'}
               >
                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
                 </svg>
-                엑셀용 복사
+                엑셀에 붙여넣기
               </button>
             </div>
-
-            <div style={{ 
-              overflowX: 'auto',
-              backgroundColor: '#fafafa',
-              borderRadius: '8px',
-              padding: '1px'
-            }}>
+            
+            {/* 테이블 */}
+            <div style={{ overflowX: 'auto' }}>
               <table style={{
                 width: '100%',
-                borderCollapse: 'collapse',
+                borderCollapse: 'separate',
+                borderSpacing: 0,
                 fontSize: '13px'
               }}>
                 <tbody>
                   {extractedData.map((row, rowIndex) => (
-                    <tr key={rowIndex} style={{
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                      if (rowIndex !== 0) {
-                        e.currentTarget.style.backgroundColor = '#fafafa';
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }}
-                    >
-                      {row.map((cell, cellIndex) => (
-                        rowIndex === 0 ? (
-                          <th
+                    <tr key={rowIndex}>
+                      {row.map((cell, cellIndex) => {
+                        const isHeader = rowIndex === 0;
+                        const Tag = isHeader ? 'th' : 'td';
+                        
+                        return (
+                          <Tag
                             key={cellIndex}
                             style={{
                               padding: '12px',
                               textAlign: 'left',
-                              backgroundColor: '#f9fafb',
                               borderBottom: '1px solid #e5e7eb',
-                              fontWeight: '600',
-                              color: '#374151',
-                              fontSize: '12px',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em'
+                              borderRight: cellIndex < row.length - 1 ? '1px solid #e5e7eb' : 'none',
+                              backgroundColor: isHeader ? '#f9fafb' : 
+                                              rowIndex % 2 === 0 ? '#ffffff' : '#f9fafb',
+                              fontWeight: isHeader ? '600' : '400',
+                              color: isHeader ? '#374151' : '#111827',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'keep-all',
+                              minWidth: cellIndex === 0 ? '100px' : 
+                                       cellIndex === 1 ? '200px' : 
+                                       cellIndex === 2 ? '80px' : '250px'
                             }}
                           >
                             {cell}
-                          </th>
-                        ) : (
-                          <td
-                            key={cellIndex}
-                            style={{
-                              padding: '12px',
-                              borderBottom: '1px solid #f3f4f6',
-                              color: '#111827',
-                              fontSize: '13px'
-                            }}
-                          >
-                            {cellIndex === 2 && cell ? (
-                              <span style={{
-                                fontWeight: '600',
-                                color: '#FF3D00'
-                              }}>
-                                ₩{Number(cell).toLocaleString()}
-                              </span>
-                            ) : cell}
-                          </td>
-                        )
-                      ))}
+                          </Tag>
+                        );
+                      })}
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
           </div>
         )}
-      </div>
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { 
-            opacity: 1;
-            transform: scale(1);
+        <style>{`
+          @keyframes blink {
+            0%, 50%, 100% { opacity: 1; }
+            25%, 75% { opacity: 0; }
           }
-          50% { 
-            opacity: 0.8;
-            transform: scale(1.05);
-          }
-        }
-        @keyframes blink {
-          0%, 49% { opacity: 1; }
-          50%, 100% { opacity: 0; }
-        }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes shimmer {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(100%); }
-        }
-      `}</style>
+        `}</style>
+      </div>
     </MainLayout>
   );
 };

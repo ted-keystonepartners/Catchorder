@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MainLayout from '../components/Layout/MainLayout.jsx';
+import { AIProgressBar, useAIProgress } from '../components/common/AIProgressBar.jsx';
 
 const MenuPhotoPage = () => {
   const fileInputRef = useRef(null);
@@ -12,6 +13,9 @@ const MenuPhotoPage = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [typingText, setTypingText] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  
+  // 프로그레스 훅 사용
+  const { start: startProgress, complete: completeProgress, reset: resetProgress } = useAIProgress();
 
   // Typing animation effect
   useEffect(() => {
@@ -112,6 +116,9 @@ const MenuPhotoPage = () => {
     setIsLoading(true);
     setError(null);
     
+    // 프로그레스 시작
+    startProgress('menuPhoto');
+    
     try {
       // 1. 이미지를 base64로 변환
       const base64Image = await fileToBase64(originalImage);
@@ -158,12 +165,14 @@ const MenuPhotoPage = () => {
       const imagePart = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
       if (imagePart && imagePart.inlineData) {
         setResultImage(`data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`);
+        completeProgress();
       } else {
         throw new Error('이미지 생성에 실패했습니다. 다시 시도해주세요');
       }
       
     } catch (err) {
       setError(err.message || '이미지 변환에 실패했습니다. 다시 시도해주세요');
+      resetProgress();
     } finally {
       setIsLoading(false);
     }
@@ -190,6 +199,7 @@ const MenuPhotoPage = () => {
     setOriginalPreview(null);
     setResultImage(null);
     setError(null);
+    resetProgress();
   };
 
   // 컴포넌트 언마운트 시 URL 해제
@@ -374,23 +384,7 @@ const MenuPhotoPage = () => {
                 overflow: 'hidden'
               }}>
                 {isLoading ? (
-                  <div style={{ textAlign: 'center' }}>
-                    <div style={{
-                      width: '48px',
-                      height: '48px',
-                      border: '4px solid #e5e7eb',
-                      borderTop: '4px solid #FF3D00',
-                      borderRadius: '50%',
-                      animation: 'spin 1s linear infinite',
-                      margin: '0 auto 16px'
-                    }}></div>
-                    <p style={{
-                      fontSize: '14px',
-                      color: '#6b7280'
-                    }}>
-                      이미지를 변환하는 중...
-                    </p>
-                  </div>
+                  <AIProgressBar preset="menuPhoto" />
                 ) : resultImage ? (
                   <img
                     src={resultImage}
@@ -516,10 +510,6 @@ const MenuPhotoPage = () => {
         )}
 
         <style>{`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-          }
           @keyframes blink {
             0%, 50%, 100% { opacity: 1; }
             25%, 75% { opacity: 0; }
