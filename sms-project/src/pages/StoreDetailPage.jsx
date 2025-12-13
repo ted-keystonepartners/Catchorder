@@ -780,7 +780,7 @@ const StoreDetailPage = () => {
 
       {/* 메인 컨텐츠 */}
       <div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '24px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_400px] gap-6">
           
           {/* 왼쪽 - 프로필 영역 */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -880,11 +880,7 @@ const StoreDetailPage = () => {
                 )}
               </div>
               
-              <div style={{ 
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, 1fr)',
-                gap: '16px'
-              }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label style={{ 
                     fontSize: '12px', 
@@ -1609,9 +1605,8 @@ const StoreDetailPage = () => {
                     borderRadius: '8px',
                     overflow: 'hidden'
                   }}>
-                    {/* 테이블 헤더 */}
-                    <div style={{
-                      display: 'grid',
+                    {/* 테이블 헤더 - 모바일에서 숨김 */}
+                    <div className="hidden md:grid" style={{
                       gridTemplateColumns: '100px 80px 120px 100px',
                       backgroundColor: '#f9fafb',
                       borderBottom: '1px solid #e5e7eb',
@@ -1629,17 +1624,17 @@ const StoreDetailPage = () => {
                     {contacts.map((contact, index) => (
                       <div
                         key={contact.contact_id}
+                        className="grid grid-cols-2 md:grid-cols-[100px_80px_120px_100px] gap-2 md:gap-0"
                         style={{
-                          display: 'grid',
-                          gridTemplateColumns: '100px 80px 120px 100px',
                           borderBottom: index < contacts.length - 1 ? '1px solid #f3f4f6' : 'none',
-                          fontSize: '12px'
+                          fontSize: '12px',
+                          padding: '8px 12px'
                         }}
                       >
-                        <div style={{ padding: '8px 12px', fontWeight: '500' }}>{contact.name}</div>
-                        <div style={{ padding: '8px 12px', color: '#6b7280' }}>{contact.position || '-'}</div>
-                        <div style={{ padding: '8px 12px', fontFamily: 'SUIT, monospace' }}>{contact.phone}</div>
-                        <div style={{ padding: '8px 12px', color: '#6b7280', fontSize: '11px' }}>{contact.note || '-'}</div>
+                        <div className="md:p-2" style={{ fontWeight: '500' }}>{contact.name}</div>
+                        <div className="md:p-2" style={{ color: '#6b7280' }}>{contact.position || '-'}</div>
+                        <div className="md:p-2" style={{ fontFamily: 'SUIT, monospace' }}>{contact.phone}</div>
+                        <div className="md:p-2" style={{ color: '#6b7280', fontSize: '11px' }}>{contact.note || '-'}</div>
                       </div>
                     ))}
                   </div>
@@ -2135,10 +2130,7 @@ const StoreDetailPage = () => {
                     flexDirection: 'column',
                     gap: '12px'
                   }}>
-                    <div style={{
-                      display: 'flex',
-                      gap: '8px'
-                    }}>
+                    <div className="flex flex-col md:flex-row gap-2">
                       <button
                         onClick={() => setShowConsentFormModal(true)}
                         style={{
