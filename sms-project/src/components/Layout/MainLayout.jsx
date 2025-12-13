@@ -454,8 +454,8 @@ const MainLayout = ({ children }) => {
 
       {/* Mobile Sidebar */}
       <div
-        className={`md:hidden fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 transform transition-transform duration-300 ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        className={`md:hidden fixed top-0 right-0 h-full w-64 bg-white shadow-xl z-50 transform transition-transform duration-300 ${
+          sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
         {/* Sidebar Header */}

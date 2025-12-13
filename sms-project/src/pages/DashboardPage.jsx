@@ -462,25 +462,30 @@ const DashboardPage = () => {
         <div>
           {/* KPI 카드 */}
           <div 
-            className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
+            className="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4"
             style={{
-              marginBottom: '24px'
+              marginBottom: '16px'
             }}>
             {/* 전체 매장 */}
-            <div 
-              className="p-3 md:p-6"
-              style={{
+            <div style={{
               backgroundColor: 'white',
-              borderRadius: '12px',
+              borderRadius: '8px',
+              padding: '12px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-            }}>
+            }}
+            className="md:rounded-xl md:p-6"
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}
+                    className="md:text-sm md:mb-2"
+                  >
                     전체 매장
                   </p>
-                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}
+                    className="md:text-3xl"
+                  >
                     {overallStats?.funnel?.registered || 0}
                   </p>
                 </div>
@@ -488,20 +493,25 @@ const DashboardPage = () => {
             </div>
 
             {/* 설치 완료 */}
-            <div 
-              className="p-3 md:p-6"
-              style={{
+            <div style={{
               backgroundColor: 'white',
-              borderRadius: '12px',
+              borderRadius: '8px',
+              padding: '12px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-            }}>
+            }}
+            className="md:rounded-xl md:p-6"
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}
+                    className="md:text-sm md:mb-2"
+                  >
                     설치 완료
                   </p>
-                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}
+                    className="md:text-3xl"
+                  >
                     {overallStats?.funnel?.install_completed || 0}
                   </p>
                 </div>
@@ -509,23 +519,30 @@ const DashboardPage = () => {
             </div>
 
             {/* 이용 매장 */}
-            <div 
-              className="p-3 md:p-6"
-              style={{
+            <div style={{
               backgroundColor: 'white',
-              borderRadius: '12px',
+              borderRadius: '8px',
+              padding: '12px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-            }}>
+            }}
+            className="md:rounded-xl md:p-6"
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}
+                    className="md:text-sm md:mb-2"
+                  >
                     이용 매장
                   </p>
-                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}
+                    className="md:text-3xl"
+                  >
                     {overallStats?.funnel?.active || 0}
                   </p>
-                  <p className="text-xs" style={{ color: '#FF6B00', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '10px', color: '#FF6B00', marginTop: '2px' }}
+                    className="md:text-xs md:mt-1"
+                  >
                     이용률 {overallStats?.conversion?.active_rate || 0}%
                   </p>
                 </div>
@@ -533,23 +550,30 @@ const DashboardPage = () => {
             </div>
 
             {/* 해지/보류 */}
-            <div 
-              className="p-3 md:p-6"
-              style={{
+            <div style={{
               backgroundColor: 'white',
-              borderRadius: '12px',
+              borderRadius: '8px',
+              padding: '12px',
               border: '1px solid #e5e7eb',
               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-            }}>
+            }}
+            className="md:rounded-xl md:p-6"
+            >
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <p className="text-xs md:text-sm" style={{ fontWeight: '500', color: '#6b7280', margin: '0 0 4px 0' }}>
+                  <p style={{ fontSize: '11px', fontWeight: '500', color: '#6b7280', marginBottom: '4px' }}
+                    className="md:text-sm md:mb-2"
+                  >
                     해지/보류
                   </p>
-                  <p className="text-2xl md:text-3xl" style={{ fontWeight: '700', color: '#111827', margin: 0 }}>
+                  <p style={{ fontSize: '24px', fontWeight: '700', color: '#111827', margin: 0 }}
+                    className="md:text-3xl"
+                  >
                     {overallStats?.funnel?.churned || 0}
                   </p>
-                  <p className="text-xs" style={{ color: '#EF4444', margin: '4px 0 0 0' }}>
+                  <p style={{ fontSize: '10px', color: '#EF4444', marginTop: '2px' }}
+                    className="md:text-xs md:mt-1"
+                  >
                     해지율 {overallStats?.conversion?.churn_rate || 0}%
                   </p>
                 </div>
@@ -557,16 +581,18 @@ const DashboardPage = () => {
             </div>
           </div>
 
-          {/* 차트 그리드 */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          {/* 차트 그리드 - 모바일: 1열, 데스크탑: 2열 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: '24px' }}>
             {/* 일별 신규 설치 차트 */}
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
-              padding: '24px',
+              padding: '16px',
               border: '1px solid #e5e7eb',
-              minHeight: '400px'
-            }}>
+              minHeight: '300px'
+            }}
+            className="md:p-6 md:min-h-[400px]"
+            >
               <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 일별 신규 설치
                 {/* 담당자 범례를 제목 옆에 작은 배지로 표시 */}
@@ -596,7 +622,7 @@ const DashboardPage = () => {
                 })}
               </h3>
               {dailyInstalls.length > 0 ? (
-                <ResponsiveContainer width="100%" height={320}>
+                <ResponsiveContainer width="100%" height={250}>
                   <BarChart data={dailyInstalls} margin={{ left: 10, right: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis 
@@ -1036,7 +1062,7 @@ const DashboardPage = () => {
               </div>
             </div>
             {dailyUsageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={220}>
                 <LineChart data={dailyUsageData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
