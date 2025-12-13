@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUIStore } from '../../context/uiStore.js';
 import MobileSidebar from './MobileSidebar';
+import MobileBottomNav from './MobileBottomNav';
 
 /**
  * MainLayout 컴포넌트
@@ -19,12 +20,6 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
   const { notification, hideNotification } = useUIStore();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  // Close sidebar when route changes
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -137,10 +132,10 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
 
           {/* 우측 메뉴 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* 햄버거 메뉴 버튼 (모바일) - 오른쪽 */}
+            {/* 로그아웃 버튼 (모바일) - 오른쪽 */}
             <button
               className="md:hidden flex order-last"
-              onClick={() => setSidebarOpen(!sidebarOpen)}
+              onClick={handleLogout}
               style={{
                 padding: '8px',
                 backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -153,16 +148,11 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
               }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+              title="로그아웃"
             >
-              {sidebarOpen ? (
-                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              ) : (
-                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
-              )}
+              <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
             </button>
             {/* 메인 메뉴 - 데스크탑에서만 표시 */}
             <nav className="hidden md:flex" style={{ alignItems: 'center', gap: '8px' }}>
@@ -494,21 +484,29 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         )}
       </header>
 
-      {/* New Mobile Sidebar Component */}
-      <MobileSidebar 
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        menuItems={menuItems}
-        user={user}
-        onLogout={handleLogout}
-      />
+      {/* New Mobile Sidebar Component - 데스크탑에서만 사용 */}
+      <div className="hidden md:block">
+        <MobileSidebar 
+          isOpen={false}
+          onClose={() => {}}
+          menuItems={menuItems}
+          user={user}
+          onLogout={handleLogout}
+        />
+      </div>
 
       {/* Main content */}
-      <main style={{ padding: '24px' }}>
+      <main style={{ 
+        padding: '24px',
+        paddingBottom: '90px' // 모바일 하단 네비게이션 공간 확보
+      }}>
         <div style={{ maxWidth: '1152px', margin: '0 auto' }}>
           {children}
         </div>
       </main>
+
+      {/* 모바일 하단 네비게이션 */}
+      <MobileBottomNav />
 
       {/* 클릭 시 메뉴 닫기 */}
       {showProfileMenu && (
