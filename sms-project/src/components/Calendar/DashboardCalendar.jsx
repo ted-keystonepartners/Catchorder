@@ -121,8 +121,11 @@ const DashboardCalendar = () => {
       border: '1px solid #e5e7eb',
       borderRadius: '12px',
       padding: '24px',
-      fontFamily: 'SUIT'
-    }}>
+      fontFamily: 'SUIT',
+      overflowX: 'auto'
+    }}
+    className="p-4 md:p-6"
+    >
       {/* 캘린더 헤더 */}
       <div style={{
         display: 'flex',
@@ -243,7 +246,9 @@ const DashboardCalendar = () => {
       )}
 
       {!loading && (
-        <>
+        <div style={{
+          minWidth: '700px'
+        }}>
           {/* 요일 헤더 */}
           <div style={{
             display: 'grid',
@@ -391,7 +396,7 @@ const DashboardCalendar = () => {
               재방문
             </div>
           </div>
-        </>
+        </div>
       )}
 
       {/* 일정 상세 모달 */}

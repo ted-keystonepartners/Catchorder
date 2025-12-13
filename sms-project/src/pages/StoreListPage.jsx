@@ -515,7 +515,9 @@ const StoreListPage = () => {
           borderRadius: '16px',
           padding: '24px',
           border: '1px solid #e5e7eb'
-        }}>
+        }}
+        className="md:p-6 p-4"
+        >
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
             <h3 style={{ 
               fontSize: '18px', 
@@ -525,7 +527,9 @@ const StoreListPage = () => {
               display: 'flex',
               alignItems: 'center',
               gap: '8px'
-            }}>
+            }}
+            className="text-base md:text-lg"
+            >
               <div style={{ 
                 width: '20px', 
                 height: '20px', 
@@ -539,7 +543,8 @@ const StoreListPage = () => {
                   <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                 </svg>
               </div>
-              매장 목록 ({filteredStores.length}개)
+              <span className="hidden md:inline">매장 목록 ({filteredStores.length}개)</span>
+              <span className="md:hidden">목록 ({filteredStores.length})</span>
             </h3>
             
             {/* ADMIN 버튼들 */}
@@ -638,19 +643,218 @@ const StoreListPage = () => {
             )}
           </div>
 
-          <StoreTable
-            stores={paginatedStores}
-            loading={loading}
-            pagination={{
-              current: currentPage,
-              total: totalPages,
-              pageSize: itemsPerPage,
-              totalItems: filteredStores.length,
-              onPageChange: setCurrentPage
-            }}
-            isAdmin={userIsAdmin}
-            managers={managers}
-          />
+          {/* Mobile Card View */}
+          <div className="md:hidden">
+            {paginatedStores.map((store, index) => {
+              const manager = managers.find(m => m.email === store.owner_id);
+              const managerName = manager?.name || store.owner_id || '미배정';
+              
+              const statusConfig = {
+                'PRE_INTRODUCTION': { label: '방문대기', color: '#6b7280' },
+                'VISIT_COMPLETED': { label: '방문완료', color: '#2563eb' },
+                'REVISIT_SCHEDULED': { label: '재방문예정', color: '#eab308' },
+                'INFO_REQUEST': { label: '추가정보요청', color: '#9333ea' },
+                'REMOTE_INSTALL_SCHEDULED': { label: '에이전트설치예정', color: '#16a34a' },
+                'ADMIN_SETTING': { label: '어드민셋팅', color: '#10b981' },
+                'QR_LINKING': { label: 'POS연동예정', color: '#16a34a' },
+                'QR_MENU_ONLY': { label: 'QR메뉴만 사용', color: '#06b6d4' },
+                'DEFECT_REPAIR': { label: '하자보수중', color: '#6366f1' },
+                'QR_MENU_INSTALL': { label: '최종설치완료', color: '#14b8a6' },
+                'SERVICE_TERMINATED': { label: '서비스해지', color: '#dc2626' },
+                'UNUSED_TERMINATED': { label: '미이용해지', color: '#dc2626' },
+                'PENDING': { label: '보류', color: '#f97316' }
+              };
+              
+              const status = statusConfig[store.status] || { label: getStatusLabel(store.status), color: '#6b7280' };
+              
+              return (
+                <div
+                  key={store.store_id || index}
+                  onClick={() => navigate(`/stores/${store.store_id}`)}
+                  style={{
+                    backgroundColor: 'white',
+                    borderRadius: '12px',
+                    padding: '16px',
+                    marginBottom: '12px',
+                    border: '1px solid #e5e7eb',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  className="shadow-sm hover:shadow-md"
+                >
+                  {/* Card Header */}
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'flex-start',
+                    marginBottom: '12px'
+                  }}>
+                    <div style={{ flex: 1 }}>
+                      <span style={{
+                        fontWeight: '600',
+                        fontSize: '16px',
+                        color: '#111827',
+                        display: 'block',
+                        marginBottom: '4px'
+                      }}>
+                        {store.store_name}
+                      </span>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        fontFamily: 'monospace'
+                      }}>
+                        {store.seq || store.store_id}
+                      </span>
+                    </div>
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '4px 10px',
+                      borderRadius: '9999px',
+                      fontSize: '11px',
+                      fontWeight: '600',
+                      color: 'white',
+                      backgroundColor: status.color,
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {status.label}
+                    </span>
+                  </div>
+                  
+                  {/* Card Body */}
+                  <div style={{
+                    fontSize: '13px',
+                    color: '#374151',
+                    lineHeight: '1.6'
+                  }}>
+                    {store.store_address && (
+                      <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                        <span style={{ fontSize: '14px' }}>📍</span>
+                        <span style={{ flex: 1, color: '#6b7280' }}>{store.store_address}</span>
+                      </div>
+                    )}
+                    <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>📞</span>
+                      <span>{store.store_phone || '연락처 없음'}</span>
+                    </div>
+                    <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>👤</span>
+                      <span>{managerName}</span>
+                    </div>
+                    {store.pos_system && (
+                      <div style={{ marginBottom: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '14px' }}>💳</span>
+                        <span>{POS_LABELS[store.pos_system] || store.pos_system}</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ fontSize: '14px' }}>📅</span>
+                      <span style={{ color: '#6b7280', fontSize: '12px' }}>
+                        {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '날짜 없음'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {/* Card Footer - View Detail Button */}
+                  <div style={{
+                    marginTop: '12px',
+                    paddingTop: '12px',
+                    borderTop: '1px solid #f3f4f6'
+                  }}>
+                    <button
+                      style={{
+                        width: '100%',
+                        padding: '8px',
+                        backgroundColor: '#f9fafb',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        color: '#374151',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                    >
+                      상세 보기 →
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            
+            {/* Mobile Pagination */}
+            {totalPages > 1 && (
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '8px',
+                marginTop: '20px',
+                paddingBottom: '20px'
+              }}>
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: currentPage === 1 ? '#e5e7eb' : 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: currentPage === 1 ? '#9ca3af' : '#374151',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  이전
+                </button>
+                <span style={{
+                  padding: '8px 16px',
+                  fontSize: '13px',
+                  fontWeight: '500',
+                  color: '#374151'
+                }}>
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '8px 12px',
+                    backgroundColor: currentPage === totalPages ? '#e5e7eb' : 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    fontWeight: '500',
+                    color: currentPage === totalPages ? '#9ca3af' : '#374151',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  다음
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <StoreTable
+              stores={paginatedStores}
+              loading={loading}
+              pagination={{
+                current: currentPage,
+                total: totalPages,
+                pageSize: itemsPerPage,
+                totalItems: filteredStores.length,
+                onPageChange: setCurrentPage
+              }}
+              isAdmin={userIsAdmin}
+              managers={managers}
+            />
+          </div>
           
           {paginatedStores.length === 0 && (
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>

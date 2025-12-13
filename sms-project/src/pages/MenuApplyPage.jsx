@@ -71,20 +71,17 @@ const MenuApplyPage = () => {
       </div>
 
       {/* 컨텐츠 */}
-      <div style={{
-        flex: 1,
-        padding: '20px',
-        maxWidth: '500px',
-        width: '100%',
-        margin: '0 auto'
-      }}>
+      <div 
+        className="flex-1 p-4 md:p-6 max-w-lg mx-auto w-full"
+      >
         {/* 안내 섹션 */}
         <div style={{
           backgroundColor: 'white',
           borderRadius: '16px',
-          padding: '24px',
           marginBottom: '16px'
-        }}>
+        }}
+        className="p-4 md:p-6"
+        >
           <h2 style={{
             fontSize: '18px',
             fontWeight: '600',

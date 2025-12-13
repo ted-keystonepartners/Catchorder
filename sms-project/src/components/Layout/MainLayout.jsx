@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUIStore } from '../../context/uiStore.js';
@@ -15,6 +15,12 @@ const MainLayout = ({ children }) => {
   const { notification, hideNotification } = useUIStore();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Close sidebar when route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     await logout();
@@ -71,7 +77,9 @@ const MainLayout = ({ children }) => {
       <header style={{
         backgroundColor: '#FF3D00',
         borderBottom: '1px solid #e5e7eb',
-        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        position: 'relative',
+        zIndex: 30
       }}>
         <div style={{
           display: 'flex',
@@ -81,32 +89,68 @@ const MainLayout = ({ children }) => {
           maxWidth: '1200px',
           margin: '0 auto'
         }}>
-          {/* 로고 */}
-          <div 
-            onClick={() => navigate('/dashboard')}
-            style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              cursor: 'pointer',
-              transition: 'opacity 0.2s'
-            }}
-            onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
-            onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
-          >
-            <div style={{ 
-              width: '120px', 
-              height: '40px', 
-              backgroundImage: 'url(/logo_white.svg)',
-              backgroundSize: 'contain',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'center'
-            }}></div>
+          {/* 좌측: 햄버거 메뉴 + 로고 */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            gap: '12px'
+          }}>
+            {/* 햄버거 메뉴 버튼 (모바일) */}
+            <button
+              className="md:hidden"
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              style={{
+                padding: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)'}
+            >
+              {sidebarOpen ? (
+                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              ) : (
+                <svg width="24" height="24" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              )}
+            </button>
+            
+            {/* 로고 */}
+            <div 
+              onClick={() => navigate('/dashboard')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                cursor: 'pointer',
+                transition: 'opacity 0.2s'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
+              onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
+            >
+              <div style={{ 
+                width: '120px', 
+                height: '40px', 
+                backgroundImage: 'url(/logo_white.svg)',
+                backgroundSize: 'contain',
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'center'
+              }}></div>
+            </div>
           </div>
 
           {/* 우측 메뉴 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* 메인 메뉴 - 직접 나열 */}
-            <nav style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {/* 메인 메뉴 - 데스크탑에서만 표시 */}
+            <nav className="hidden md:flex" style={{ alignItems: 'center', gap: '8px' }}>
               {menuItems
                 .filter(item => {
                   // children 중 하나라도 adminOnly가 아닌 항목이 있으면 메뉴 표시
@@ -389,6 +433,292 @@ const MainLayout = ({ children }) => {
           </div>
         </div>
       </header>
+
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="md:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <div
+        className={`md:hidden fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 transform transition-transform duration-300 ${
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
+        {/* Sidebar Header */}
+        <div style={{
+          padding: '16px',
+          borderBottom: '1px solid #e5e7eb',
+          backgroundColor: '#FF3D00',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}>
+          <span style={{
+            fontSize: '18px',
+            fontWeight: '600',
+            color: 'white'
+          }}>
+            메뉴
+          </span>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              padding: '4px',
+              backgroundColor: 'rgba(255, 255, 255, 0.2)',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            <svg width="20" height="20" fill="none" stroke="white" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Sidebar Menu Items */}
+        <div style={{ padding: '16px' }}>
+          {menuItems
+            .filter(item => {
+              if (item.children) {
+                return item.children.some(child => !child.adminOnly || user?.role === 'ADMIN');
+              }
+              if (item.adminOnly) {
+                return user?.role === 'ADMIN';
+              }
+              return true;
+            })
+            .map((item) => (
+              <div key={item.name} style={{ marginBottom: '12px' }}>
+                {item.hasDropdown ? (
+                  <>
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 12px',
+                        backgroundColor: item.children?.some(child => location.pathname === child.path) ? '#FFF5F3' : 'transparent',
+                        color: item.children?.some(child => location.pathname === child.path) ? '#FF3D00' : '#374151',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseOver={(e) => {
+                        if (!item.children?.some(child => location.pathname === child.path)) {
+                          e.currentTarget.style.backgroundColor = '#f3f4f6';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        if (!item.children?.some(child => location.pathname === child.path)) {
+                          e.currentTarget.style.backgroundColor = 'transparent';
+                        }
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {item.icon}
+                        <span>{item.name}</span>
+                      </div>
+                      <svg 
+                        width="12" 
+                        height="12" 
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                        style={{
+                          transform: openDropdown === item.name ? 'rotate(180deg)' : 'rotate(0)',
+                          transition: 'transform 0.2s'
+                        }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {openDropdown === item.name && (
+                      <div style={{ marginTop: '4px', marginLeft: '28px' }}>
+                        {item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN').map(child => (
+                          <button
+                            key={child.path}
+                            onClick={() => {
+                              navigate(child.path);
+                              setSidebarOpen(false);
+                            }}
+                            style={{
+                              width: '100%',
+                              display: 'block',
+                              padding: '8px 12px',
+                              color: location.pathname === child.path ? '#FF3D00' : '#6b7280',
+                              backgroundColor: location.pathname === child.path ? '#FFF5F3' : 'transparent',
+                              border: 'none',
+                              borderRadius: '6px',
+                              textAlign: 'left',
+                              fontSize: '13px',
+                              fontWeight: location.pathname === child.path ? '600' : '400',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => {
+                              if (location.pathname !== child.path) {
+                                e.target.style.backgroundColor = '#f9fafb';
+                              }
+                            }}
+                            onMouseOut={(e) => {
+                              if (location.pathname !== child.path) {
+                                e.target.style.backgroundColor = 'transparent';
+                              }
+                            }}
+                          >
+                            {child.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      navigate(item.path);
+                      setSidebarOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 12px',
+                      backgroundColor: location.pathname === item.path ? '#FFF5F3' : 'transparent',
+                      color: location.pathname === item.path ? '#FF3D00' : '#374151',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseOver={(e) => {
+                      if (location.pathname !== item.path) {
+                        e.currentTarget.style.backgroundColor = '#f3f4f6';
+                      }
+                    }}
+                    onMouseOut={(e) => {
+                      if (location.pathname !== item.path) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
+                    }}
+                  >
+                    {item.icon}
+                    <span>{item.name}</span>
+                  </button>
+                )}
+              </div>
+            ))}
+
+          {/* Divider */}
+          <div style={{
+            height: '1px',
+            backgroundColor: '#e5e7eb',
+            margin: '16px 0'
+          }} />
+
+          {/* User Info & Logout in Sidebar */}
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px',
+            marginBottom: '12px'
+          }}>
+            <p style={{
+              fontSize: '14px',
+              fontWeight: '600',
+              color: '#111827',
+              marginBottom: '4px'
+            }}>
+              {user?.name}
+            </p>
+            <p style={{
+              fontSize: '12px',
+              color: '#6b7280'
+            }}>
+              {user?.role === 'ADMIN' ? '관리자' : '일반 사용자'}
+            </p>
+          </div>
+
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={() => {
+                navigate('/managers');
+                setSidebarOpen(false);
+              }}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                padding: '10px 12px',
+                color: '#374151',
+                backgroundColor: 'transparent',
+                border: 'none',
+                borderRadius: '8px',
+                textAlign: 'left',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'background-color 0.2s',
+                marginBottom: '8px'
+              }}
+              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
+              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+            >
+              <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1L9 7V9H3V11H21V9ZM6 20V12H8V20H10V12H14V20H16V12H18V20H20V22H4V20H6Z"/>
+              </svg>
+              멤버 관리
+            </button>
+          )}
+
+          <button
+            onClick={() => {
+              handleLogout();
+              setSidebarOpen(false);
+            }}
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 12px',
+              color: '#dc2626',
+              backgroundColor: 'transparent',
+              border: 'none',
+              borderRadius: '8px',
+              textAlign: 'left',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#fef2f2'}
+            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          >
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M16 17v-3H9v4l-5-5 5-5v4h7z"/>
+              <path d="M20 3h-9c-1.1 0-2 .9-2 2v4h2V5h9v14h-9v-4H9v4c0 1.1.9 2 2 2h9c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+            </svg>
+            로그아웃
+          </button>
+        </div>
+      </div>
 
       {/* Main content */}
       <main style={{ padding: '24px' }}>

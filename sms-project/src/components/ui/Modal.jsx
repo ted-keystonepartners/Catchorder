@@ -77,10 +77,13 @@ const Modal = ({
   ].join(' ');
 
   const modalClasses = [
-    'relative bg-white rounded-xl shadow-2xl',
-    'w-full mx-4 max-h-[90vh] overflow-hidden',
+    'relative bg-white shadow-2xl',
+    'rounded-xl md:rounded-xl', // No rounded corners on mobile for fullscreen
+    'w-full mx-0 md:mx-4',
+    'h-full md:h-auto md:max-h-[90vh]', // Fullscreen on mobile
+    'overflow-hidden',
     'transform transition-all duration-300',
-    'animate-slideUp',
+    'md:animate-slideUp', // Animation only on desktop
     sizeClasses[size] || sizeClasses.md,
     className
   ].join(' ');

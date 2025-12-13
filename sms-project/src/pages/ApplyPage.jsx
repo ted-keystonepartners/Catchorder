@@ -277,16 +277,13 @@ const ApplyPage = () => {
     <div style={{
       minHeight: '100vh',
       background: 'linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)',
-      padding: '20px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center'
-    }}>
-      <div style={{
-        maxWidth: '500px',
-        width: '100%',
-        margin: '0 auto'
-      }}>
+    }}
+    className="p-4 md:p-6"
+    >
+      <div className="w-full max-w-lg mx-auto px-4">
         {/* 로고 및 헤더 */}
         <div style={{
           textAlign: 'center',
@@ -323,10 +320,11 @@ const ApplyPage = () => {
         <div style={{
           backgroundColor: 'white',
           borderRadius: '20px',
-          padding: '32px 24px',
           boxShadow: '0 20px 40px rgba(249, 115, 22, 0.1)',
           border: '1px solid rgba(249, 115, 22, 0.1)'
-        }}>
+        }}
+        className="p-4 md:p-6"
+        >
           <form onSubmit={handleSubmit}>
             {/* 요청유형 */}
             <div style={{ marginBottom: '24px' }}>
@@ -387,12 +385,14 @@ const ApplyPage = () => {
                 required
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  minHeight: '48px',
+                  padding: '12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   outline: 'none',
-                  transition: 'border-color 0.2s'
+                  transition: 'border-color 0.2s',
+                  WebkitAppearance: 'none'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#F97316'}
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -419,12 +419,14 @@ const ApplyPage = () => {
                 required
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  minHeight: '48px',
+                  padding: '12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   outline: 'none',
-                  transition: 'border-color 0.2s'
+                  transition: 'border-color 0.2s',
+                  WebkitAppearance: 'none'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#F97316'}
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -451,12 +453,14 @@ const ApplyPage = () => {
                 required
                 style={{
                   width: '100%',
-                  padding: '10px 12px',
+                  minHeight: '48px',
+                  padding: '12px',
                   border: '1px solid #d1d5db',
                   borderRadius: '8px',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   outline: 'none',
-                  transition: 'border-color 0.2s'
+                  transition: 'border-color 0.2s',
+                  WebkitAppearance: 'none'
                 }}
                 onFocus={(e) => e.target.style.borderColor = '#F97316'}
                 onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -482,13 +486,15 @@ const ApplyPage = () => {
                   onChange={handleChange}
                   style={{
                     width: '120px',
-                    padding: '10px 12px',
+                    minHeight: '48px',
+                    padding: '12px',
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
-                    fontSize: '14px',
+                    fontSize: '16px',
                     outline: 'none',
                     backgroundColor: 'white',
-                    transition: 'border-color 0.2s'
+                    transition: 'border-color 0.2s',
+                    WebkitAppearance: 'none'
                   }}
                   onFocus={(e) => e.target.style.borderColor = '#F97316'}
                   onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
@@ -504,11 +510,13 @@ const ApplyPage = () => {
                   required
                   style={{
                     flex: 1,
-                    padding: '10px 12px',
+                    minHeight: '48px',
+                    padding: '12px',
                     border: '1px solid #d1d5db',
                     borderRadius: '8px',
-                    fontSize: '14px',
-                    outline: 'none'
+                    fontSize: '16px',
+                    outline: 'none',
+                    WebkitAppearance: 'none'
                   }}
                   placeholder={formData.phone_type === 'MOBILE' ? '010-1234-5678' : '02-1234-5678'}
                 />
