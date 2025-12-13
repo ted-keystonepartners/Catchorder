@@ -24,3 +24,25 @@ html {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
+
+/* 모바일 select 드롭다운 스타일링 */
+@media (max-width: 768px) {
+  /* iOS 사파리에서 select 드롭다운 위치 제어 */
+  select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+  }
+  
+  /* select 옵션 드롭다운이 항상 아래로 열리도록 */
+  select:focus {
+    outline: 2px solid #FF3D00;
+    outline-offset: -1px;
+  }
+  
+  /* iOS에서 드롭다운 메뉴 스타일 */
+  select option {
+    direction: ltr;
+    text-align: left;
+  }
+}
