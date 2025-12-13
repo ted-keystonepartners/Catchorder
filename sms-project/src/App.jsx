@@ -18,6 +18,7 @@ import ConsentFormPage from './pages/ConsentFormPage.jsx';
 import ConsentResponsesPage from './pages/ConsentResponsesPage.jsx';
 import ComingSoonPage from './pages/ComingSoonPage.jsx';
 import MenuExtractPage from './pages/MenuExtractPage.jsx';
+import MenuPhotoPage from './pages/MenuPhotoPage.jsx';
 import OrderUploadPage from './pages/OrderUploadPage.jsx';
 import SchedulePage from './pages/SchedulePage.jsx';
 import ApplyPage from './pages/ApplyPage.jsx';
@@ -267,6 +268,16 @@ function App() {
           element={
             <ProtectedRoute>
               <MenuExtractPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* 메뉴 사진 변환 페이지 */}
+        <Route 
+          path="/menu-photo" 
+          element={
+            <ProtectedRoute>
+              <MenuPhotoPage />
             </ProtectedRoute>
           } 
         />

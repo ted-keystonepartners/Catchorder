@@ -249,6 +249,18 @@ const MenuExtractPage = () => {
     setExtractedData([]);
   };
 
+  // 초기화
+  const resetAll = () => {
+    images.forEach(img => URL.revokeObjectURL(img.preview));
+    setImages([]);
+    setExtractedData([]);
+    setIsExtracting(false);
+    setProgressMessage('');
+    setCurrentProgress(0);
+    setAnimatedProgress(0);
+    setError(null);
+  };
+
   // 마크다운 테이블 파싱
   const parseMarkdownTable = (markdown) => {
     const lines = markdown.trim().split('\n');
@@ -270,6 +282,9 @@ const MenuExtractPage = () => {
 
   // Claude API 호출
   const extractMenuFromImage = async (image) => {
+    console.log('API Key:', import.meta.env.VITE_ANTHROPIC_API_KEY ? 'EXISTS' : 'UNDEFINED');
+    console.log('API Key prefix:', import.meta.env.VITE_ANTHROPIC_API_KEY?.substring(0, 20));
+    
     const base64Data = await fileToBase64(image.file);
     const imageType = image.file.type;
 
@@ -520,7 +535,7 @@ const MenuExtractPage = () => {
                 color: '#111827',
                 margin: 0
               }}>
-                이미지 에이전트
+                메뉴추출 에이전트
               </h3>
             </div>
             <p style={{ 
@@ -780,34 +795,9 @@ const MenuExtractPage = () => {
                 <p style={{ fontSize: '14px', color: '#374151', marginBottom: '16px' }}>
                   이미지가 준비되었습니다
                 </p>
-                <button
-                  onClick={handleExtract}
-                  style={{
-                    padding: '12px 24px',
-                    backgroundColor: '#FF3D00',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    e.currentTarget.style.backgroundColor = '#E65100';
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = '#FF3D00';
-                  }}
-                >
-                  <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                  </svg>
-                  AI로 메뉴 추출하기
-                </button>
+                <p style={{ fontSize: '12px', color: '#6b7280' }}>
+                  버튼으로 메뉴 추출을 시작하세요
+                </p>
               </div>
             ) : isExtracting ? (
               <div>
@@ -945,6 +935,87 @@ const MenuExtractPage = () => {
             )}
           </div>
         </div>
+
+        {/* 버튼 영역 */}
+        <div style={{
+          marginTop: '24px',
+          display: 'flex',
+          gap: '8px',
+          justifyContent: 'flex-end'
+        }}>
+          <button
+            onClick={resetAll}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: 'white',
+              color: '#6b7280',
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: 'pointer',
+              transition: 'all 0.2s'
+            }}
+            onMouseOver={(e) => {
+              e.currentTarget.style.backgroundColor = '#f9fafb';
+            }}
+            onMouseOut={(e) => {
+              e.currentTarget.style.backgroundColor = 'white';
+            }}
+          >
+            초기화
+          </button>
+
+          <button
+            onClick={handleCopy}
+            disabled={extractedData.length === 0}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: extractedData.length === 0 ? '#e5e7eb' : '#10b981',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: extractedData.length === 0 ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              opacity: extractedData.length === 0 ? 0.5 : 1
+            }}
+            onMouseOver={(e) => {
+              if (extractedData.length > 0) e.currentTarget.style.backgroundColor = '#059669';
+            }}
+            onMouseOut={(e) => {
+              if (extractedData.length > 0) e.currentTarget.style.backgroundColor = '#10b981';
+            }}
+          >
+            복사하기
+          </button>
+
+          <button
+            onClick={handleExtract}
+            disabled={images.length === 0 || isExtracting}
+            style={{
+              padding: '8px 24px',
+              backgroundColor: images.length === 0 || isExtracting ? '#e5e7eb' : '#FF3D00',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '14px',
+              fontWeight: '500',
+              cursor: images.length === 0 || isExtracting ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s',
+              opacity: images.length === 0 || isExtracting ? 0.5 : 1
+            }}
+            onMouseOver={(e) => {
+              if (images.length > 0 && !isExtracting) e.currentTarget.style.backgroundColor = '#E63600';
+            }}
+            onMouseOut={(e) => {
+              if (images.length > 0 && !isExtracting) e.currentTarget.style.backgroundColor = '#FF3D00';
+            }}
+          >
+            {isExtracting ? '추출 중...' : '추출하기'}
+          </button>
+        </div>
       </div>
 
       {/* 결과 테이블 영역 */}
@@ -989,7 +1060,7 @@ const MenuExtractPage = () => {
                 onClick={handleCopy}
                 style={{
                   padding: '8px 16px',
-                  backgroundColor: '#FF3D00',
+                  backgroundColor: '#10b981',
                   border: 'none',
                   borderRadius: '6px',
                   fontSize: '13px',

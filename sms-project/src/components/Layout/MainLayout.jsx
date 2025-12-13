@@ -59,7 +59,7 @@ const MainLayout = ({ children }) => {
       ),
       children: [
         { name: '메뉴추출', path: '/menu-extract' },
-        { name: '사진제작', path: '/menu-photo' },
+        { name: '사진생성', path: '/menu-photo' },
         { name: '주문입력', path: '/order-upload', adminOnly: true }
       ]
     }
