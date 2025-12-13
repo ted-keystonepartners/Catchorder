@@ -90,8 +90,7 @@ const StoreFilterPanel = ({
       padding: '24px',
       border: '1px solid #e5e7eb',
       marginBottom: '24px',
-      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-      position: 'relative'
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)'
     }}>
       {/* 제목 영역 - 데스크탑에만 표시 */}
       <div className="hidden md:flex" style={{
@@ -333,29 +332,22 @@ const StoreFilterPanel = ({
         </div>
         
         {/* 모바일 필터 드롭다운 - 한 줄에 나란히 */}
-        <div style={{ display: 'flex', gap: '8px', position: 'relative' }}>
-          {/* 상태 필터 */}
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {/* 상태 필터 - Native select 사용 */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             style={{
               flex: 1,
-              padding: '10px',
-              paddingRight: '30px',
+              padding: '10px 12px',
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
               fontSize: '14px',
               backgroundColor: 'white',
               outline: 'none',
               cursor: 'pointer',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              appearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 8px center',
-              backgroundSize: '20px',
-              minHeight: '44px'
+              minHeight: '44px',
+              color: '#374151'
             }}
           >
             {statusOptions.map(option => (
@@ -365,28 +357,21 @@ const StoreFilterPanel = ({
             ))}
           </select>
 
-          {/* 정렬 필터 */}
+          {/* 정렬 필터 - Native select 사용 */}
           <select
             value={dateType}
             onChange={(e) => setDateType(e.target.value)}
             style={{
               flex: 1,
-              padding: '10px',
-              paddingRight: '30px',
+              padding: '10px 12px',
               border: '1px solid #e5e7eb',
               borderRadius: '8px',
               fontSize: '14px',
               backgroundColor: 'white',
               outline: 'none',
               cursor: 'pointer',
-              WebkitAppearance: 'none',
-              MozAppearance: 'none',
-              appearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3e%3cpolyline points=\'6 9 12 15 18 9\'%3e%3c/polyline%3e%3c/svg%3e")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 8px center',
-              backgroundSize: '20px',
-              minHeight: '44px'
+              minHeight: '44px',
+              color: '#374151'
             }}
           >
             {dateTypeOptions.map(option => (
