@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { AIProgressBar, useAIProgress } from '../components/common/AIProgressBar.jsx';
+import { AIProgressBar, useAIProgress } from '../components/Common/AIProgressBar.jsx';
 
 const MenuPhotoPage = () => {
   const fileInputRef = useRef(null);

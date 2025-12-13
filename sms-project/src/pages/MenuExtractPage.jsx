@@ -3,7 +3,7 @@ import { flushSync } from 'react-dom';
 import { useToast } from '../hooks/useToast.js';
 import ToastContainer from '../components/ui/Toast.jsx';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { AIProgressBar, useAIProgress } from '../components/common/AIProgressBar.jsx';
+import { AIProgressBar, useAIProgress } from '../components/Common/AIProgressBar.jsx';
 
 // SYSTEM_PROMPT 상수
 const SYSTEM_PROMPT = `You are an expert at extracting structured data from Korean restaurant menu images. Analyze the image and convert it into a precise markdown table.
