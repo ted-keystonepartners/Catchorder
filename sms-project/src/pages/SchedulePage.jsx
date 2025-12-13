@@ -3,7 +3,7 @@ import MainLayout from '../components/Layout/MainLayout.jsx';
 import DashboardCalendar from '../components/Calendar/DashboardCalendar.jsx';
 import { useAuth } from '../hooks/useAuth.js';
 import { useStores } from '../hooks/useStores.js';
-import { apiClient } from '../api/client.js';
+import { getAllSchedules } from '../api/scheduleApi.js';
 import { useToast } from '../hooks/useToast.js';
 import ToastContainer from '../components/ui/Toast.jsx';
 
@@ -17,16 +17,16 @@ const SchedulePage = () => {
   const [schedules, setSchedules] = useState([]);
   const [loadingSchedules, setLoadingSchedules] = useState(false);
 
-  // 스케줄 데이터 가져오기
+  // 스케줄 데이터 가져오기 - getAllSchedules 사용
   const fetchSchedules = async () => {
     setLoadingSchedules(true);
     try {
-      const response = await apiClient.get('/api/schedules');
-      if (response.success) {
-        setSchedules(response.data || []);
-      }
+      const currentMonthStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+      const schedulesData = await getAllSchedules(currentMonthStr);
+      setSchedules(schedulesData || []);
     } catch (error) {
       console.error('Failed to fetch schedules:', error);
+      setSchedules([]);
     } finally {
       setLoadingSchedules(false);
     }
@@ -73,6 +73,11 @@ const SchedulePage = () => {
     }
     fetchSchedules();
   }, []);
+
+  // 날짜가 변경될 때 해당 월의 일정 다시 로드
+  useEffect(() => {
+    fetchSchedules();
+  }, [selectedDate.getMonth(), selectedDate.getFullYear()]);
 
   return (
     <MainLayout>
