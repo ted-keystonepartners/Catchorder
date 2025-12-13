@@ -506,7 +506,9 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
       </main>
 
       {/* 모바일 하단 네비게이션 */}
-      <MobileBottomNav />
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
 
       {/* 클릭 시 메뉴 닫기 */}
       {showProfileMenu && (
