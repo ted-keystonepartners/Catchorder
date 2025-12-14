@@ -1240,7 +1240,9 @@ const DashboardPage = () => {
                 flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: isMobile ? 'flex-start' : 'space-between',
                 alignItems: isMobile ? 'stretch' : 'center',
-                gap: isMobile ? '8px' : '16px'
+                gap: isMobile ? '8px' : '16px',
+                width: '100%',
+                boxSizing: 'border-box'
               }}>
                 {/* 요약 텍스트 */}
                 {activitySummary && (
@@ -1250,21 +1252,25 @@ const DashboardPage = () => {
                 )}
                 
                 {/* 날짜 선택기 */}
-                <input 
-                  type="date" 
-                  value={activityDate}
-                  onChange={(e) => setActivityDate(e.target.value)}
-                  style={{ 
-                    padding: '8px 12px', 
-                    borderRadius: '8px', 
-                    border: '1px solid #e5e7eb',
-                    fontSize: '14px',
-                    width: isMobile ? '100%' : '150px',
-                    maxWidth: '100%',
-                    boxSizing: 'border-box',
-                    flexShrink: isMobile ? 0 : 1
-                  }}
-                />
+                <div style={{ 
+                  width: isMobile ? '100%' : 'auto',
+                  boxSizing: 'border-box'
+                }}>
+                  <input 
+                    type="date" 
+                    value={activityDate}
+                    onChange={(e) => setActivityDate(e.target.value)}
+                    style={{ 
+                      padding: '8px 12px', 
+                      borderRadius: '8px', 
+                      border: '1px solid #e5e7eb',
+                      fontSize: '14px',
+                      width: isMobile ? '100%' : '150px',
+                      boxSizing: 'border-box',
+                      flexShrink: isMobile ? 0 : 1
+                    }}
+                  />
+                </div>
               </div>
             </div>
             
