@@ -1088,7 +1088,7 @@ const DashboardPage = () => {
               </div>
             </div>
             {dailyUsageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={286}>
                 <LineChart data={dailyUsageData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis 
