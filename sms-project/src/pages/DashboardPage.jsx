@@ -1235,7 +1235,9 @@ const DashboardPage = () => {
                 flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: isMobile ? 'flex-start' : 'space-between',
                 alignItems: isMobile ? 'stretch' : 'center',
-                gap: isMobile ? '8px' : '16px'
+                gap: isMobile ? '8px' : '16px',
+                overflow: 'hidden',
+                width: '100%'
               }}>
                 {/* 요약 텍스트 */}
                 {activitySummary && (
@@ -1255,7 +1257,10 @@ const DashboardPage = () => {
                     border: '1px solid #e5e7eb',
                     fontSize: '14px',
                     width: isMobile ? '100%' : 'auto',
-                    maxWidth: isMobile ? '100%' : '200px'
+                    maxWidth: isMobile ? '100%' : '200px',
+                    boxSizing: 'border-box',
+                    minWidth: 0,
+                    flexShrink: 1
                   }}
                 />
               </div>
