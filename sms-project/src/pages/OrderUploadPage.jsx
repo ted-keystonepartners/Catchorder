@@ -216,6 +216,10 @@ const OrderUploadPage = () => {
 
   // Claude API로 매핑 요청
   const requestMapping = async (storeNames, dbStoresList) => {
+    // API 키 확인
+    if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
+      throw new Error('Anthropic API 키가 설정되지 않았습니다.');
+    }
     
     const systemPrompt = `You are a store name matching expert. Match order data store names to DB store names.
 
@@ -272,6 +276,9 @@ match_type criteria:
 
       if (!response.ok) {
         const errorData = await response.json();
+        if (errorData.error?.type === 'authentication_error') {
+          throw new Error('Anthropic API 키가 유효하지 않습니다.');
+        }
         throw new Error(errorData.error?.message || '매핑 요청에 실패했습니다.');
       }
 
