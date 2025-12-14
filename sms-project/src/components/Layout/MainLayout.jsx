@@ -98,7 +98,10 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
         position: 'sticky',
         top: 0,
-        zIndex: 100
+        left: 0,
+        right: 0,
+        zIndex: 100,
+        paddingTop: 'env(safe-area-inset-top)'
       }}>
         <div style={{
           display: 'flex',
