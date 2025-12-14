@@ -1240,9 +1240,7 @@ const DashboardPage = () => {
                 flexDirection: isMobile ? 'column' : 'row',
                 justifyContent: isMobile ? 'flex-start' : 'space-between',
                 alignItems: isMobile ? 'stretch' : 'center',
-                gap: isMobile ? '8px' : '16px',
-                overflow: 'hidden',
-                width: '100%'
+                gap: isMobile ? '8px' : '16px'
               }}>
                 {/* 요약 텍스트 */}
                 {activitySummary && (
@@ -1257,15 +1255,14 @@ const DashboardPage = () => {
                   value={activityDate}
                   onChange={(e) => setActivityDate(e.target.value)}
                   style={{ 
-                    padding: isMobile ? '8px 12px' : '8px', 
+                    padding: '8px 12px', 
                     borderRadius: '8px', 
                     border: '1px solid #e5e7eb',
                     fontSize: '14px',
-                    width: isMobile ? '100%' : 'auto',
-                    maxWidth: isMobile ? '100%' : '200px',
+                    width: isMobile ? '100%' : '150px',
+                    maxWidth: '100%',
                     boxSizing: 'border-box',
-                    minWidth: 0,
-                    flexShrink: 1
+                    flexShrink: isMobile ? 0 : 1
                   }}
                 />
               </div>
