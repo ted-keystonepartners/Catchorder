@@ -259,7 +259,7 @@ const MenuExtractPage = () => {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-20250514',
+        model: 'claude-sonnet-4-20250514',
         temperature: 0,
         max_tokens: 4096,
         messages: [{
