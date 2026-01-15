@@ -4,6 +4,9 @@ import ToastContainer from '../components/ui/Toast.jsx';
 import MainLayout from '../components/Layout/MainLayout.jsx';
 import { apiClient } from '../api/client.js';
 
+// 매핑 캐시 API URL
+const MAPPING_API_URL = 'https://43xztvsertfamqvpl3zxh5ezka0wfvae.lambda-url.ap-northeast-2.on.aws/';
+
 const OrderUploadPage = () => {
   const { success, error: showError, toasts, removeToast } = useToast();
   const fileInputRef = useRef(null);
@@ -110,14 +113,14 @@ const OrderUploadPage = () => {
       const data = parseCSV(text);
       setProcessingProgress(30);
       
-      // Step 3: 결제완료 필터링
-      setProcessingMessage('✔️ 결제완료 주문을 필터링하고 있습니다...');
+      // Step 3: 결제완료/결제전 필터링
+      setProcessingMessage('✔️ 주문을 필터링하고 있습니다...');
       await new Promise(resolve => setTimeout(resolve, 500));
-      const filtered = data.filter(row => row['결제상태'] === '결제완료');
+      const filtered = data.filter(row => row['결제상태'] === '결제완료' || row['결제상태'] === '결제전');
       setProcessingProgress(40);
       
       if (filtered.length === 0) {
-        showError('결제완료 상태의 주문이 없습니다.');
+        showError('결제완료 또는 결제전 상태의 주문이 없습니다.');
         clearInterval(progressInterval);
         setIsProcessing(false);
         setProcessingProgress(0);
@@ -214,20 +217,99 @@ const OrderUploadPage = () => {
     }
   };
 
-  // Claude API로 매핑 요청
-  const requestMapping = async (storeNames, dbStoresList) => {
-    // API 키 확인
-    if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
-      throw new Error('Anthropic API 키가 설정되지 않았습니다.');
+  // 로컬 캐시 키
+  const LOCAL_CACHE_KEY = 'store-name-mappings-cache';
+
+  // 로컬 캐시에서 매핑 조회
+  const getLocalCache = () => {
+    try {
+      const cached = localStorage.getItem(LOCAL_CACHE_KEY);
+      return cached ? JSON.parse(cached) : {};
+    } catch {
+      return {};
     }
-    
-    const systemPrompt = `You are a store name matching expert. Match order data store names to DB store names.
+  };
+
+  // 로컬 캐시에 매핑 저장
+  const setLocalCache = (mappings) => {
+    try {
+      const existing = getLocalCache();
+      const updated = { ...existing, ...mappings };
+      localStorage.setItem(LOCAL_CACHE_KEY, JSON.stringify(updated));
+    } catch (err) {
+      console.error('로컬 캐시 저장 실패:', err);
+    }
+  };
+
+  // 캐시된 매핑 조회 (로컬 우선, 서버 폴백)
+  const fetchCachedMappings = async (storeNames) => {
+    // 1. 로컬 캐시 먼저 확인
+    const localCache = getLocalCache();
+    const result = {};
+    const notInLocal = [];
+
+    for (const name of storeNames) {
+      if (localCache[name]) {
+        result[name] = localCache[name];
+      } else {
+        notInLocal.push(name);
+      }
+    }
+
+    // 2. 로컬에 없는 것만 서버에서 조회 시도
+    if (notInLocal.length > 0) {
+      try {
+        const response = await fetch(`${MAPPING_API_URL}?raw_names=${encodeURIComponent(notInLocal.join(','))}`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.data) {
+            Object.assign(result, data.data);
+            // 서버에서 받은 것 로컬 캐시에 저장
+            setLocalCache(data.data);
+          }
+        }
+      } catch (err) {
+        console.log('서버 캐시 조회 실패, 로컬 캐시만 사용:', err.message);
+      }
+    }
+
+    return result;
+  };
+
+  // 매핑 결과 캐시 저장 (로컬 + 서버)
+  const saveMappingsToCache = async (mappingsToSave) => {
+    // 로컬 캐시 저장 (항상 성공)
+    const localFormat = {};
+    for (const m of mappingsToSave) {
+      localFormat[m.raw_name] = {
+        store_id: m.store_id,
+        store_name: m.store_name,
+        seq: m.seq
+      };
+    }
+    setLocalCache(localFormat);
+
+    // 서버 저장 시도 (실패해도 OK)
+    try {
+      await fetch(MAPPING_API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mappings: mappingsToSave })
+      });
+    } catch (err) {
+      console.log('서버 캐시 저장 실패 (로컬 캐시는 저장됨):', err.message);
+    }
+  };
+
+  // AI로 배치 매핑 요청 (30개씩)
+  const requestBatchMapping = async (storeNames, dbStoresList) => {
+    const systemPrompt = (names) => `You are a store name matching expert. Match order data store names to DB store names.
 
 ## DB Store List:
 ${dbStoresList.map(s => `{seq: "${s.seq}", store_name: "${s.store_name}"}`).join('\n')}
 
 ## Order Data Store Names:
-${JSON.stringify(storeNames)}
+${JSON.stringify(names)}
 
 ## Matching Rules (IMPORTANT!)
 1. IGNORE spaces: "아베크 청담" = "아베크청담"
@@ -255,48 +337,137 @@ match_type criteria:
 - similar: Same store but different name spelling
 - none: No matching store exists`;
 
+    const BATCH_SIZE = 30;
+    const results = [];
+
+    for (let i = 0; i < storeNames.length; i += BATCH_SIZE) {
+      const batch = storeNames.slice(i, i + BATCH_SIZE);
+      setProcessingMessage(`🤖 AI 매핑 중... (${Math.min(i + BATCH_SIZE, storeNames.length)}/${storeNames.length})`);
+
+      try {
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 4096,
+            messages: [{ role: 'user', content: systemPrompt(batch) }]
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error?.message || '매핑 요청 실패');
+        }
+
+        const data = await response.json();
+        let responseText = data.content[0].text;
+        responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const mappingResult = JSON.parse(responseText);
+        results.push(...mappingResult.mappings);
+      } catch (err) {
+        console.error(`배치 ${i}~${i + BATCH_SIZE} 매핑 실패:`, err);
+        // 실패한 배치는 none으로 처리
+        batch.forEach(name => {
+          results.push({ csv_name: name, seq: null, db_name: null, match_type: 'none' });
+        });
+      }
+    }
+
+    return results;
+  };
+
+  // Claude API로 매핑 요청 (캐시 + 배치 처리)
+  const requestMapping = async (storeNames, dbStoresList) => {
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': import.meta.env.VITE_ANTHROPIC_API_KEY,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 4096,
-          messages: [{
-            role: 'user',
-            content: systemPrompt
-          }]
-        })
+      // 1. 캐시된 매핑 조회
+      setProcessingMessage('🔍 저장된 매핑 정보를 확인하는 중...');
+      const cachedMappings = await fetchCachedMappings(storeNames);
+      const cachedCount = Object.keys(cachedMappings).length;
+
+      // 2. 캐시에 없는 매장명 필터링
+      const uncachedNames = storeNames.filter(name => !cachedMappings[name]);
+
+      // 3. 결과 배열 초기화 (캐시된 것들로)
+      const allMappings = storeNames.map(name => {
+        if (cachedMappings[name]) {
+          return {
+            csv_name: name,
+            seq: cachedMappings[name].seq,
+            db_name: cachedMappings[name].store_name,
+            match_type: 'cached',
+            selectedSeq: cachedMappings[name].seq
+          };
+        }
+        return null;
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        if (errorData.error?.type === 'authentication_error') {
-          throw new Error('Anthropic API 키가 유효하지 않습니다.');
+      // 4. 캐시되지 않은 매장명이 있으면 AI 매핑
+      if (uncachedNames.length > 0) {
+        // API 키 확인
+        if (!import.meta.env.VITE_ANTHROPIC_API_KEY) {
+          throw new Error('Anthropic API 키가 설정되지 않았습니다.');
         }
-        throw new Error(errorData.error?.message || '매핑 요청에 실패했습니다.');
+
+        setProcessingMessage(`🤖 ${uncachedNames.length}개 매장 AI 매핑 시작...`);
+        const aiMappings = await requestBatchMapping(uncachedNames, dbStoresList);
+
+        // AI 결과를 allMappings에 반영
+        aiMappings.forEach(aiResult => {
+          const index = storeNames.indexOf(aiResult.csv_name);
+          if (index !== -1) {
+            allMappings[index] = {
+              ...aiResult,
+              selectedSeq: aiResult.seq
+            };
+          }
+        });
+
+        // 5. 새로운 매핑 결과를 캐시에 저장
+        setProcessingMessage('💾 매핑 결과 저장 중...');
+        const newMappingsToSave = aiMappings
+          .filter(m => m.seq) // seq가 있는 것만 저장
+          .map(m => ({
+            raw_name: m.csv_name,
+            store_id: m.seq,
+            store_name: m.db_name,
+            seq: m.seq,
+            confidence: m.match_type
+          }));
+
+        if (newMappingsToSave.length > 0) {
+          await saveMappingsToCache(newMappingsToSave);
+        }
       }
 
-      const data = await response.json();
-      let responseText = data.content[0].text;
-      // 마크다운 코드블록 제거
-      responseText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      const mappingResult = JSON.parse(responseText);
-      
-      // 매핑 결과 저장
-      setMappings(mappingResult.mappings.map(m => ({
-        ...m,
-        selectedSeq: m.seq // 초기값 설정
-      })));
+      // 6. 최종 결과 설정
+      const finalMappings = allMappings.map((m, idx) => {
+        if (m) return m;
+        // null인 경우 (캐시도 없고 AI도 실패한 경우)
+        return {
+          csv_name: storeNames[idx],
+          seq: null,
+          db_name: null,
+          match_type: 'none',
+          selectedSeq: null
+        };
+      });
+
+      setMappings(finalMappings);
+
+      // 통계 로그
+      const aiMapped = finalMappings.filter(m => m.match_type !== 'cached' && m.match_type !== 'none').length;
+      console.log(`매핑 완료: 캐시 ${cachedCount}개, AI ${aiMapped}개, 실패 ${finalMappings.filter(m => m.match_type === 'none').length}개`);
+
     } catch (err) {
       console.error('매핑 실패:', err);
       showError(`매핑 실패: ${err.message}`);
-      
+
       // 실패 시 기본 매핑 (모두 null)
       setMappings(storeNames.map(name => ({
         csv_name: name,
@@ -458,12 +629,13 @@ match_type criteria:
 
   // 매핑 통계
   const getMappingStats = () => {
+    const cached = mappings.filter(m => m.match_type === 'cached').length;
     const exact = mappings.filter(m => m.match_type === 'exact').length;
     const similar = mappings.filter(m => m.match_type === 'similar').length;
     const manual = mappings.filter(m => m.match_type === 'manual').length;
     const none = mappings.filter(m => !m.selectedSeq || m.selectedSeq === 'none').length;
-    
-    return { exact, similar, manual, none };
+
+    return { cached, exact, similar, manual, none };
   };
 
   // 샘플 CSV 다운로드
@@ -860,14 +1032,32 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
               }}>
                 매장 매핑 검토
               </h3>
-              <div style={{ display: 'flex', gap: '8px', fontSize: '12px' }}>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '12px', flexWrap: 'wrap' }}>
                 {(() => {
                   const stats = getMappingStats();
                   return (
                     <>
-                      <span style={{ 
-                        padding: '6px 10px', 
-                        backgroundColor: '#fff5f3', 
+                      {stats.cached > 0 && (
+                        <span style={{
+                          padding: '6px 10px',
+                          backgroundColor: '#f0fdf4',
+                          color: '#166534',
+                          border: '1px solid #86efac',
+                          borderRadius: '6px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          fontWeight: '500'
+                        }}>
+                          <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                          </svg>
+                          캐시: {stats.cached}
+                        </span>
+                      )}
+                      <span style={{
+                        padding: '6px 10px',
+                        backgroundColor: '#fff5f3',
                         color: '#7c2d12',
                         border: '1px solid #ffccb8',
                         borderRadius: '6px',
@@ -881,9 +1071,9 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                         </svg>
                         일치: {stats.exact}
                       </span>
-                      <span style={{ 
-                        padding: '6px 10px', 
-                        backgroundColor: '#fff5f3', 
+                      <span style={{
+                        padding: '6px 10px',
+                        backgroundColor: '#fff5f3',
                         color: '#7c2d12',
                         border: '1px solid #ffccb8',
                         borderRadius: '6px',
@@ -897,9 +1087,9 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                         </svg>
                         유사: {stats.similar}
                       </span>
-                      <span style={{ 
-                        padding: '6px 10px', 
-                        backgroundColor: '#fff5f3', 
+                      <span style={{
+                        padding: '6px 10px',
+                        backgroundColor: '#fff5f3',
                         color: '#7c2d12',
                         border: '1px solid #ffccb8',
                         borderRadius: '6px',
@@ -913,9 +1103,9 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                         </svg>
                         수정: {stats.manual}
                       </span>
-                      <span style={{ 
-                        padding: '6px 10px', 
-                        backgroundColor: '#fef2f2', 
+                      <span style={{
+                        padding: '6px 10px',
+                        backgroundColor: '#fef2f2',
                         color: '#991b1b',
                         border: '1px solid #fecaca',
                         borderRadius: '6px',
@@ -1027,6 +1217,13 @@ T-20251205012353110868,올리브영 신논현점,최수진,2025-12-05 06:22:53,�
                         borderBottom: '1px solid #f3f4f6',
                         textAlign: 'center'
                       }}>
+                        {mapping.match_type === 'cached' && (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="16" height="16" fill="#22c55e" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
                         {mapping.match_type === 'exact' && (
                           <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                             <svg width="16" height="16" fill="#FF3D00" viewBox="0 0 20 20">

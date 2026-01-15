@@ -1,9 +1,9 @@
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
+import { LineChart, Line, BarChart, Bar, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
 // 상태 라벨 매핑
@@ -24,10 +24,17 @@ const STATUS_LABELS = {
   ADOPTION_CONFIRMED: "에이전트설치예정" // 레거시 상태값
 };
 
+// 담당자별 색상 (주황색 계열)
+const MANAGER_COLORS = ["#FF6B00", "#FF8C42", "#FFA668", "#FFC093", "#FFDCC1"];
+
+// 관리자 이메일 (필터링용)
+const ADMIN_EMAIL = 'admin@catchtable.co.kr';
+
 const DashboardPage = () => {
   const navigate = useNavigate();
   const { logout, user, isAdmin } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [statsData, setStatsData] = useState(null);
   const [overallStats, setOverallStats] = useState(null);
   const [ownerStats, setOwnerStats] = useState([]);
@@ -42,13 +49,27 @@ const DashboardPage = () => {
   const [activityReports, setActivityReports] = useState([]);
   const [activitySummary, setActivitySummary] = useState(null);
   const [usageDateRange, setUsageDateRange] = useState({
-    start: '2025-12-06',
+    start: (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]; })(),
+    end: new Date().toISOString().split('T')[0]
+  });
+  // 매장 이용현황 날짜 범위 (별도) - 기본 최근 1주일
+  const [storeUsageDateRange, setStoreUsageDateRange] = useState({
+    start: (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0]; })(),
     end: new Date().toISOString().split('T')[0]
   });
   
   // 일별 설치 데이터
   const [dailyInstalls, setDailyInstalls] = useState([]);
   const [installManagers, setInstallManagers] = useState([]);
+
+  // 히트맵 데이터
+  const [heatmapData, setHeatmapData] = useState(null);
+  const [heatmapLoading, setHeatmapLoading] = useState(false);
+  const [heatmapDateRange, setHeatmapDateRange] = useState({
+    start: (() => { const d = new Date(); d.setDate(d.getDate() - 14); return d.toISOString().split('T')[0]; })(),
+    end: new Date().toISOString().split('T')[0]
+  });
+  const [heatmapOwnerFilter, setHeatmapOwnerFilter] = useState('all');
   
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
@@ -73,7 +94,7 @@ const DashboardPage = () => {
       setIsTyping(true);
       const text = '무엇을 도와드릴까요?';
       let currentIndex = 0;
-      
+
       const typingInterval = setInterval(() => {
         if (currentIndex <= text.length) {
           setTypingText(text.slice(0, currentIndex));
@@ -83,70 +104,88 @@ const DashboardPage = () => {
           setIsTyping(false);
         }
       }, 50);
-      
+
       return () => clearInterval(typingInterval);
     }
-  }, [chatOpen, chatMessages.length]);
+  }, [chatOpen, chatMessages.length, isTyping]);
 
   // 실시간 현황 통계 가져오기
-  const fetchTodayStats = async () => {
+  const fetchTodayStats = useCallback(async () => {
     try {
       setLoading(true);
       const response = await apiClient.get('/api/dashboard');
-      
+
       if (response.success && response.data) {
         // overall stats 설정
         setOverallStats(response.data.overall);
-        
+
         // owner stats 설정 (이미 owner_name 포함됨)
         setOwnerStats(response.data.owners || []);
       }
-    } catch (error) {
-      console.error('대시보드 데이터 조회 실패:', error);
+    } catch (err) {
+      console.error('대시보드 데이터 조회 실패:', err);
+      setError('대시보드 데이터를 불러오는데 실패했습니다.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // 매장 이용현황 (날짜 필터) 가져오기
+  const fetchStoreUsageByDate = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get(`/api/dashboard?start_date=${storeUsageDateRange.start}&end_date=${storeUsageDateRange.end}`);
+
+      if (response.success && response.data) {
+        setOverallStats(response.data.overall);
+        setOwnerStats(response.data.owners || []);
+      }
+    } catch (err) {
+      console.error('매장 이용현황 조회 실패:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [storeUsageDateRange.start, storeUsageDateRange.end]);
 
   // 담당자 목록 가져오기
-  const fetchManagers = async () => {
+  const fetchManagers = useCallback(async () => {
     try {
       const response = await apiClient.get('/api/managers');
-      
+
       if (response.success) {
         const map = {};
         let managersData = [];
-        
+
         if (response.data?.managers) {
           managersData = response.data.managers;
         } else if (Array.isArray(response.data)) {
           managersData = response.data;
         }
-        
-        
+
         managersData.forEach(manager => {
           const key = manager.userId || manager.email;
           if (key && manager.name) {
             map[key] = manager.name;
           }
         });
-        
+
         setManagersMap(map);
       }
-    } catch (error) {
-      console.error('fetchManagers 에러:', error);
+    } catch (err) {
+      console.error('담당자 목록 조회 실패:', err);
+      // 담당자 목록은 필수가 아니므로 에러 표시 생략
     }
-  };
+  }, []);
 
   // 영업로그 가져오기 (청크 단위 병렬 처리)
-  const fetchSalesLogsForStores = async (stores) => {
+  const fetchSalesLogsForStores = useCallback(async (stores) => {
     const CHUNK_SIZE = 5;
     const logs = {};
-    
+
     // stores를 CHUNK_SIZE 크기의 청크로 나누기
     for (let i = 0; i < stores.length; i += CHUNK_SIZE) {
       const chunk = stores.slice(i, i + CHUNK_SIZE);
-      
+
       // 청크 내 모든 store의 로그를 병렬로 가져오기
       const chunkPromises = chunk.map(async (store) => {
         try {
@@ -159,68 +198,69 @@ const DashboardPage = () => {
               created_at: latestLog.created_at
             };
           }
-        } catch (error) {
-          // console.error 제거 (이미 제거됨)
+        } catch (err) {
+          // 개별 매장 로그 조회 실패는 무시 (다른 매장은 계속 처리)
         }
       });
-      
+
       await Promise.all(chunkPromises);
     }
-    
+
     setSalesLogs(logs);
-  };
+  }, []);
 
   // 일별 이용 현황 데이터 가져오기
-  const fetchDailyUsage = async () => {
+  const fetchDailyUsage = useCallback(async () => {
     try {
       const response = await apiClient.get(`/api/stats/daily-usage?start_date=${usageDateRange.start}&end_date=${usageDateRange.end}`);
-      
+
       if (response.success && response.data?.daily_usage) {
-        // 데이터가 있는 날짜만 필터링 (total_installed > 0)
-        const filteredData = response.data.daily_usage.filter(
-          item => (item.total_installed || 0) > 0
-        );
+        // 데이터가 있는 날짜만 필터링 (active > 0 또는 cumulative_installed > 0 또는 cumulative_churned > 0)
+        const filteredData = response.data.daily_usage
+          .filter(item => (item.active || 0) > 0 || (item.cumulative_installed || 0) > 0 || (item.cumulative_churned || 0) > 0)
+          .map(item => ({
+            ...item,
+            // 순수 유지 = 누적설치 - 누적해지
+            net_installed: Math.max((item.cumulative_installed || 0) - (item.cumulative_churned || 0), 0)
+          }));
         setDailyUsageData(filteredData);
       }
-    } catch (error) {
-      console.error('일별 이용 현황 가져오기 실패:', error);
+    } catch (err) {
+      console.error('일별 이용 현황 조회 실패:', err);
     }
-  };
+  }, [usageDateRange.start, usageDateRange.end]);
 
   // 일별 설치 현황 가져오기
-  const fetchDailyInstalls = async () => {
+  const fetchDailyInstalls = useCallback(async () => {
     try {
       const response = await apiClient.get('/api/stats/daily-installs?days=14');
-      
-      
+
       if (response.success && response.data && Array.isArray(response.data)) {
-        // 12/8 이후 데이터만 필터링
-        const filteredData = response.data.filter(item => item.date >= '12-08');
-        
+        // 12월 7일(대량등록일) 제외
+        const filteredData = response.data.filter(item => item.date !== '12-07');
+
         setDailyInstalls(filteredData);
-        
+
         // managers 추출 (date 제외, admin 제외)
         if (filteredData.length > 0) {
           const managers = Object.keys(filteredData[0])
             .filter(key => key !== 'date')
-            .filter(key => key !== 'admin@catchtable.co.kr');
-          
+            .filter(key => key !== ADMIN_EMAIL);
+
           setInstallManagers(managers);
         }
-      } else {
-        console.error('❌ API 응답 실패:', response);
       }
-    } catch (error) {
-      console.error('❌ 일별 설치 현황 가져오기 실패:', error);
+    } catch (err) {
+      console.error('일별 설치 현황 로드 실패:', err);
     }
-  };
+  }, []);
 
   // 기간별 데이터 가져오기
-  const fetchPeriodStats = async () => {
+  const fetchPeriodStats = useCallback(async () => {
     try {
       const endDate = new Date();
       const startDate = new Date();
-      
+
       if (selectedPeriod === '7d') {
         startDate.setDate(startDate.getDate() - 7);
       } else if (selectedPeriod === '30d') {
@@ -228,12 +268,12 @@ const DashboardPage = () => {
       } else if (selectedPeriod === '90d') {
         startDate.setDate(startDate.getDate() - 90);
       }
-      
+
       const startStr = startDate.toISOString().split('T')[0];
       const endStr = endDate.toISOString().split('T')[0];
-      
+
       const response = await apiClient.get(`/api/stats?start_date=${startStr}&end_date=${endStr}`);
-      
+
       if (response.success && response.data) {
         // 날짜별로 그룹화
         const groupedData = response.data.reduce((acc, item) => {
@@ -253,23 +293,41 @@ const DashboardPage = () => {
           }
           return acc;
         }, {});
-        
-        const chartData = Object.values(groupedData).sort((a, b) => 
+
+        const chartData = Object.values(groupedData).sort((a, b) =>
           new Date(a.date) - new Date(b.date)
         );
-        
+
         setPeriodData(chartData);
       }
-    } catch (error) {
-      console.error('기간별 통계 조회 실패:', error);
+    } catch (err) {
+      console.error('기간별 통계 조회 실패:', err);
       setPeriodData([]);
     }
-  };
+  }, [selectedPeriod]);
+
+  // 히트맵 데이터 가져오기
+  const fetchHeatmap = useCallback(async () => {
+    try {
+      setHeatmapLoading(true);
+      const response = await apiClient.get(
+        `/api/dashboard?view=heatmap&start_date=${heatmapDateRange.start}&end_date=${heatmapDateRange.end}`
+      );
+
+      if (response.success && response.data) {
+        setHeatmapData(response.data);
+      }
+    } catch (err) {
+      console.error('히트맵 데이터 조회 실패:', err);
+    } finally {
+      setHeatmapLoading(false);
+    }
+  }, [heatmapDateRange.start, heatmapDateRange.end]);
 
   // AI 채팅 전송
-  const sendChatMessage = async (message) => {
+  const sendChatMessage = useCallback(async (message) => {
     if (!message.trim()) return;
-    
+
     // 사용자 메시지 추가
     setChatMessages(prev => [...prev, { role: 'user', content: message }]);
     setChatInput('');
@@ -284,39 +342,61 @@ const DashboardPage = () => {
           content: response.data.answer || '죄송합니다. 응답을 생성할 수 없습니다.' 
         }]);
       }
-    } catch (error) {
-      console.error('AI 채팅 오류:', error);
-      setChatMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: '오류가 발생했습니다. 다시 시도해주세요.' 
+    } catch (err) {
+      console.error('AI 채팅 오류:', err);
+      setChatMessages(prev => [...prev, {
+        role: 'assistant',
+        content: '오류가 발생했습니다. 다시 시도해주세요.'
       }]);
     } finally {
       setChatLoading(false);
     }
-  };
+  }, []);
 
-  // 초기 데이터 로드 - 담당자 목록 먼저 가져온 후 통계 로드
+  // 초기 데이터 로드 - 담당자 목록 먼저 가져온 후 나머지 병렬 로드
   useEffect(() => {
     const loadData = async () => {
-      await fetchManagers();  // 담당자 목록 먼저 로드
-      await fetchTodayStats(); // 그 다음 통계 로드
-      await fetchDailyUsage();  // 일별 이용 현황 로드
-      await fetchDailyInstalls(); // 일별 설치 현황 로드
+      // 담당자 목록 먼저 로드 (이름 매핑에 필요)
+      await fetchManagers();
+
+      // 나머지 API 호출은 병렬로 실행
+      // fetchStoreUsageByDate는 별도 useEffect에서 호출됨
+      await Promise.all([
+        fetchDailyUsage(),
+        fetchDailyInstalls()
+      ]);
     };
     loadData();
-  }, []);
+  }, [fetchManagers, fetchDailyUsage, fetchDailyInstalls]);
 
   // 기간별 데이터 로드
   useEffect(() => {
     if (overallStats) {
       fetchPeriodStats();
     }
-  }, [selectedPeriod, overallStats]);
+  }, [selectedPeriod, overallStats, fetchPeriodStats]);
 
   // 날짜 범위 변경 시 일별 이용 현황 재로드
   useEffect(() => {
     fetchDailyUsage();
-  }, [usageDateRange]);
+  }, [fetchDailyUsage]);
+
+  // 매장 이용현황 날짜 변경 시 재로드
+  useEffect(() => {
+    fetchStoreUsageByDate();
+  }, [fetchStoreUsageByDate]);
+
+  // 히트맵 데이터 로드
+  useEffect(() => {
+    fetchHeatmap();
+  }, [fetchHeatmap]);
+
+  // 히트맵 필터링된 매장 목록
+  const filteredHeatmapStores = useMemo(() => {
+    if (!heatmapData?.stores) return [];
+    if (heatmapOwnerFilter === 'all') return heatmapData.stores;
+    return heatmapData.stores.filter(store => store.owner_id === heatmapOwnerFilter);
+  }, [heatmapData?.stores, heatmapOwnerFilter]);
 
   // 날짜 변경 시 활동 보고서 재로드
   useEffect(() => {
@@ -327,8 +407,8 @@ const DashboardPage = () => {
           setActivityReports(response.data.reports || []);
           setActivitySummary(response.data.summary || null);
         }
-      } catch (error) {
-        console.error('업무 현황 조회 실패:', error);
+      } catch (err) {
+        console.error('업무 현황 조회 실패:', err);
         setActivityReports([]);
         setActivitySummary(null);
       }
@@ -394,7 +474,7 @@ const DashboardPage = () => {
     ];
     
     // admin 제외한 담당자들
-    const filteredOwners = ownerStats.filter(o => o.owner_id !== 'admin@catchtable.co.kr');
+    const filteredOwners = ownerStats.filter(o => o.owner_id !== ADMIN_EMAIL);
     
     // 각 상태별로 담당자별 데이터 구성
     const data = statusOrder.map(status => {
@@ -418,7 +498,7 @@ const DashboardPage = () => {
     if (!ownerStats || ownerStats.length === 0) return [];
     
     return ownerStats
-      .filter(o => o.owner_id !== 'admin@catchtable.co.kr')
+      .filter(o => o.owner_id !== ADMIN_EMAIL)
       .map(o => o.owner_id);
   }, [ownerStats]);
 
@@ -433,6 +513,22 @@ const DashboardPage = () => {
     ];
   }, [overallStats]);
 
+  // 매장 이용 현황 - 정렬된 매장 리스트 (중복 계산 방지)
+  const sortedStoreList = useMemo(() => {
+    if (!overallStats?.install_detail || !selectedInstallCategory) return [];
+
+    let storeList = [];
+    if (selectedInstallCategory === 'active') {
+      const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
+      const notCompleted = (overallStats.install_detail.active_not_completed || []).map(s => ({...s, installType: '설치중'}));
+      storeList = [...completed, ...notCompleted];
+    } else {
+      storeList = overallStats.install_detail[selectedInstallCategory] || [];
+    }
+
+    // 주문고객수 기준 내림차순 정렬
+    return [...storeList].sort((a, b) => (b.customer_count || 0) - (a.customer_count || 0));
+  }, [overallStats, selectedInstallCategory]);
 
   const COLORS = ['#FF3D00', '#FF6B00', '#FFA500', '#FFD700', '#32CD32', '#4169E1', '#9370DB', '#DC143C'];
 
@@ -467,6 +563,35 @@ const DashboardPage = () => {
   return (
     <MainLayout>
       <div style={{ position: 'relative' }}>
+        {/* 에러 메시지 표시 */}
+        {error && (
+          <div style={{
+            backgroundColor: '#FEF2F2',
+            border: '1px solid #FECACA',
+            borderRadius: '8px',
+            padding: '12px 16px',
+            marginBottom: '16px',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span style={{ color: '#DC2626', fontSize: '14px' }}>{error}</span>
+            <button
+              onClick={() => setError(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#DC2626',
+                cursor: 'pointer',
+                fontSize: '18px',
+                padding: '0 4px'
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
         {/* 메인 대시보드 영역 - 전체 너비 사용 */}
         <div>
           {/* KPI 카드 */}
@@ -614,13 +739,7 @@ const DashboardPage = () => {
                   gap: '8px'
                 }}>
                   {installManagers.map((manager, index) => {
-                    const MANAGER_COLORS = [
-                      '#FF6B00', // 주황
-                      '#FF8C42', // 연주황
-                      '#FFA668', // 더 연한 주황
-                      '#FFC093', // 아주 연한 주황
-                      '#FFDCC1'  // 가장 연한 주황
-                    ];
+                    
                     return (
                       <span 
                         key={manager}
@@ -662,13 +781,7 @@ const DashboardPage = () => {
                     {/* Legend 제거 - 위에서 직접 표시 */}
                     {/* 담당자별 막대 생성 - 주황색 계열로 통일 */}
                     {installManagers.map((manager, index) => {
-                      const MANAGER_COLORS = [
-                        '#FF6B00', // 주황
-                        '#FF8C42', // 연주황
-                        '#FFA668', // 더 연한 주황
-                        '#FFC093', // 아주 연한 주황
-                        '#FFDCC1'  // 가장 연한 주황
-                      ];
+                      
                       
                       return (
                         <Bar 
@@ -716,7 +829,7 @@ const DashboardPage = () => {
                   gap: '8px'
                 }}>
                 {progressManagers.map((manager, idx) => {
-                  const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
+                  
                   return (
                     <span key={manager} style={{
                       backgroundColor: MANAGER_COLORS[idx % MANAGER_COLORS.length],
@@ -739,7 +852,7 @@ const DashboardPage = () => {
                   <YAxis dataKey="label" type="category" width={isMobile ? 0 : 100} tick={isMobile ? false : { fontSize: 10 }} />
                   <Tooltip />
                   {progressManagers.map((manager, idx) => {
-                    const MANAGER_COLORS = ['#FF6B00', '#FF8C40', '#FFB380', '#FFD9BF', '#FFF0E6'];
+                    
                     const isLastManager = idx === progressManagers.length - 1;
                     return (
                       <Bar 
@@ -781,12 +894,36 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               marginBottom: '24px'
             }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: '0 0 16px 0' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
                 매장 이용 현황
-                <span style={{ fontSize: '12px', color: '#6b7280', fontWeight: '400', marginLeft: '8px' }}>
-                  ({usageDateRange.start.split('-')[1]}/{usageDateRange.start.split('-')[2]} ~ {usageDateRange.end.split('-')[1]}/{usageDateRange.end.split('-')[2]} 기준)
-                </span>
               </h3>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input
+                  type="date"
+                  value={storeUsageDateRange.start}
+                  onChange={(e) => setStoreUsageDateRange(prev => ({ ...prev, start: e.target.value }))}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '12px'
+                  }}
+                />
+                <span style={{ color: '#6b7280', fontSize: '12px' }}>~</span>
+                <input
+                  type="date"
+                  value={storeUsageDateRange.end}
+                  onChange={(e) => setStoreUsageDateRange(prev => ({ ...prev, end: e.target.value }))}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: '1px solid #e5e7eb',
+                    fontSize: '12px'
+                  }}
+                />
+              </div>
+            </div>
               
               {/* 카테고리 카드들 */}
               <div style={{
@@ -902,27 +1039,7 @@ const DashboardPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {(() => {
-                          let storeList = [];
-                          
-                          if (selectedInstallCategory === 'active') {
-                            // 이용중 카테고리: active와 active_not_completed 합치기
-                            const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
-                            const notCompleted = (overallStats.install_detail.active_not_completed || []).map(s => ({...s, installType: '설치중'}));
-                            storeList = [...completed, ...notCompleted];
-                          } else {
-                            storeList = overallStats.install_detail[selectedInstallCategory] || [];
-                          }
-                          
-                          // 주문고객수 기준 내림차순 정렬
-                          const sortedStores = [...storeList].sort((a, b) => 
-                            (b.customer_count || 0) - (a.customer_count || 0)
-                          );
-                          
-                          // visibleCount만큼만 표시
-                          const visibleStores = sortedStores.slice(0, visibleCount);
-                          
-                          return visibleStores.map((store, index) => (
+                        {sortedStoreList.slice(0, visibleCount).map((store, index) => (
                             <tr
                               key={store.store_id || index}
                               onClick={() => navigate(`/stores/${store.store_id}`)}
@@ -998,51 +1115,31 @@ const DashboardPage = () => {
                                 </>
                               )}
                             </tr>
-                          ));
-                        })()}
+                        ))}
                       </tbody>
                     </table>
                   </div>
-                  {(() => {
-                    let storeList = [];
-                    
-                    if (selectedInstallCategory === 'active') {
-                      const completed = (overallStats.install_detail.active || []).map(s => ({...s, installType: '설치완료'}));
-                      const notCompleted = (overallStats.install_detail.active_not_completed || []).map(s => ({...s, installType: '설치중'}));
-                      storeList = [...completed, ...notCompleted];
-                    } else {
-                      storeList = overallStats.install_detail[selectedInstallCategory] || [];
-                    }
-                    
-                    const sortedStores = [...storeList].sort((a, b) => 
-                      (b.customer_count || 0) - (a.customer_count || 0)
-                    );
-                    
-                    if (visibleCount < sortedStores.length) {
-                      return (
-                        <button 
-                          onClick={() => setVisibleCount(prev => prev + 10)}
-                          style={{
-                            width: '100%',
-                            padding: '12px',
-                            marginTop: '16px',
-                            backgroundColor: '#F3F4F6',
-                            border: 'none',
-                            borderRadius: '8px',
-                            color: '#6B7280',
-                            fontSize: '14px',
-                            cursor: 'pointer',
-                            transition: 'background-color 0.2s'
-                          }}
-                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E5E7EB'}
-                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
-                        >
-                          더보기 ({sortedStores.length - visibleCount}개 더)
-                        </button>
-                      );
-                    }
-                    return null;
-                  })()}
+                  {visibleCount < sortedStoreList.length && (
+                    <button
+                      onClick={() => setVisibleCount(prev => prev + 10)}
+                      style={{
+                        width: '100%',
+                        padding: '12px',
+                        marginTop: '16px',
+                        backgroundColor: '#F3F4F6',
+                        border: 'none',
+                        borderRadius: '8px',
+                        color: '#6B7280',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        transition: 'background-color 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E5E7EB'}
+                      onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                    >
+                      더보기 ({sortedStoreList.length - visibleCount}개 더)
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1088,36 +1185,50 @@ const DashboardPage = () => {
               </div>
             </div>
             {dailyUsageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={286}>
-                <LineChart data={dailyUsageData}>
+              <ResponsiveContainer width="100%" height={320}>
+                <ComposedChart data={dailyUsageData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis 
-                    dataKey="date" 
+                  <XAxis
+                    dataKey="date"
                     tickFormatter={(value) => {
                       const date = new Date(value);
                       return `${date.getMonth() + 1}/${date.getDate()}`;
                     }}
+                    tick={{ fontSize: 11 }}
                   />
-                  <YAxis 
-                    domain={[0, (() => {
-                      const maxValue = Math.max(
-                        ...dailyUsageData.map(item => Math.max(item.active || 0, item.inactive || 0, item.defect_repair || 0))
-                      );
-                      return maxValue + 5;
-                    })()]}
-                    tick={{ fontSize: 12 }}
+                  <YAxis
+                    domain={[0, Math.max(...dailyUsageData.map(item => item.cumulative_installed || 0)) + 10]}
+                    tick={{ fontSize: 11 }}
                   />
-                  <Tooltip 
+                  <Tooltip
                     labelFormatter={(value) => {
                       const date = new Date(value);
                       return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                     }}
+                    formatter={(value, name) => {
+                      const labels = {
+                        'net_installed': '유지',
+                        'cumulative_churned': '해지',
+                        'active': '이용매장'
+                      };
+                      return [`${value}개`, labels[name] || name];
+                    }}
                   />
-                  <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} label={{ position: 'top', fontSize: 11, fill: '#3B82F6' }} name="이용매장" />
-                  <Line type="monotone" dataKey="inactive" stroke="#6B7280" strokeWidth={2} dot={{ r: 3, fill: '#6B7280' }} label={{ position: 'top', fontSize: 11, fill: '#6B7280' }} name="미이용매장" />
-                  <Line type="monotone" dataKey="defect_repair" stroke="#EF4444" strokeWidth={2} dot={{ r: 3, fill: '#EF4444' }} label={{ position: 'top', fontSize: 11, fill: '#EF4444' }} name="하자보수" />
-                  <Legend wrapperStyle={{ paddingTop: '10px' }} />
-                </LineChart>
+                  <Legend
+                    wrapperStyle={{ paddingTop: '10px' }}
+                    formatter={(value) => {
+                      const labels = {
+                        'net_installed': '유지',
+                        'cumulative_churned': '해지',
+                        'active': '이용매장'
+                      };
+                      return labels[value] || value;
+                    }}
+                  />
+                  <Bar dataKey="net_installed" stackId="stack" fill="#E5E7EB" name="net_installed" />
+                  <Bar dataKey="cumulative_churned" stackId="stack" fill="#FCA5A5" name="cumulative_churned" radius={[4, 4, 0, 0]} />
+                  <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} name="active" />
+                </ComposedChart>
               </ResponsiveContainer>
             ) : (
               <div style={{ 
@@ -1275,7 +1386,7 @@ const DashboardPage = () => {
             </div>
             
             {(() => {
-              const filteredReports = activityReports.filter(report => report.manager_id !== 'admin@catchtable.co.kr');
+              const filteredReports = activityReports.filter(report => report.manager_id !== ADMIN_EMAIL);
               
               return filteredReports.length > 0 ? (
               <div>
@@ -1379,6 +1490,252 @@ const DashboardPage = () => {
             );
             })()}
           </div>
+
+          {/* 매장별 일별 주문 히트맵 - 모바일에서 숨김 */}
+          {!isMobile && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              border: '1px solid #e5e7eb',
+              marginTop: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  매장별 일별 주문 현황
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <select
+                    value={heatmapOwnerFilter}
+                    onChange={(e) => setHeatmapOwnerFilter(e.target.value)}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      fontSize: '12px',
+                      backgroundColor: 'white'
+                    }}
+                  >
+                    <option value="all">전체 담당자</option>
+                    {heatmapData?.owners?.map(owner => (
+                      <option key={owner.id} value={owner.id}>
+                        {owner.id === 'unassigned' ? '미지정' : owner.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="date"
+                    value={heatmapDateRange.start}
+                    onChange={(e) => setHeatmapDateRange(prev => ({ ...prev, start: e.target.value }))}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      fontSize: '12px'
+                    }}
+                  />
+                  <span style={{ color: '#6b7280', fontSize: '12px' }}>~</span>
+                  <input
+                    type="date"
+                    value={heatmapDateRange.end}
+                    onChange={(e) => setHeatmapDateRange(prev => ({ ...prev, end: e.target.value }))}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      fontSize: '12px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {heatmapLoading ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  로딩 중...
+                </div>
+              ) : !heatmapData ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
+                  데이터를 불러오는 중...
+                </div>
+              ) : (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr>
+                        <th style={{
+                          padding: '8px',
+                          textAlign: 'center',
+                          fontWeight: '600',
+                          color: '#374151',
+                          position: 'sticky',
+                          left: 0,
+                          backgroundColor: 'white',
+                          minWidth: '36px',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                          #
+                        </th>
+                        <th style={{
+                          padding: '8px',
+                          textAlign: 'left',
+                          fontWeight: '600',
+                          color: '#374151',
+                          position: 'sticky',
+                          left: '36px',
+                          backgroundColor: 'white',
+                          minWidth: '150px',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                          매장명
+                        </th>
+                        {heatmapData?.dates?.map(date => (
+                          <th key={date} style={{
+                            padding: '4px 6px',
+                            textAlign: 'center',
+                            fontWeight: '500',
+                            color: '#6b7280',
+                            borderBottom: 'none',
+                            minWidth: '36px'
+                          }}>
+                            {new Date(date).getDate()}
+                          </th>
+                        ))}
+                        <th style={{
+                          padding: '8px',
+                          textAlign: 'center',
+                          fontWeight: '600',
+                          color: '#374151',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                          합계
+                        </th>
+                      </tr>
+                      {/* 일별 이용매장 수 */}
+                      <tr style={{ backgroundColor: '#f9fafb' }}>
+                        <th style={{
+                          padding: '4px 8px',
+                          textAlign: 'center',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          position: 'sticky',
+                          left: 0,
+                          backgroundColor: '#f9fafb',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                        </th>
+                        <th style={{
+                          padding: '4px 8px',
+                          textAlign: 'left',
+                          fontSize: '11px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          position: 'sticky',
+                          left: '36px',
+                          backgroundColor: '#f9fafb',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                          이용매장
+                        </th>
+                        {heatmapData?.dates?.map(date => {
+                          const activeCount = filteredHeatmapStores?.filter(s => (s.orders?.[date] || 0) > 0).length || 0;
+                          return (
+                            <th key={`count-${date}`} style={{
+                              padding: '4px 6px',
+                              textAlign: 'center',
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              color: '#3B82F6',
+                              borderBottom: '1px solid #e5e7eb'
+                            }}>
+                              {activeCount}
+                            </th>
+                          );
+                        })}
+                        <th style={{
+                          padding: '4px 8px',
+                          textAlign: 'center',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          color: '#3B82F6',
+                          borderBottom: '1px solid #e5e7eb'
+                        }}>
+                          {filteredHeatmapStores?.length || 0}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHeatmapStores?.map((store, idx) => {
+                        const maxOrder = Math.max(...Object.values(store.orders || {}), 1);
+                        return (
+                          <tr key={store.seq} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                            <td style={{
+                              padding: '6px 8px',
+                              textAlign: 'center',
+                              fontSize: '11px',
+                              color: '#6b7280',
+                              position: 'sticky',
+                              left: 0,
+                              backgroundColor: 'white'
+                            }}>
+                              {idx + 1}
+                            </td>
+                            <td style={{
+                              padding: '6px 8px',
+                              fontWeight: '500',
+                              color: '#111827',
+                              position: 'sticky',
+                              left: '36px',
+                              backgroundColor: 'white',
+                              maxWidth: '150px',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {store.store_name || store.seq}
+                            </td>
+                            {heatmapData?.dates?.map(date => {
+                              const count = store.orders?.[date] || 0;
+                              const intensity = count > 0 ? Math.min(count / maxOrder, 1) : 0;
+                              const bgColor = count === 0
+                                ? '#ffffff'
+                                : `rgba(34, 197, 94, ${0.2 + intensity * 0.8})`;
+                              return (
+                                <td key={date} style={{
+                                  padding: '4px',
+                                  textAlign: 'center',
+                                  backgroundColor: bgColor,
+                                  color: count > 0 ? (intensity > 0.5 ? 'white' : '#166534') : '#d1d5db',
+                                  fontWeight: count > 0 ? '600' : '400'
+                                }}>
+                                  {count || '-'}
+                                </td>
+                              );
+                            })}
+                            <td style={{
+                              padding: '6px 8px',
+                              textAlign: 'center',
+                              fontWeight: '600',
+                              color: '#111827',
+                              backgroundColor: '#f9fafb'
+                            }}>
+                              {store.total || 0}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {filteredHeatmapStores?.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#9CA3AF' }}>
+                  해당 기간에 주문 데이터가 없습니다
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* AI 채팅 모달 */}
