@@ -5,7 +5,7 @@ import MainLayout from '../components/Layout/MainLayout.jsx';
 import { apiClient } from '../api/client.js';
 
 // 매핑 캐시 API URL
-const MAPPING_API_URL = 'https://43xztvsertfamqvpl3zxh5ezka0wfvae.lambda-url.ap-northeast-2.on.aws/';
+const MAPPING_API_URL = 'https://rcmkgzmufycpbolnusiazqw2ru0tepue.lambda-url.ap-northeast-2.on.aws/';
 
 const OrderUploadPage = () => {
   const { success, error: showError, toasts, removeToast } = useToast();
