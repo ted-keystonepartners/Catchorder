@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUIStore } from '../../context/uiStore.js';
+import { storeApi } from '../../api/storeApi.js';
 import MobileSidebar from './MobileSidebar';
 import MobileBottomNav from './MobileBottomNav';
 
@@ -21,6 +22,94 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
 
+  // 헤더 검색 관련 상태
+  const [headerSearchQuery, setHeaderSearchQuery] = useState('');
+  const [headerSearchResults, setHeaderSearchResults] = useState([]);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [allStores, setAllStores] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const searchInputRef = useRef(null);
+  const searchContainerRef = useRef(null);
+  const debounceTimerRef = useRef(null);
+
+  // 매장 목록 로드 (최초 1회) - 검색용으로 전체 매장 조회
+  useEffect(() => {
+    const loadStores = async () => {
+      try {
+        // all=true: GENERAL 유저도 전체 매장 검색 가능
+        const response = await storeApi.getStores({ all: true });
+        if (response.success && response.data) {
+          const stores = response.data.stores || response.data || [];
+          setAllStores(stores);
+        }
+      } catch (err) {
+        console.error('매장 목록 로드 실패:', err);
+      }
+    };
+    loadStores();
+  }, []);
+
+  // 검색 필터링 (debounce 적용)
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    if (!headerSearchQuery.trim()) {
+      setHeaderSearchResults([]);
+      setShowSearchDropdown(false);
+      return;
+    }
+
+    setIsSearching(true);
+    debounceTimerRef.current = setTimeout(() => {
+      const query = headerSearchQuery.toLowerCase().trim();
+      const filtered = allStores.filter(store => {
+        const seq = (store.seq || store.store_id || '').toString().toLowerCase();
+        const name = (store.name || store.store_name || '').toLowerCase();
+        const phone = (store.phone || store.store_phone || '').toLowerCase();
+        const address = (store.address || store.store_address || '').toLowerCase();
+        const pos = (store.pos_system || '').toLowerCase();
+
+        return seq.includes(query) ||
+               name.includes(query) ||
+               phone.includes(query) ||
+               address.includes(query) ||
+               pos.includes(query);
+      }).slice(0, 10); // 최대 10개
+
+      setHeaderSearchResults(filtered);
+      setShowSearchDropdown(filtered.length > 0);
+      setIsSearching(false);
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [headerSearchQuery, allStores]);
+
+  // 검색 결과 클릭 핸들러
+  const handleSearchResultClick = (store) => {
+    const storeId = store.store_id || store.id;
+    setHeaderSearchQuery('');
+    setShowSearchDropdown(false);
+    navigate(`/stores/${storeId}`);
+  };
+
+  // ESC 키 핸들러
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showSearchDropdown) {
+        setShowSearchDropdown(false);
+        searchInputRef.current?.blur();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showSearchDropdown]);
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -32,13 +121,17 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
       if (showProfileMenu && !event.target.closest('.profile-menu-container')) {
         setShowProfileMenu(false);
       }
+      // Check if click is outside search container
+      if (showSearchDropdown && !event.target.closest('.search-container')) {
+        setShowSearchDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [openDropdown, showProfileMenu]);
+  }, [openDropdown, showProfileMenu, showSearchDropdown]);
 
   const handleLogout = async () => {
     await logout();
@@ -55,7 +148,7 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         </svg>
       ),
       children: [
-        { name: '가입신청', path: '/applications' },
+        { name: '가입신청', path: '/applications', adminOnly: true },
         { name: '매장관리', path: '/stores' },
         { name: '방문일정', path: '/schedule' }
       ]
@@ -63,14 +156,15 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
     {
       name: 'QR메뉴',
       hasDropdown: true,
+      adminOnly: true, // 하위 메뉴 전체가 ADMIN 전용
       icon: (
         <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h0m-5 8h-2v-4m0-11v1m0 0h0m0 9h0m0-9h0m-4 9h2m-2 0h0m12 0h0m-4-9h0m0 9h0" />
         </svg>
       ),
       children: [
-        { name: '가입신청', path: '/qr-menu' },
-        { name: '설치인증', path: '/qr-placements' }
+        { name: '가입신청', path: '/qr-menu', adminOnly: true },
+        { name: '설치인증', path: '/qr-placements', adminOnly: true }
       ]
     },
     {
@@ -96,7 +190,7 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         backgroundColor: '#FF3D00',
         borderBottom: '1px solid #e5e7eb',
         boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        position: 'sticky',
+        position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
@@ -123,14 +217,188 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
             onMouseOver={(e) => e.currentTarget.style.opacity = '0.8'}
             onMouseOut={(e) => e.currentTarget.style.opacity = '1'}
           >
-            <div style={{ 
-              width: '120px', 
-              height: '40px', 
+            <div style={{
+              width: '120px',
+              height: '40px',
               backgroundImage: 'url(/logo_white.svg)',
               backgroundSize: 'contain',
               backgroundRepeat: 'no-repeat',
               backgroundPosition: 'center'
             }}></div>
+          </div>
+
+          {/* 헤더 검색창 - 데스크탑만, 우측 정렬 */}
+          <div style={{ flex: 1 }} /> {/* 스페이서 */}
+          <div
+            className="search-container hidden md:block"
+            ref={searchContainerRef}
+            style={{
+              position: 'relative',
+              width: '320px',
+              marginRight: '16px'
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <svg
+                width="18"
+                height="18"
+                fill="none"
+                stroke="#9ca3af"
+                viewBox="0 0 24 24"
+                style={{
+                  position: 'absolute',
+                  left: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  pointerEvents: 'none'
+                }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="Seq / 매장명 / 전화번호 / 주소 / POS 검색"
+                value={headerSearchQuery}
+                onChange={(e) => setHeaderSearchQuery(e.target.value)}
+                onFocus={() => {
+                  if (headerSearchResults.length > 0) {
+                    setShowSearchDropdown(true);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '10px 16px 10px 40px',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  outline: 'none',
+                  transition: 'all 0.2s'
+                }}
+              />
+              {isSearching && (
+                <div style={{
+                  position: 'absolute',
+                  right: '12px',
+                  top: '50%',
+                  transform: 'translateY(-50%)'
+                }}>
+                  <div style={{
+                    width: '16px',
+                    height: '16px',
+                    border: '2px solid #e5e7eb',
+                    borderTopColor: '#FF3D00',
+                    borderRadius: '50%',
+                    animation: 'spin 1s linear infinite'
+                  }} />
+                </div>
+              )}
+            </div>
+
+            {/* 검색 결과 드롭다운 */}
+            {showSearchDropdown && headerSearchResults.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                border: '1px solid #e5e7eb',
+                maxHeight: '400px',
+                overflowY: 'auto',
+                zIndex: 200
+              }}>
+                <div style={{ padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                    검색 결과 {headerSearchResults.length}개
+                  </span>
+                </div>
+                {headerSearchResults.map((store, index) => (
+                  <button
+                    key={store.store_id || store.id || index}
+                    onClick={() => handleSearchResultClick(store)}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px',
+                      padding: '12px 16px',
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      transition: 'background-color 0.15s',
+                      borderBottom: index < headerSearchResults.length - 1 ? '1px solid #f9fafb' : 'none'
+                    }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  >
+                    <div style={{
+                      minWidth: '48px',
+                      padding: '4px 8px',
+                      backgroundColor: '#f3f4f6',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      color: '#374151',
+                      textAlign: 'center'
+                    }}>
+                      {store.seq || store.store_id || '-'}
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        color: '#111827',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {store.name || store.store_name || '이름 없음'}
+                      </div>
+                      <div style={{
+                        fontSize: '12px',
+                        color: '#6b7280',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap'
+                      }}>
+                        {store.phone || store.store_phone || ''} {store.address || store.store_address ? `· ${(store.address || store.store_address).substring(0, 20)}...` : ''}
+                      </div>
+                    </div>
+                    <svg width="16" height="16" fill="none" stroke="#9ca3af" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* 검색 결과 없음 */}
+            {showSearchDropdown && headerSearchQuery && headerSearchResults.length === 0 && !isSearching && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: '8px',
+                backgroundColor: 'white',
+                borderRadius: '8px',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
+                border: '1px solid #e5e7eb',
+                padding: '24px',
+                textAlign: 'center',
+                zIndex: 200
+              }}>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                  검색 결과가 없습니다
+                </p>
+              </div>
+            )}
           </div>
 
           {/* 우측 메뉴 */}
@@ -157,143 +425,6 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
                 <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
             </button>
-            {/* 메인 메뉴 - 데스크탑에서만 표시 */}
-            <nav className="hidden md:flex" style={{ alignItems: 'center', gap: '8px' }}>
-              {menuItems
-                .filter(item => {
-                  // children 중 하나라도 adminOnly가 아닌 항목이 있으면 메뉴 표시
-                  if (item.children) {
-                    return item.children.some(child => !child.adminOnly || user?.role === 'ADMIN');
-                  }
-                  // adminOnly 메뉴는 ADMIN만 볼 수 있음
-                  if (item.adminOnly) {
-                    return user?.role === 'ADMIN';
-                  }
-                  return true;
-                })
-                .map((item) => (
-                item.hasDropdown ? (
-                  <div key={item.name} className="dropdown-container" style={{ position: 'relative' }}>
-                    <button
-                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 12px',
-                        backgroundColor: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: '500',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseOver={(e) => {
-                        if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                        }
-                      }}
-                      onMouseOut={(e) => {
-                        if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
-                          e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                        }
-                      }}
-                    >
-                      {item.icon}
-                      <span>{item.name}</span>
-                      <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    {openDropdown === item.name && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: 0,
-                        marginTop: '8px',
-                        backgroundColor: 'white',
-                        borderRadius: '8px',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                        border: '1px solid #e5e7eb',
-                        minWidth: '140px',
-                        zIndex: 50
-                      }}>
-                        {item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN').map(child => (
-                          <button
-                            key={child.path}
-                            onClick={() => {
-                              navigate(child.path);
-                              setOpenDropdown(null);
-                            }}
-                            style={{
-                              width: '100%',
-                              display: 'block',
-                              padding: '10px 16px',
-                              color: location.pathname === child.path ? '#FF3D00' : '#374151',
-                              backgroundColor: location.pathname === child.path ? '#FFF5F3' : 'transparent',
-                              border: 'none',
-                              textAlign: 'left',
-                              fontSize: '14px',
-                              fontWeight: location.pathname === child.path ? '600' : '500',
-                              cursor: 'pointer',
-                              transition: 'background-color 0.2s'
-                            }}
-                            onMouseOver={(e) => {
-                              if (location.pathname !== child.path) {
-                                e.target.style.backgroundColor = '#f3f4f6';
-                              }
-                            }}
-                            onMouseOut={(e) => {
-                              if (location.pathname !== child.path) {
-                                e.target.style.backgroundColor = 'transparent';
-                              }
-                            }}
-                          >
-                            {child.name}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <button
-                    key={item.name}
-                    onClick={() => {
-                      navigate(item.path);
-                    }}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      padding: '8px 12px',
-                      backgroundColor: location.pathname === item.path ? 'rgba(255, 255, 255, 0.2)' : 'rgba(255, 255, 255, 0.1)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '500',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s'
-                    }}
-                    onMouseOver={(e) => {
-                      if (location.pathname !== item.path) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.2)';
-                      }
-                    }}
-                    onMouseOut={(e) => {
-                      if (location.pathname !== item.path) {
-                        e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                      }
-                    }}
-                  >
-                    {item.icon}
-                    <span>{item.name}</span>
-                  </button>
-                )
-              ))}
-            </nav>
 
             {/* 프로필 메뉴 - 데스크탑만 */}
             <div className="profile-menu-container hidden md:block" style={{ position: 'relative' }}>
@@ -487,6 +618,158 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         )}
       </header>
 
+      {/* 메뉴바 - 데스크탑에서만 표시, 헤더 밑에 고정 */}
+      <nav className="hidden md:block" style={{
+        backgroundColor: 'white',
+        borderBottom: '1px solid #e5e7eb',
+        position: 'fixed',
+        top: '65px',
+        left: 0,
+        right: 0,
+        zIndex: 99
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'flex-end',
+          gap: '4px',
+          padding: '8px 24px',
+          maxWidth: '1200px',
+          margin: '0 auto'
+        }}>
+          {menuItems
+            .filter(item => {
+              // 부모 메뉴 자체가 adminOnly면 ADMIN만 표시
+              if (item.adminOnly && user?.role !== 'ADMIN') {
+                return false;
+              }
+              // 하위 메뉴 중 표시할 수 있는 것이 있는지 확인
+              if (item.children) {
+                return item.children.some(child => !child.adminOnly || user?.role === 'ADMIN');
+              }
+              return true;
+            })
+            .map((item) => (
+            item.hasDropdown ? (
+              <div key={item.name} className="dropdown-container" style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    backgroundColor: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? '#FFF5F3' : 'transparent',
+                    color: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? '#FF3D00' : '#374151',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => {
+                    if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
+                      e.currentTarget.style.backgroundColor = '#f3f4f6';
+                    }
+                  }}
+                  onMouseOut={(e) => {
+                    if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    }
+                  }}
+                >
+                  <span>{item.name}</span>
+                  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {openDropdown === item.name && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    marginTop: '4px',
+                    backgroundColor: 'white',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+                    border: '1px solid #e5e7eb',
+                    minWidth: '140px',
+                    zIndex: 50
+                  }}>
+                    {item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN').map(child => (
+                      <button
+                        key={child.path}
+                        onClick={() => {
+                          navigate(child.path);
+                          setOpenDropdown(null);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'block',
+                          padding: '10px 16px',
+                          color: location.pathname === child.path ? '#FF3D00' : '#374151',
+                          backgroundColor: location.pathname === child.path ? '#FFF5F3' : 'transparent',
+                          border: 'none',
+                          textAlign: 'left',
+                          fontSize: '14px',
+                          fontWeight: location.pathname === child.path ? '600' : '500',
+                          cursor: 'pointer',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseOver={(e) => {
+                          if (location.pathname !== child.path) {
+                            e.target.style.backgroundColor = '#f3f4f6';
+                          }
+                        }}
+                        onMouseOut={(e) => {
+                          if (location.pathname !== child.path) {
+                            e.target.style.backgroundColor = 'transparent';
+                          }
+                        }}
+                      >
+                        {child.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                key={item.name}
+                onClick={() => navigate(item.path)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  backgroundColor: location.pathname === item.path ? '#FFF5F3' : 'transparent',
+                  color: location.pathname === item.path ? '#FF3D00' : '#374151',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  if (location.pathname !== item.path) {
+                    e.currentTarget.style.backgroundColor = '#f3f4f6';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (location.pathname !== item.path) {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                <span>{item.name}</span>
+              </button>
+            )
+          ))}
+        </div>
+      </nav>
+
       {/* New Mobile Sidebar Component - 데스크탑에서만 사용 */}
       <div className="hidden md:block">
         <MobileSidebar 
@@ -499,10 +782,13 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
       </div>
 
       {/* Main content */}
-      <main style={{ 
+      <main style={{
         padding: '24px',
+        paddingTop: '130px', // 헤더(65px) + 메뉴바(50px) + 여백
         paddingBottom: '90px' // 모바일 하단 네비게이션 공간 확보
-      }}>
+      }}
+      className="md:pt-[130px] pt-[80px]"
+      >
         <div style={{ maxWidth: '1152px', margin: '0 auto' }}>
           {children}
         </div>
