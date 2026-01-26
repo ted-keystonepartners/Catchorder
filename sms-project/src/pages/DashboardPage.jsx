@@ -524,8 +524,8 @@ const DashboardPage = () => {
       storeList = overallStats.install_detail[selectedInstallCategory] || [];
     }
 
-    // 주문고객수 기준 내림차순 정렬
-    return [...storeList].sort((a, b) => (b.customer_count || 0) - (a.customer_count || 0));
+    // 등록일 기준 최신순 정렬
+    return [...storeList].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }, [overallStats, selectedInstallCategory]);
 
   const COLORS = ['#FF3D00', '#FF6B00', '#FFA500', '#FFD700', '#32CD32', '#4169E1', '#9370DB', '#DC143C'];
