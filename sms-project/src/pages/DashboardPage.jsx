@@ -331,7 +331,7 @@ const DashboardPage = () => {
   const fetchCohortData = useCallback(async () => {
     try {
       setCohortLoading(true);
-      const response = await apiClient.get(`/api/dashboard/realtime?view=cohort&base_date=${cohortBaseDate}`);
+      const response = await apiClient.get(`/api/dashboard?view=cohort&base_date=${cohortBaseDate}`);
 
       if (response.success && response.data) {
         setCohortData(response.data);
