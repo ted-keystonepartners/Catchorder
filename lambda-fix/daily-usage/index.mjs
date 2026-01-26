@@ -51,9 +51,19 @@ export const handler = async (event) => {
     let currentDate = new Date(startDate);
     const end = new Date(endDate);
 
+    // 이전 날짜의 누적값 추적 (데이터 없는 날도 누적값 유지)
+    let lastCumulativeInstalled = 0;
+    let lastCumulativeChurned = 0;
+
     while (currentDate <= end) {
       const dateStr = currentDate.toISOString().split("T")[0];
       const stat = statsMap[dateStr];
+
+      // 데이터가 있으면 누적값 업데이트, 없으면 이전값 유지
+      if (stat) {
+        lastCumulativeInstalled = stat.cumulative_installed || lastCumulativeInstalled;
+        lastCumulativeChurned = stat.cumulative_churned || lastCumulativeChurned;
+      }
 
       dailyUsage.push({
         date: dateStr,
@@ -61,8 +71,8 @@ export const handler = async (event) => {
         order_count: stat ? stat.order_count : 0,
         new_installs: stat ? stat.new_installs : 0,
         new_churns: stat ? stat.new_churns : 0,
-        cumulative_installed: stat ? stat.cumulative_installed : 0,
-        cumulative_churned: stat ? stat.cumulative_churned : 0
+        cumulative_installed: lastCumulativeInstalled,
+        cumulative_churned: lastCumulativeChurned
       });
 
       currentDate.setDate(currentDate.getDate() + 1);
