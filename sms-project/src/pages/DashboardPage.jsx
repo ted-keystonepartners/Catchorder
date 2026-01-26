@@ -331,9 +331,7 @@ const DashboardPage = () => {
   const fetchCohortData = useCallback(async () => {
     try {
       setCohortLoading(true);
-      // Lambda Function URL 직접 호출
-      const res = await fetch(`https://xq66243lt7bnfwpn5loy5wtf7m0exkez.lambda-url.ap-northeast-2.on.aws/?base_date=${cohortBaseDate}`);
-      const response = await res.json();
+      const response = await apiClient.get(`/api/dashboard/realtime?view=cohort&base_date=${cohortBaseDate}`);
 
       if (response.success && response.data) {
         setCohortData(response.data);
