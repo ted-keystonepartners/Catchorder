@@ -1057,7 +1057,7 @@ const DashboardPage = () => {
                                 {managersMap[store.owner_id] || store.owner_name || store.owner_id?.split('@')[0] || '-'}
                               </td>
                               <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
-                                {store.created_at ? new Date(store.created_at).toLocaleDateString('ko-KR') : '-'}
+                                {store.first_install_completed_at ? new Date(store.first_install_completed_at).toLocaleDateString('ko-KR') : '-'}
                               </td>
                               {selectedInstallCategory === 'active' ? (
                                 <>
