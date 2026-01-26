@@ -331,7 +331,9 @@ const DashboardPage = () => {
   const fetchCohortData = useCallback(async () => {
     try {
       setCohortLoading(true);
-      const response = await apiClient.get(`/api/stats/monthly-cohort?base_date=${cohortBaseDate}`);
+      // Lambda Function URL 직접 호출
+      const res = await fetch(`https://xq66243lt7bnfwpn5loy5wtf7m0exkez.lambda-url.ap-northeast-2.on.aws/?base_date=${cohortBaseDate}`);
+      const response = await res.json();
 
       if (response.success && response.data) {
         setCohortData(response.data);
