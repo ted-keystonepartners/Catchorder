@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth.js';
 import { apiClient } from '../api/client.js';
 import MainLayout from '../components/Layout/MainLayout.jsx';
-import { LineChart, Line, BarChart, Bar, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
+import { LineChart, Line, BarChart, Bar, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Sankey, Layer, Rectangle } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
 // 상태 라벨 매핑
@@ -70,7 +70,12 @@ const DashboardPage = () => {
     end: new Date().toISOString().split('T')[0]
   });
   const [heatmapOwnerFilter, setHeatmapOwnerFilter] = useState('all');
-  
+
+  // 월별 코호트 데이터
+  const [cohortData, setCohortData] = useState(null);
+  const [cohortLoading, setCohortLoading] = useState(false);
+  const [cohortBaseDate, setCohortBaseDate] = useState(new Date().toISOString().split('T')[0]);
+
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
   
@@ -322,6 +327,22 @@ const DashboardPage = () => {
     }
   }, [heatmapDateRange.start, heatmapDateRange.end]);
 
+  // 월별 코호트 데이터 가져오기
+  const fetchCohortData = useCallback(async () => {
+    try {
+      setCohortLoading(true);
+      const response = await apiClient.get(`/api/stats/monthly-cohort?base_date=${cohortBaseDate}`);
+
+      if (response.success && response.data) {
+        setCohortData(response.data);
+      }
+    } catch (err) {
+      console.error('월별 코호트 데이터 조회 실패:', err);
+    } finally {
+      setCohortLoading(false);
+    }
+  }, [cohortBaseDate]);
+
   // AI 채팅 전송
   const sendChatMessage = useCallback(async (message) => {
     if (!message.trim()) return;
@@ -388,6 +409,11 @@ const DashboardPage = () => {
   useEffect(() => {
     fetchHeatmap();
   }, [fetchHeatmap]);
+
+  // 월별 코호트 데이터 로드
+  useEffect(() => {
+    fetchCohortData();
+  }, [fetchCohortData]);
 
   // 히트맵 필터링된 매장 목록
   const filteredHeatmapStores = useMemo(() => {
@@ -881,6 +907,106 @@ const DashboardPage = () => {
               </ResponsiveContainer>
             </div>
           </div>
+          )}
+
+          {/* 월별 설치 코호트 분석 - 모바일에서 숨김 */}
+          {!isMobile && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              border: '1px solid #e5e7eb',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  월별 설치 코호트 분석
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>기준일:</span>
+                  <input
+                    type="date"
+                    value={cohortBaseDate}
+                    onChange={(e) => setCohortBaseDate(e.target.value)}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      fontSize: '12px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {cohortLoading ? (
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#6b7280' }}>로딩 중...</span>
+                </div>
+              ) : cohortData?.sankey?.nodes?.length > 0 ? (
+                <div>
+                  {/* 요약 카드 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
+                    <div style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>총 설치</p>
+                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>{cohortData.summary?.total_installed || 0}</p>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>이용중</p>
+                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#22c55e', margin: 0 }}>{cohortData.summary?.total_active || 0}</p>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: '#fefce8', borderRadius: '8px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>미이용</p>
+                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#eab308', margin: 0 }}>{cohortData.summary?.total_inactive || 0}</p>
+                    </div>
+                    <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', textAlign: 'center' }}>
+                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>해지</p>
+                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#ef4444', margin: 0 }}>{cohortData.summary?.total_churned || 0}</p>
+                    </div>
+                  </div>
+
+                  {/* Sankey 차트 */}
+                  <ResponsiveContainer width="100%" height={350}>
+                    <Sankey
+                      data={cohortData.sankey}
+                      node={({ x, y, width, height, index, payload }) => {
+                        const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#c084fc', '#d8b4fe', '#e9d5ff', '#22c55e', '#eab308', '#ef4444'];
+                        return (
+                          <Layer key={`node-${index}`}>
+                            <Rectangle
+                              x={x}
+                              y={y}
+                              width={width}
+                              height={height}
+                              fill={colors[index % colors.length]}
+                              fillOpacity={0.9}
+                            />
+                            <text
+                              x={x < 200 ? x + width + 6 : x - 6}
+                              y={y + height / 2}
+                              textAnchor={x < 200 ? 'start' : 'end'}
+                              dominantBaseline="middle"
+                              style={{ fontSize: 12, fill: '#374151' }}
+                            >
+                              {payload.name}
+                            </text>
+                          </Layer>
+                        );
+                      }}
+                      link={{ stroke: '#d1d5db', strokeOpacity: 0.5 }}
+                      nodePadding={30}
+                      nodeWidth={10}
+                      margin={{ top: 20, right: 150, bottom: 20, left: 20 }}
+                    >
+                      <Tooltip />
+                    </Sankey>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
+                  데이터가 없습니다
+                </div>
+              )}
+            </div>
           )}
 
           {/* 매장 이용 현황 - 모바일에서 숨김 */}
