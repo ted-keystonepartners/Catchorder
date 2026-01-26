@@ -1183,79 +1183,37 @@ const DashboardPage = () => {
               </div>
             </div>
             {dailyUsageData.length > 0 ? (
-              <div style={{ display: 'flex', gap: '16px' }}>
-                {/* 왼쪽: 해지/유지 Bar 차트 */}
-                <div style={{ flex: 1 }}>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <BarChart data={dailyUsageData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(value) => {
-                          const date = new Date(value);
-                          return `${date.getMonth() + 1}/${date.getDate()}`;
-                        }}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <YAxis
-                        domain={[0, Math.max(...dailyUsageData.map(item => item.cumulative_installed || 0)) + 10]}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <Tooltip
-                        labelFormatter={(value) => {
-                          const date = new Date(value);
-                          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        }}
-                        formatter={(value, name) => {
-                          const labels = { 'net_installed': '유지', 'cumulative_churned': '해지' };
-                          return [`${value}개`, labels[name] || name];
-                        }}
-                      />
-                      <Legend
-                        wrapperStyle={{ paddingTop: '8px' }}
-                        formatter={(value) => {
-                          const labels = { 'net_installed': '유지', 'cumulative_churned': '해지' };
-                          return labels[value] || value;
-                        }}
-                      />
-                      <Bar dataKey="net_installed" stackId="stack" fill="#E5E7EB" name="net_installed" />
-                      <Bar dataKey="cumulative_churned" stackId="stack" fill="#FCA5A5" name="cumulative_churned" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* 오른쪽: 이용매장 Line 차트 */}
-                <div style={{ flex: 1 }}>
-                  <ResponsiveContainer width="100%" height={280}>
-                    <LineChart data={dailyUsageData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                      <XAxis
-                        dataKey="date"
-                        tickFormatter={(value) => {
-                          const date = new Date(value);
-                          return `${date.getMonth() + 1}/${date.getDate()}`;
-                        }}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <YAxis
-                        domain={[0, 100]}
-                        tick={{ fontSize: 10 }}
-                      />
-                      <Tooltip
-                        labelFormatter={(value) => {
-                          const date = new Date(value);
-                          return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                        }}
-                        formatter={(value) => [`${value}개`, '이용매장']}
-                      />
-                      <Legend
-                        wrapperStyle={{ paddingTop: '8px' }}
-                        formatter={() => '이용매장'}
-                      />
-                      <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} name="active" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+              <div>
+                {/* 이용매장 Line 차트 */}
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={dailyUsageData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                    <XAxis
+                      dataKey="date"
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10 }}
+                    />
+                    <Tooltip
+                      labelFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                      }}
+                      formatter={(value) => [`${value}개`, '이용매장']}
+                    />
+                    <Legend
+                      wrapperStyle={{ paddingTop: '8px' }}
+                      formatter={() => '이용매장'}
+                    />
+                    <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} name="active" />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             ) : (
               <div style={{
