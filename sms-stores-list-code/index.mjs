@@ -5,7 +5,6 @@ const client = new DynamoDBClient({ region: "ap-northeast-2" });
 const dynamodb = DynamoDBDocumentClient.from(client);
 
 const storesTable = "sms-stores-dev";
-const historyTable = "sms-store-history-dev";
 
 // JWT 디코딩 함수
 const decodeJWT = (token) => {
@@ -70,50 +69,12 @@ export const handler = async (event) => {
 
     stores.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    // 각 매장의 최초 설치완료일(QR_MENU_INSTALL) 조회
-    const storeIds = stores.map(s => s.store_id);
-
-    // 병렬로 히스토리 조회 (최초 QR_MENU_INSTALL 날짜)
-    const historyPromises = storeIds.map(async (storeId) => {
-      try {
-        const historyResult = await dynamodb.send(
-          new QueryCommand({
-            TableName: historyTable,
-            KeyConditionExpression: "store_id = :storeId",
-            FilterExpression: "new_status = :status",
-            ExpressionAttributeValues: {
-              ":storeId": storeId,
-              ":status": "QR_MENU_INSTALL"
-            },
-            ScanIndexForward: true, // 오름차순 (가장 오래된 것부터)
-            Limit: 1
-          })
-        );
-        const firstInstall = historyResult.Items?.[0];
-        return { storeId, firstInstallCompletedAt: firstInstall?.changed_at || null };
-      } catch (e) {
-        return { storeId, firstInstallCompletedAt: null };
-      }
-    });
-
-    const historyResults = await Promise.all(historyPromises);
-    const historyMap = {};
-    for (const h of historyResults) {
-      historyMap[h.storeId] = h.firstInstallCompletedAt;
-    }
-
-    // 매장 데이터에 first_install_completed_at 추가
-    const storesWithInstallDate = stores.map(store => ({
-      ...store,
-      first_install_completed_at: historyMap[store.store_id] || null
-    }));
-
     return {
       statusCode: 200,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
       body: JSON.stringify({
         success: true,
-        data: { stores: storesWithInstallDate, total: storesWithInstallDate.length },
+        data: { stores, total: stores.length },
       }),
     };
   } catch (error) {
