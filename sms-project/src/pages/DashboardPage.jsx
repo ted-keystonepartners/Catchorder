@@ -6,6 +6,31 @@ import MainLayout from '../components/Layout/MainLayout.jsx';
 import { LineChart, Line, BarChart, Bar, ComposedChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList, Sankey, Layer, Rectangle } from 'recharts';
 import ReactMarkdown from 'react-markdown';
 
+// Sankey 커스텀 링크 컴포넌트
+const SankeyLink = (props) => {
+  const { sourceX, sourceY, sourceControlX, targetX, targetY, targetControlX, linkWidth, payload } = props;
+
+  const targetName = payload?.target?.name || '';
+
+  let strokeColor = '#e5e7eb';
+  if (targetName.includes('이용중')) strokeColor = '#bbf7d0'; // 파스텔 초록
+  else if (targetName.includes('미이용')) strokeColor = '#fef08a'; // 파스텔 노랑
+  else if (targetName.includes('해지')) strokeColor = '#fecaca'; // 파스텔 빨강
+
+  return (
+    <path
+      d={`
+        M${sourceX},${sourceY}
+        C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}
+      `}
+      fill="none"
+      stroke={strokeColor}
+      strokeWidth={linkWidth}
+      strokeOpacity={0.7}
+    />
+  );
+};
+
 // 상태 라벨 매핑
 const STATUS_LABELS = {
   PRE_INTRODUCTION: "방문대기",
@@ -49,7 +74,7 @@ const DashboardPage = () => {
   const [activityReports, setActivityReports] = useState([]);
   const [activitySummary, setActivitySummary] = useState(null);
   const [usageDateRange, setUsageDateRange] = useState({
-    start: (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString().split('T')[0]; })(),
+    start: '2025-12-10',
     end: new Date().toISOString().split('T')[0]
   });
   // 매장 이용현황 날짜 범위 (별도) - 기본 최근 1주일
@@ -233,28 +258,69 @@ const DashboardPage = () => {
     }
   }, [usageDateRange.start, usageDateRange.end]);
 
-  // 일별 설치 현황 가져오기
+  // 주간 설치 현황 가져오기 (최근 8주)
   const fetchDailyInstalls = useCallback(async () => {
     try {
-      const response = await apiClient.get('/api/stats/daily-installs?days=14');
+      const response = await apiClient.get('/api/stats/daily-installs?days=56');
 
       if (response.success && response.data && Array.isArray(response.data)) {
         // 12월 7일(대량등록일) 제외
         const filteredData = response.data.filter(item => item.date !== '12-07');
 
-        setDailyInstalls(filteredData);
+        // 주간 단위로 집계 (월~일 기준)
+        const weeklyData = [];
+        const today = new Date();
 
-        // managers 추출 (date 제외, admin 제외)
-        if (filteredData.length > 0) {
-          const managers = Object.keys(filteredData[0])
-            .filter(key => key !== 'date')
+        for (let week = 0; week < 8; week++) {
+          // 이번 주 월요일 찾기
+          const weekEnd = new Date(today);
+          weekEnd.setDate(today.getDate() - (week * 7));
+          const dayOfWeek = weekEnd.getDay();
+          const diffToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
+          weekEnd.setDate(weekEnd.getDate() - dayOfWeek); // 일요일로 이동
+
+          const weekStart = new Date(weekEnd);
+          weekStart.setDate(weekEnd.getDate() - 6); // 월요일로 이동
+
+          const startStr = `${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
+          const endStr = `${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+
+          // 해당 주의 데이터 필터링
+          const weekDates = [];
+          for (let d = 0; d < 7; d++) {
+            const date = new Date(weekStart);
+            date.setDate(weekStart.getDate() + d);
+            weekDates.push(`${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+          }
+
+          const weekItems = filteredData.filter(item => weekDates.includes(item.date));
+
+          // 담당자별 합계 계산
+          const weekTotal = { week: `${startStr}~${endStr}` };
+          for (const item of weekItems) {
+            for (const [key, value] of Object.entries(item)) {
+              if (key !== 'date') {
+                weekTotal[key] = (weekTotal[key] || 0) + (value || 0);
+              }
+            }
+          }
+
+          weeklyData.unshift(weekTotal); // 오래된 주가 앞에 오도록
+        }
+
+        setDailyInstalls(weeklyData);
+
+        // managers 추출 (week 제외, admin 제외)
+        if (weeklyData.length > 0) {
+          const managers = Object.keys(weeklyData[0])
+            .filter(key => key !== 'week')
             .filter(key => key !== ADMIN_EMAIL);
 
           setInstallManagers(managers);
         }
       }
     } catch (err) {
-      console.error('일별 설치 현황 로드 실패:', err);
+      console.error('주간 설치 현황 로드 실패:', err);
     }
   }, []);
 
@@ -334,7 +400,19 @@ const DashboardPage = () => {
       const response = await apiClient.get(`/api/dashboard?view=cohort&base_date=${cohortBaseDate}`);
 
       if (response.success && response.data) {
-        setCohortData(response.data);
+        // 링크에 색상 추가 (이용중: 연한초록, 미이용: 연한노랑, 해지: 연한빨강)
+        const data = response.data;
+        if (data.sankey?.links && data.sankey?.nodes) {
+          const nodeCount = data.sankey.nodes.length;
+          data.sankey.links = data.sankey.links.map(link => {
+            let stroke = '#d1d5db';
+            if (link.target === nodeCount - 3) stroke = '#86efac'; // 이용중 - 연한 초록
+            else if (link.target === nodeCount - 2) stroke = '#fde047'; // 미이용 - 연한 노랑
+            else if (link.target === nodeCount - 1) stroke = '#fca5a5'; // 해지 - 연한 빨강
+            return { ...link, stroke };
+          });
+        }
+        setCohortData(data);
       }
     } catch (err) {
       console.error('월별 코호트 데이터 조회 실패:', err);
@@ -739,6 +817,61 @@ const DashboardPage = () => {
             </div>
           </div>
 
+          {/* 이용매장 추이 차트 - 모바일에서 숨김 */}
+          {!isMobile && (
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            padding: '24px',
+            border: '1px solid #e5e7eb',
+            marginBottom: '24px'
+          }}>
+            <div style={{ marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                이용매장 추이
+              </h3>
+            </div>
+            {dailyUsageData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={dailyUsageData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getMonth() + 1}/${date.getDate()}`;
+                    }}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <YAxis
+                    domain={[60, 'dataMax + 5']}
+                    tick={{ fontSize: 10 }}
+                  />
+                  <Tooltip
+                    labelFormatter={(value) => {
+                      const date = new Date(value);
+                      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                    }}
+                    formatter={(value) => [`${value}개`, '이용매장']}
+                  />
+                  <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} name="active" />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{
+                height: '280px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#6b7280',
+                fontSize: '14px'
+              }}>
+                데이터를 불러오는 중...
+              </div>
+            )}
+          </div>
+          )}
+
           {/* 차트 그리드 - 모바일에서 숨김, 데스크탑: 2열 */}
           {!isMobile && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: '24px' }}>
@@ -754,7 +887,7 @@ const DashboardPage = () => {
             >
               <div style={{ marginBottom: '12px' }}>
                 <h3 style={{ fontSize: isMobile ? '14px' : '16px', fontWeight: '600', color: '#111827', marginBottom: '8px' }}>
-                  일별 신규 설치
+                  주간 신규 설치 수
                 </h3>
                 {/* 담당자 범례 - 모바일에서는 아래로, flex-wrap */}
                 <div style={{ 
@@ -786,21 +919,25 @@ const DashboardPage = () => {
                 <ResponsiveContainer width="100%" height={isMobile ? 250 : 332}>
                   <BarChart data={dailyInstalls} margin={{ top: 10, right: isMobile ? 20 : 40, left: isMobile ? 20 : 10, bottom: 5 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis 
-                      dataKey="date" 
-                      tick={{ fontSize: 11 }}
+                    <XAxis
+                      dataKey="week"
+                      tick={{ fontSize: 10 }}
+                      interval={0}
+                      angle={-20}
+                      textAnchor="end"
+                      height={50}
                     />
-                    <YAxis 
+                    <YAxis
                       tick={{ fontSize: isMobile ? 10 : 12 }}
                       allowDecimals={false}
                       domain={[0, 'dataMax + 2']}
                     />
-                    <Tooltip 
+                    <Tooltip
                       formatter={(value, name) => [
-                        `${value}건`, 
+                        `${value}건`,
                         managersMap[name] || name.split('@')[0]
                       ]}
-                      labelFormatter={(label) => `날짜: ${label}`}
+                      labelFormatter={(label) => `기간: ${label}`}
                     />
                     {/* Legend 제거 - 위에서 직접 표시 */}
                     {/* 담당자별 막대 생성 - 주황색 계열로 통일 */}
@@ -918,91 +1055,67 @@ const DashboardPage = () => {
               border: '1px solid #e5e7eb',
               marginBottom: '24px'
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
                   월별 설치 코호트 분석
                 </h3>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>기준일:</span>
-                  <input
-                    type="date"
-                    value={cohortBaseDate}
-                    onChange={(e) => setCohortBaseDate(e.target.value)}
-                    style={{
-                      padding: '6px 8px',
-                      borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
-                      fontSize: '12px'
-                    }}
-                  />
-                </div>
               </div>
 
               {cohortLoading ? (
-                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <span style={{ color: '#6b7280' }}>로딩 중...</span>
                 </div>
               ) : cohortData?.sankey?.nodes?.length > 0 ? (
-                <div>
-                  {/* 요약 카드 */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '20px' }}>
-                    <div style={{ padding: '12px', backgroundColor: '#f9fafb', borderRadius: '8px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>총 설치</p>
-                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#111827', margin: 0 }}>{cohortData.summary?.total_installed || 0}</p>
-                    </div>
-                    <div style={{ padding: '12px', backgroundColor: '#f0fdf4', borderRadius: '8px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>이용중</p>
-                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#22c55e', margin: 0 }}>{cohortData.summary?.total_active || 0}</p>
-                    </div>
-                    <div style={{ padding: '12px', backgroundColor: '#fefce8', borderRadius: '8px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>미이용</p>
-                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#eab308', margin: 0 }}>{cohortData.summary?.total_inactive || 0}</p>
-                    </div>
-                    <div style={{ padding: '12px', backgroundColor: '#fef2f2', borderRadius: '8px', textAlign: 'center' }}>
-                      <p style={{ fontSize: '11px', color: '#6b7280', margin: '0 0 4px 0' }}>해지</p>
-                      <p style={{ fontSize: '20px', fontWeight: '600', color: '#ef4444', margin: 0 }}>{cohortData.summary?.total_churned || 0}</p>
-                    </div>
-                  </div>
+                <ResponsiveContainer width="100%" height={400}>
+                  <Sankey
+                    data={cohortData.sankey}
+                    node={({ x, y, width, height, index, payload }) => {
+                      const nodeCount = cohortData.sankey.nodes.length;
+                      const isStateNode = index >= nodeCount - 3;
+                      let fillColor = '#6366f1';
 
-                  {/* Sankey 차트 */}
-                  <ResponsiveContainer width="100%" height={350}>
-                    <Sankey
-                      data={cohortData.sankey}
-                      node={({ x, y, width, height, index, payload }) => {
-                        const colors = ['#6366f1', '#8b5cf6', '#a855f7', '#c084fc', '#d8b4fe', '#e9d5ff', '#22c55e', '#eab308', '#ef4444'];
-                        return (
-                          <Layer key={`node-${index}`}>
-                            <Rectangle
-                              x={x}
-                              y={y}
-                              width={width}
-                              height={height}
-                              fill={colors[index % colors.length]}
-                              fillOpacity={0.9}
-                            />
-                            <text
-                              x={x < 200 ? x + width + 6 : x - 6}
-                              y={y + height / 2}
-                              textAnchor={x < 200 ? 'start' : 'end'}
-                              dominantBaseline="middle"
-                              style={{ fontSize: 12, fill: '#374151' }}
-                            >
-                              {payload.name}
-                            </text>
-                          </Layer>
-                        );
-                      }}
-                      link={{ stroke: '#d1d5db', strokeOpacity: 0.5 }}
-                      nodePadding={30}
-                      nodeWidth={10}
-                      margin={{ top: 20, right: 150, bottom: 20, left: 20 }}
-                    >
-                      <Tooltip />
-                    </Sankey>
-                  </ResponsiveContainer>
-                </div>
+                      if (isStateNode) {
+                        const stateIndex = index - (nodeCount - 3);
+                        if (stateIndex === 0) fillColor = '#86efac'; // 이용중 - 파스텔 초록
+                        else if (stateIndex === 1) fillColor = '#fde047'; // 미이용 - 파스텔 노랑
+                        else if (stateIndex === 2) fillColor = '#fca5a5'; // 해지 - 파스텔 빨강
+                      } else {
+                        const purples = ['#c4b5fd', '#d8b4fe', '#e9d5ff', '#c7d2fe', '#ddd6fe', '#ede9fe'];
+                        fillColor = purples[index % purples.length];
+                      }
+
+                      return (
+                        <Layer key={`node-${index}`}>
+                          <Rectangle
+                            x={x}
+                            y={y}
+                            width={width}
+                            height={height}
+                            fill={fillColor}
+                            fillOpacity={0.9}
+                          />
+                          <text
+                            x={x < 200 ? x + width + 6 : x - 6}
+                            y={y + height / 2}
+                            textAnchor={x < 200 ? 'start' : 'end'}
+                            dominantBaseline="middle"
+                            style={{ fontSize: 12, fill: '#374151', fontWeight: isStateNode ? '600' : '400' }}
+                          >
+                            {payload.name}{isStateNode && ` (${index === nodeCount - 3 ? cohortData.summary?.total_active : index === nodeCount - 2 ? cohortData.summary?.total_inactive : cohortData.summary?.total_churned})`}
+                          </text>
+                        </Layer>
+                      );
+                    }}
+                    link={<SankeyLink />}
+                    nodePadding={24}
+                    nodeWidth={12}
+                    margin={{ top: 10, right: 20, bottom: 10, left: 20 }}
+                  >
+                    <Tooltip />
+                  </Sankey>
+                </ResponsiveContainer>
               ) : (
-                <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
+                <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
                   데이터가 없습니다
                 </div>
               )}
@@ -1269,92 +1382,6 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* 일별 이용 현황 차트 - 모바일에서 숨김 */}
-          {!isMobile && (
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            border: '1px solid #e5e7eb',
-            marginBottom: '24px'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                일별 이용 현황
-              </h3>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <input
-                  type="date"
-                  value={usageDateRange.start}
-                  onChange={(e) => setUsageDateRange(prev => ({ ...prev, start: e.target.value }))}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '12px'
-                  }}
-                />
-                <span style={{ color: '#6b7280', fontSize: '12px' }}>~</span>
-                <input
-                  type="date"
-                  value={usageDateRange.end}
-                  onChange={(e) => setUsageDateRange(prev => ({ ...prev, end: e.target.value }))}
-                  style={{
-                    padding: '6px 8px',
-                    borderRadius: '6px',
-                    border: '1px solid #e5e7eb',
-                    fontSize: '12px'
-                  }}
-                />
-              </div>
-            </div>
-            {dailyUsageData.length > 0 ? (
-              <div>
-                {/* 이용매장 Line 차트 */}
-                <ResponsiveContainer width="100%" height={280}>
-                  <LineChart data={dailyUsageData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis
-                      dataKey="date"
-                      tickFormatter={(value) => {
-                        const date = new Date(value);
-                        return `${date.getMonth() + 1}/${date.getDate()}`;
-                      }}
-                      tick={{ fontSize: 10 }}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      tick={{ fontSize: 10 }}
-                    />
-                    <Tooltip
-                      labelFormatter={(value) => {
-                        const date = new Date(value);
-                        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                      }}
-                      formatter={(value) => [`${value}개`, '이용매장']}
-                    />
-                    <Legend
-                      wrapperStyle={{ paddingTop: '8px' }}
-                      formatter={() => '이용매장'}
-                    />
-                    <Line type="monotone" dataKey="active" stroke="#3B82F6" strokeWidth={2} dot={{ r: 3, fill: '#3B82F6' }} name="active" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div style={{
-                height: '300px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#6b7280',
-                fontSize: '14px'
-              }}>
-                아직 충분한 데이터가 없습니다
-              </div>
-            )}
-          </div>
-          )}
 
           {/* 담당자별 성과 테이블 - 모바일에서 숨김 */}
           {!isMobile && (

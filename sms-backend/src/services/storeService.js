@@ -8,13 +8,17 @@ import { ERROR_CODES } from '../utils/constants.js';
 export const storeService = {
   /**
    * 매장 목록 조회 (필터링 포함)
+   * @param {Object} filters - 필터 옵션
+   * @param {boolean} filters.all - true면 GENERAL 유저도 전체 매장 조회 (검색용)
    */
   async getAllStores(filters = {}, userRole, userId) {
     try {
-      // GENERAL 권한이면 본인 배정 매장만 반환
-      if (userRole === 'GENERAL') {
+      // all=true가 아니고 GENERAL 권한이면 본인 배정 매장만 반환
+      if (!filters.all && userRole === 'GENERAL') {
         filters.ownerId = userId;
       }
+      // all 파라미터는 DB 쿼리에 전달하지 않음
+      delete filters.all;
 
       const stores = await db.stores.findAll(filters);
       
@@ -34,11 +38,12 @@ export const storeService = {
 
   /**
    * 매장 상세 조회
+   * GENERAL 유저도 모든 매장 조회 가능 (읽기 전용)
    */
   async getStoreById(storeId, userRole, userId) {
     try {
       const store = await db.stores.findById(storeId);
-      
+
       if (!store) {
         throw {
           code: ERROR_CODES.STORE_NOT_FOUND,
@@ -47,15 +52,7 @@ export const storeService = {
         };
       }
 
-      // GENERAL 권한이면 본인 배정 매장만 접근 가능
-      if (userRole === 'GENERAL' && store.owner_id !== userId) {
-        throw {
-          code: ERROR_CODES.FORBIDDEN,
-          message: '해당 매장에 접근할 권한이 없습니다',
-          statusCode: 403
-        };
-      }
-
+      // 모든 유저가 매장 상세 조회 가능 (검색 후 접근 허용)
       return store;
     } catch (error) {
       throw error;

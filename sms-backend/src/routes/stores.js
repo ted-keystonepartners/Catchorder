@@ -16,15 +16,17 @@ const router = express.Router();
  */
 router.get('/', authenticateToken, async (req, res, next) => {
   try {
-    const { ownerId, statuses, lifecycles, searchText } = req.query;
-    
+    const { ownerId, statuses, lifecycles, searchText, all } = req.query;
+
     const filters = {};
-    
+
     // 필터 파라미터 처리
     if (ownerId) filters.ownerId = ownerId;
     if (statuses) filters.statuses = Array.isArray(statuses) ? statuses : [statuses];
     if (lifecycles) filters.lifecycles = Array.isArray(lifecycles) ? lifecycles : [lifecycles];
     if (searchText) filters.searchText = searchText;
+    // all=true면 GENERAL 유저도 전체 매장 조회 (검색용)
+    if (all === 'true') filters.all = true;
 
     const result = await storeService.getAllStores(
       filters,

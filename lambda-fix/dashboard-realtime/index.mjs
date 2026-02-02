@@ -491,15 +491,34 @@ async function handleCohortView(baseDate) {
     }
   }
 
-  // 4. 주문 통계 조회 (이용 여부 판단)
-  const orderStatsResult = await dynamodb.send(new ScanCommand({ TableName: orderStatsTable }));
-  const orderStats = orderStatsResult.Items || [];
+  // 4. 주문 통계 조회 (이용 여부 판단) - 최근 2주 기준
+  const twoWeeksAgo = new Date(baseDate);
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+  const startDate = twoWeeksAgo.toISOString().split('T')[0];
+  const endDate = baseDate;
+
   const activeSeqs = new Set();
-  for (const stat of orderStats) {
-    if (stat.order_count > 0) {
-      activeSeqs.add(stat.seq);
+  let lastKey = null;
+  do {
+    const params = {
+      TableName: storeDailyOrdersTable,
+      FilterExpression: "order_date BETWEEN :start AND :end AND order_count > :zero",
+      ExpressionAttributeValues: {
+        ":start": startDate,
+        ":end": endDate,
+        ":zero": 0
+      }
+    };
+    if (lastKey) params.ExclusiveStartKey = lastKey;
+
+    const result = await dynamodb.send(new ScanCommand(params));
+    for (const item of result.Items || []) {
+      if (item.seq) {
+        activeSeqs.add(item.seq);
+      }
     }
-  }
+    lastKey = result.LastEvaluatedKey;
+  } while (lastKey);
 
   // 5. 월별 집계
   const monthlyData = {};
@@ -511,7 +530,13 @@ async function handleCohortView(baseDate) {
     // 기준일 이후 설치된 매장은 제외
     if (installDate > baseDate + "T23:59:59.999Z") continue;
 
-    const installMonth = installDate.substring(0, 7); // YYYY-MM
+    let installMonth = installDate.substring(0, 7); // YYYY-MM
+
+    // 12월 7일 이전 대량 등록 데이터는 "이전 설치"로 분류
+    if (installDate < "2025-12-08") {
+      installMonth = "0000-00"; // 이전 설치 (정렬 시 맨 뒤로)
+    }
+
     if (!monthlyData[installMonth]) {
       monthlyData[installMonth] = {
         month: installMonth,
@@ -570,7 +595,12 @@ async function handleCohortView(baseDate) {
   const monthNodeIndices = {};
   for (const month of recentMonths) {
     const data = monthlyData[month];
-    const monthLabel = `${month.substring(5)}월 설치 (${data.total})`;
+    let monthLabel;
+    if (month === "0000-00") {
+      monthLabel = `이전 설치 (${data.total})`;
+    } else {
+      monthLabel = `${month.substring(5)}월 설치 (${data.total})`;
+    }
     nodes.push({ name: monthLabel });
     monthNodeIndices[month] = nodeIndex++;
   }

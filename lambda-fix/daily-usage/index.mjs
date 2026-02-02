@@ -5,6 +5,7 @@ const client = new DynamoDBClient({ region: "ap-northeast-2" });
 const dynamodb = DynamoDBDocumentClient.from(client);
 
 const dailyStatsTable = "sms-daily-order-stats-dev";
+const storeDailyOrdersTable = "sms-store-daily-orders-dev";
 
 export const handler = async (event) => {
   try {
@@ -18,8 +19,40 @@ export const handler = async (event) => {
       return d.toISOString().split("T")[0];
     })();
 
-    // 집계 테이블에서 조회 (매우 빠름!)
-    const result = await dynamodb.send(new ScanCommand({
+    // WAU 계산을 위해 시작일 6일 전부터 데이터 조회
+    const wauStartDate = new Date(startDate);
+    wauStartDate.setDate(wauStartDate.getDate() - 6);
+    const wauStartStr = wauStartDate.toISOString().split("T")[0];
+
+    // 1. 매장별 일별 주문 데이터 조회 (WAU 계산용)
+    const storeOrdersByDate = {}; // { date: Set<seq> }
+    let lastKey = null;
+    do {
+      const params = {
+        TableName: storeDailyOrdersTable,
+        FilterExpression: "order_date BETWEEN :start AND :end AND order_count > :zero",
+        ExpressionAttributeValues: {
+          ":start": wauStartStr,
+          ":end": endDate,
+          ":zero": 0
+        }
+      };
+      if (lastKey) params.ExclusiveStartKey = lastKey;
+
+      const result = await dynamodb.send(new ScanCommand(params));
+      for (const item of result.Items || []) {
+        const date = item.order_date;
+        const seq = item.seq;
+        if (date && seq) {
+          if (!storeOrdersByDate[date]) storeOrdersByDate[date] = new Set();
+          storeOrdersByDate[date].add(seq);
+        }
+      }
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+
+    // 2. 기존 집계 테이블에서 누적 데이터 조회
+    const statsResult = await dynamodb.send(new ScanCommand({
       TableName: dailyStatsTable,
       FilterExpression: "order_date BETWEEN :start AND :end",
       ExpressionAttributeValues: {
@@ -29,15 +62,8 @@ export const handler = async (event) => {
     }));
 
     const statsMap = {};
-    for (const item of result.Items || []) {
-      // store_seqs Set이 있으면 크기로, 없으면 active_store_count 사용
-      const activeCount = item.store_seqs
-        ? (item.store_seqs.size || item.store_seqs.length || 0)
-        : (item.active_store_count || 0);
-
+    for (const item of statsResult.Items || []) {
       statsMap[item.order_date] = {
-        date: item.order_date,
-        active: activeCount,
         order_count: item.order_count || 0,
         new_installs: item.new_installs || 0,
         new_churns: item.new_churns || 0,
@@ -46,20 +72,32 @@ export const handler = async (event) => {
       };
     }
 
-    // 날짜 범위 생성 및 결과 매핑
+    // 3. 날짜별 WAU 계산 (최근 7일간 이용 매장 수)
     const dailyUsage = [];
     let currentDate = new Date(startDate);
     const end = new Date(endDate);
 
-    // 이전 날짜의 누적값 추적 (데이터 없는 날도 누적값 유지)
     let lastCumulativeInstalled = 0;
     let lastCumulativeChurned = 0;
 
     while (currentDate <= end) {
       const dateStr = currentDate.toISOString().split("T")[0];
-      const stat = statsMap[dateStr];
 
-      // 데이터가 있으면 누적값 업데이트, 없으면 이전값 유지
+      // 최근 7일간 이용 매장 계산 (WAU)
+      const wauSeqs = new Set();
+      for (let i = 0; i < 7; i++) {
+        const checkDate = new Date(currentDate);
+        checkDate.setDate(currentDate.getDate() - i);
+        const checkDateStr = checkDate.toISOString().split("T")[0];
+        const seqs = storeOrdersByDate[checkDateStr];
+        if (seqs) {
+          for (const seq of seqs) {
+            wauSeqs.add(seq);
+          }
+        }
+      }
+
+      const stat = statsMap[dateStr];
       if (stat) {
         lastCumulativeInstalled = stat.cumulative_installed || lastCumulativeInstalled;
         lastCumulativeChurned = stat.cumulative_churned || lastCumulativeChurned;
@@ -67,7 +105,7 @@ export const handler = async (event) => {
 
       dailyUsage.push({
         date: dateStr,
-        active: stat ? stat.active : 0,
+        active: wauSeqs.size, // WAU (최근 7일간 이용 매장 수)
         order_count: stat ? stat.order_count : 0,
         new_installs: stat ? stat.new_installs : 0,
         new_churns: stat ? stat.new_churns : 0,
