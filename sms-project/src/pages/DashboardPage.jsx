@@ -66,7 +66,6 @@ const DashboardPage = () => {
   const [periodData, setPeriodData] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('7d');
   const [managersMap, setManagersMap] = useState({});
-  const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
   const [visibleCount, setVisibleCount] = useState(10);
   const [salesLogs, setSalesLogs] = useState({});
   const [dailyUsageData, setDailyUsageData] = useState([]);
@@ -82,7 +81,17 @@ const DashboardPage = () => {
     start: (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString().split('T')[0]; })(),
     end: new Date().toISOString().split('T')[0]
   });
-  
+  const [selectedInstallCategory, setSelectedInstallCategory] = useState(null);
+
+  // 전일 미이용 매장 데이터
+  const [inactiveTodayData, setInactiveTodayData] = useState(null);
+  const [inactiveTodayLoading, setInactiveTodayLoading] = useState(false);
+  const [inactiveTargetDate, setInactiveTargetDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().split('T')[0];
+  });
+
   // 일별 설치 데이터
   const [dailyInstalls, setDailyInstalls] = useState([]);
   const [installManagers, setInstallManagers] = useState([]);
@@ -163,7 +172,6 @@ const DashboardPage = () => {
   // 매장 이용현황 (날짜 필터) 가져오기
   const fetchStoreUsageByDate = useCallback(async () => {
     try {
-      setLoading(true);
       const response = await apiClient.get(`/api/dashboard?start_date=${storeUsageDateRange.start}&end_date=${storeUsageDateRange.end}`);
 
       if (response.success && response.data) {
@@ -172,8 +180,6 @@ const DashboardPage = () => {
       }
     } catch (err) {
       console.error('매장 이용현황 조회 실패:', err);
-    } finally {
-      setLoading(false);
     }
   }, [storeUsageDateRange.start, storeUsageDateRange.end]);
 
@@ -239,6 +245,26 @@ const DashboardPage = () => {
     setSalesLogs(logs);
   }, []);
 
+  // 전일 미이용 매장 가져오기
+  const fetchInactiveTodayStores = useCallback(async () => {
+    try {
+      setInactiveTodayLoading(true);
+      const response = await apiClient.get(`/api/dashboard?view=inactive_today&target_date=${inactiveTargetDate}`);
+
+      if (response.success && response.data) {
+        setInactiveTodayData(response.data);
+        // 영업로그 병렬 조회
+        if (response.data.stores && response.data.stores.length > 0) {
+          fetchSalesLogsForStores(response.data.stores);
+        }
+      }
+    } catch (err) {
+      console.error('전일 미이용 매장 조회 실패:', err);
+    } finally {
+      setInactiveTodayLoading(false);
+    }
+  }, [inactiveTargetDate, fetchSalesLogsForStores]);
+
   // 일별 이용 현황 데이터 가져오기
   const fetchDailyUsage = useCallback(async () => {
     try {
@@ -258,7 +284,7 @@ const DashboardPage = () => {
     }
   }, [usageDateRange.start, usageDateRange.end]);
 
-  // 주간 설치 현황 가져오기 (최근 8주)
+  // 주간 설치 현황 가져오기 (최근 8주, 이번 주 포함)
   const fetchDailyInstalls = useCallback(async () => {
     try {
       const response = await apiClient.get('/api/stats/daily-installs?days=56');
@@ -267,36 +293,47 @@ const DashboardPage = () => {
         // 12월 7일(대량등록일) 제외
         const filteredData = response.data.filter(item => item.date !== '12-07');
 
-        // 주간 단위로 집계 (월~일 기준)
+        // 주간 단위로 집계 (월~일 기준, 이번 주는 오늘까지)
         const weeklyData = [];
         const today = new Date();
+        const todayDayOfWeek = today.getDay(); // 0=일, 1=월, ...
 
         for (let week = 0; week < 8; week++) {
-          // 이번 주 월요일 찾기
-          const weekEnd = new Date(today);
-          weekEnd.setDate(today.getDate() - (week * 7));
-          const dayOfWeek = weekEnd.getDay();
-          const diffToSunday = dayOfWeek === 0 ? 0 : 7 - dayOfWeek;
-          weekEnd.setDate(weekEnd.getDate() - dayOfWeek); // 일요일로 이동
+          let weekStart, weekEnd;
 
-          const weekStart = new Date(weekEnd);
-          weekStart.setDate(weekEnd.getDate() - 6); // 월요일로 이동
+          if (week === 0) {
+            // 이번 주: 이번 주 월요일 ~ 오늘
+            weekStart = new Date(today);
+            const daysFromMonday = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1;
+            weekStart.setDate(today.getDate() - daysFromMonday);
+            weekEnd = new Date(today);
+          } else {
+            // 지난 주들: 월~일 완료된 주
+            const baseDate = new Date(today);
+            // 이번 주 월요일 기준으로 week 수 만큼 이전
+            const daysFromMonday = todayDayOfWeek === 0 ? 6 : todayDayOfWeek - 1;
+            baseDate.setDate(today.getDate() - daysFromMonday - (week * 7));
+            weekStart = new Date(baseDate);
+            weekEnd = new Date(baseDate);
+            weekEnd.setDate(baseDate.getDate() + 6);
+          }
 
           const startStr = `${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
           const endStr = `${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
 
-          // 해당 주의 데이터 필터링
+          // 해당 주의 데이터 필터링 (weekStart ~ weekEnd)
           const weekDates = [];
-          for (let d = 0; d < 7; d++) {
-            const date = new Date(weekStart);
-            date.setDate(weekStart.getDate() + d);
-            weekDates.push(`${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`);
+          const currentDate = new Date(weekStart);
+          while (currentDate <= weekEnd) {
+            weekDates.push(`${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`);
+            currentDate.setDate(currentDate.getDate() + 1);
           }
 
           const weekItems = filteredData.filter(item => weekDates.includes(item.date));
 
           // 담당자별 합계 계산
-          const weekTotal = { week: `${startStr}~${endStr}` };
+          const weekLabel = week === 0 ? `${startStr}~(진행중)` : `${startStr}~${endStr}`;
+          const weekTotal = { week: weekLabel };
           for (const item of weekItems) {
             for (const [key, value] of Object.entries(item)) {
               if (key !== 'date') {
@@ -457,11 +494,13 @@ const DashboardPage = () => {
       await fetchManagers();
 
       // 나머지 API 호출은 병렬로 실행
-      // fetchStoreUsageByDate는 별도 useEffect에서 호출됨
       await Promise.all([
         fetchDailyUsage(),
         fetchDailyInstalls()
       ]);
+
+      // 로딩 완료
+      setLoading(false);
     };
     loadData();
   }, [fetchManagers, fetchDailyUsage, fetchDailyInstalls]);
@@ -482,6 +521,11 @@ const DashboardPage = () => {
   useEffect(() => {
     fetchStoreUsageByDate();
   }, [fetchStoreUsageByDate]);
+
+  // 전일 미이용 매장 데이터 로드
+  useEffect(() => {
+    fetchInactiveTodayStores();
+  }, [fetchInactiveTodayStores]);
 
   // 히트맵 데이터 로드
   useEffect(() => {
@@ -607,7 +651,7 @@ const DashboardPage = () => {
   // 퍼널 차트 데이터
   const funnelData = useMemo(() => {
     if (!overallStats?.funnel) return [];
-    
+
     return [
       { name: '가입', value: overallStats.funnel.registered || 0, fill: '#FF3D00' },
       { name: '설치', value: overallStats.funnel.install_completed || 0, fill: '#FF6B00' },
@@ -1069,6 +1113,7 @@ const DashboardPage = () => {
                 <ResponsiveContainer width="100%" height={400}>
                   <Sankey
                     data={cohortData.sankey}
+                    sort={false}
                     node={({ x, y, width, height, index, payload }) => {
                       const nodeCount = cohortData.sankey.nodes.length;
                       const isStateNode = index >= nodeCount - 3;
@@ -1111,7 +1156,30 @@ const DashboardPage = () => {
                     nodeWidth={12}
                     margin={{ top: 10, right: 20, bottom: 10, left: 20 }}
                   >
-                    <Tooltip />
+                    <Tooltip
+                      formatter={(value, name, props) => {
+                        const { payload } = props;
+                        if (payload && payload.source && payload.target) {
+                          const sourceName = payload.source.name;
+
+                          // 소스 노드의 총 값 계산 (비중 계산용)
+                          const sourceTotal = cohortData.sankey.links
+                            .filter(link => cohortData.sankey.nodes[link.source]?.name === sourceName)
+                            .reduce((sum, link) => sum + link.value, 0);
+
+                          const percentage = sourceTotal > 0 ? ((value / sourceTotal) * 100).toFixed(1) : 0;
+
+                          return [`${value}개 (${percentage}%)`, payload.target.name];
+                        }
+                        return [value, name];
+                      }}
+                      labelFormatter={(label, payload) => {
+                        if (payload && payload[0]?.payload?.source) {
+                          return payload[0].payload.source.name;
+                        }
+                        return label;
+                      }}
+                    />
                   </Sankey>
                 </ResponsiveContainer>
               ) : (
@@ -1122,8 +1190,8 @@ const DashboardPage = () => {
             </div>
           )}
 
-          {/* 매장 이용 현황 - 모바일에서 숨김 */}
-          {!isMobile && overallStats?.install_detail?.summary && (
+          {/* 매장 이용 현황 - 임시 숨김 처리 (나중에 사용할 수 있음) */}
+          {false && !isMobile && overallStats?.install_detail?.summary && (
             <div style={{
               backgroundColor: 'white',
               borderRadius: '12px',
@@ -1161,7 +1229,7 @@ const DashboardPage = () => {
                 />
               </div>
             </div>
-              
+
               {/* 카테고리 카드들 */}
               <div style={{
                 display: 'grid',
@@ -1196,7 +1264,7 @@ const DashboardPage = () => {
                     const newCategory = selectedInstallCategory === 'inactive' ? null : 'inactive';
                     setSelectedInstallCategory(newCategory);
                     setVisibleCount(10);
-                    
+
                     // 미이용 탭 선택 시 영업로그 가져오기
                     if (newCategory === 'inactive' && overallStats?.install_detail?.inactive) {
                       fetchSalesLogsForStores(overallStats.install_detail.inactive);
@@ -1223,7 +1291,7 @@ const DashboardPage = () => {
                     const newCategory = selectedInstallCategory === 'repair' ? null : 'repair';
                     setSelectedInstallCategory(newCategory);
                     setVisibleCount(10);
-                    
+
                     // 하자보수 탭 선택 시 영업로그 가져오기
                     if (newCategory === 'repair' && overallStats?.install_detail?.repair) {
                       fetchSalesLogsForStores(overallStats.install_detail.repair);
@@ -1325,13 +1393,13 @@ const DashboardPage = () => {
                                     {(() => {
                                       const log = salesLogs[store.store_id];
                                       if (!log) return '-';
-                                      
-                                      const content = log.content.length > 20 ? 
+
+                                      const content = log.content.length > 20 ?
                                         log.content.substring(0, 20) + '...' : log.content;
-                                      
+
                                       const date = new Date(log.created_at);
                                       const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
-                                      
+
                                       return `${content} (${dateStr})`;
                                     })()}
                                   </td>
@@ -1382,9 +1450,178 @@ const DashboardPage = () => {
             </div>
           )}
 
-
-          {/* 담당자별 성과 테이블 - 모바일에서 숨김 */}
+          {/* 전일 미이용 매장 - 모바일에서 숨김 */}
           {!isMobile && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              border: '1px solid #e5e7eb',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  미이용 매장
+                </h3>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {inactiveTodayData && (
+                    <span style={{ fontSize: '13px', color: '#6b7280' }}>
+                      지난 {inactiveTodayData.day_of_week}요일 대비
+                    </span>
+                  )}
+                  <input
+                    type="date"
+                    value={inactiveTargetDate}
+                    onChange={(e) => setInactiveTargetDate(e.target.value)}
+                    style={{
+                      padding: '6px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb',
+                      fontSize: '12px'
+                    }}
+                  />
+                </div>
+              </div>
+
+              {inactiveTodayLoading ? (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px', color: '#6b7280' }}>
+                  데이터를 불러오는 중...
+                </div>
+              ) : inactiveTodayData ? (
+                <>
+                  {/* 요약 카드 */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '12px',
+                    marginBottom: '20px',
+                    maxWidth: '400px'
+                  }}>
+                    <div style={{
+                      padding: '16px',
+                      borderRadius: '8px',
+                      border: '1px solid #e5e7eb',
+                      backgroundColor: '#f9fafb'
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>
+                        지난 {inactiveTodayData.day_of_week}요일 이용
+                      </p>
+                      <p style={{ fontSize: '24px', fontWeight: '600', color: '#3B82F6', margin: 0 }}>
+                        {inactiveTodayData.summary?.last_week_active || 0}개
+                      </p>
+                    </div>
+                    <div style={{
+                      padding: '16px',
+                      borderRadius: '8px',
+                      border: '2px solid #EF4444',
+                      backgroundColor: '#fef2f2'
+                    }}>
+                      <p style={{ fontSize: '12px', color: '#6b7280', margin: '0 0 4px 0' }}>
+                        어제 미이용
+                      </p>
+                      <p style={{ fontSize: '24px', fontWeight: '600', color: '#EF4444', margin: 0 }}>
+                        {inactiveTodayData.summary?.inactive_count || 0}개
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 매장 리스트 테이블 */}
+                  {inactiveTodayData.stores && inactiveTodayData.stores.length > 0 ? (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                        <thead>
+                          <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                            <th style={{ width: '50px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>번호</th>
+                            <th style={{ width: '25%', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>매장명</th>
+                            <th style={{ width: '80px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>담당자</th>
+                            <th style={{ width: '100px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>설치일</th>
+                            <th style={{ width: '80px', padding: '8px', textAlign: 'center', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>지난주 주문</th>
+                            <th style={{ width: '200px', padding: '8px', textAlign: 'left', fontSize: '12px', fontWeight: '600', color: '#6b7280' }}>최근 영업로그</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {inactiveTodayData.stores.slice(0, visibleCount).map((store, index) => (
+                            <tr
+                              key={store.store_id || index}
+                              onClick={() => navigate(`/stores/${store.store_id}`)}
+                              style={{
+                                borderBottom: '1px solid #f3f4f6',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f9fafb'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>{index + 1}</td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#111827', fontWeight: '500' }}>
+                                {store.store_name || '-'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
+                                {managersMap[store.owner_id] || store.owner_name || store.owner_id?.split('@')[0] || '-'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
+                                {store.first_install_completed_at ? new Date(store.first_install_completed_at).toLocaleDateString('ko-KR') : '-'}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151', textAlign: 'center' }}>
+                                {store.last_week_order_count || 0}
+                              </td>
+                              <td style={{ padding: '12px 8px', fontSize: '13px', color: '#374151' }}>
+                                {(() => {
+                                  const log = salesLogs[store.store_id];
+                                  if (!log) return '-';
+
+                                  const content = log.content.length > 20 ?
+                                    log.content.substring(0, 20) + '...' : log.content;
+
+                                  const date = new Date(log.created_at);
+                                  const dateStr = `${date.getMonth() + 1}/${date.getDate()}`;
+
+                                  return `${content} (${dateStr})`;
+                                })()}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {visibleCount < inactiveTodayData.stores.length && (
+                        <button
+                          onClick={() => setVisibleCount(prev => prev + 10)}
+                          style={{
+                            width: '100%',
+                            padding: '12px',
+                            marginTop: '16px',
+                            backgroundColor: '#F3F4F6',
+                            border: 'none',
+                            borderRadius: '8px',
+                            color: '#6B7280',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#E5E7EB'}
+                          onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#F3F4F6'}
+                        >
+                          더보기 ({inactiveTodayData.stores.length - visibleCount}개 더)
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '14px' }}>
+                      전일 미이용 매장이 없습니다
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', fontSize: '14px' }}>
+                  데이터를 불러올 수 없습니다
+                </div>
+              )}
+            </div>
+          )}
+
+
+          {/* 담당자별 성과 테이블 - 임시 숨김 처리 */}
+          {false && !isMobile && (
           <div style={{
             backgroundColor: 'white',
             borderRadius: '12px',

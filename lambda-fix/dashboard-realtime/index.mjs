@@ -61,6 +61,12 @@ export const handler = async (event) => {
       return await handleCohortView(baseDate);
     }
 
+    // 전일 미이용 매장 뷰 처리
+    if (view === 'inactive_today') {
+      const targetDate = queryParams.target_date; // 선택한 날짜 (없으면 어제)
+      return await handleInactiveTodayView(targetDate);
+    }
+
     // 1. 사용자(담당자) 정보 조회
     const usersResult = await dynamodb.send(new ScanCommand({ TableName: usersTable }));
     const users = usersResult.Items || [];
@@ -647,6 +653,134 @@ async function handleCohortView(baseDate) {
         summary,
         monthly: recentMonths.map(m => monthlyData[m]),
         sankey: { nodes, links }
+      }
+    })
+  };
+}
+
+// 전일 미이용 매장 조회 (지난주 같은 요일 대비)
+async function handleInactiveTodayView(inputDate) {
+  const DAY_NAMES = ['일', '월', '화', '수', '목', '금', '토'];
+
+  // 날짜 계산: 파라미터가 있으면 해당 날짜, 없으면 어제
+  let targetDate;
+  if (inputDate) {
+    targetDate = new Date(inputDate + 'T00:00:00Z');
+  } else {
+    const today = new Date();
+    targetDate = new Date(today);
+    targetDate.setDate(targetDate.getDate() - 1);
+  }
+  const targetDateStr = targetDate.toISOString().split('T')[0];
+  const dayOfWeek = DAY_NAMES[targetDate.getUTCDay()];
+
+  const lastWeek = new Date(targetDate);
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  const lastWeekStr = lastWeek.toISOString().split('T')[0];
+
+  // 1. 지난주 같은 요일에 주문이 있었던 매장 조회
+  const lastWeekOrdersResult = await dynamodb.send(new ScanCommand({
+    TableName: storeDailyOrdersTable,
+    FilterExpression: "order_date = :lastWeek AND order_count > :zero",
+    ExpressionAttributeValues: {
+      ":lastWeek": lastWeekStr,
+      ":zero": 0
+    }
+  }));
+
+  const lastWeekStores = {};
+  for (const item of lastWeekOrdersResult.Items || []) {
+    lastWeekStores[item.seq] = item.order_count || 0;
+  }
+
+  // 2. 선택한 날짜에 주문이 있는 매장 조회
+  const targetDateOrdersResult = await dynamodb.send(new ScanCommand({
+    TableName: storeDailyOrdersTable,
+    FilterExpression: "order_date = :targetDate AND order_count > :zero",
+    ExpressionAttributeValues: {
+      ":targetDate": targetDateStr,
+      ":zero": 0
+    }
+  }));
+
+  const targetDateActiveSeqs = new Set();
+  for (const item of targetDateOrdersResult.Items || []) {
+    targetDateActiveSeqs.add(item.seq);
+  }
+
+  // 3. 지난주에는 있었지만 선택한 날짜에는 없는 매장 추출
+  const inactiveSeqs = Object.keys(lastWeekStores).filter(seq => !targetDateActiveSeqs.has(seq));
+
+  // 4. 매장 상세 정보 조회
+  const storesResult = await dynamodb.send(new ScanCommand({ TableName: storesTable }));
+  const storeMap = {};
+  for (const store of storesResult.Items || []) {
+    if (store.seq) {
+      storeMap[store.seq] = store;
+    }
+  }
+
+  // 5. 히스토리에서 설치완료일 조회 (QR_MENU_INSTALL로 설치완료된 매장만)
+  const historyResult = await dynamodb.send(new ScanCommand({
+    TableName: historyTable,
+    FilterExpression: "new_status = :status",
+    ExpressionAttributeValues: { ":status": "QR_MENU_INSTALL" }
+  }));
+
+  const firstInstallMap = {};
+  for (const item of historyResult.Items || []) {
+    const storeId = item.store_id;
+    const changedAt = item.changed_at;
+    if (!firstInstallMap[storeId] || changedAt < firstInstallMap[storeId]) {
+      firstInstallMap[storeId] = changedAt;
+    }
+  }
+
+  // 6. 금일 미이용 매장 상세 정보 구성
+  const inactiveStores = [];
+  for (const seq of inactiveSeqs) {
+    const store = storeMap[seq];
+    if (!store) continue;
+
+    // 현재 상태가 설치완료(QR_MENU_INSTALL)인 매장만 포함
+    if (store.status !== 'QR_MENU_INSTALL') continue;
+
+    const ownerId = store.owner_id || 'unassigned';
+    const ownerName = OWNER_NAMES[ownerId] || ownerId.split('@')[0];
+
+    inactiveStores.push({
+      store_id: store.store_id,
+      store_name: store.store_name,
+      seq: seq,
+      owner_id: ownerId,
+      owner_name: ownerName,
+      first_install_completed_at: firstInstallMap[store.store_id] || null,
+      last_week_order_count: lastWeekStores[seq] || 0
+    });
+  }
+
+  // 7. 설치일 기준 최신순 정렬
+  inactiveStores.sort((a, b) => {
+    const dateA = a.first_install_completed_at || '0000-00-00';
+    const dateB = b.first_install_completed_at || '0000-00-00';
+    return dateB.localeCompare(dateA);
+  });
+
+  return {
+    statusCode: 200,
+    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    body: JSON.stringify({
+      success: true,
+      data: {
+        target_date: targetDateStr,
+        last_week_same_day: lastWeekStr,
+        day_of_week: dayOfWeek,
+        stores: inactiveStores,
+        summary: {
+          last_week_active: Object.keys(lastWeekStores).length,
+          target_date_active: targetDateActiveSeqs.size,
+          inactive_count: inactiveStores.length
+        }
       }
     })
   };
