@@ -616,6 +616,77 @@ app.get('/api/stores/:storeId/consent-responses', authenticateToken, (req, res) 
   }
 });
 
+// Get all agencies (unique agency info from consent responses) - Admin only
+app.get('/api/agencies', authenticateToken, (req, res) => {
+  try {
+    if (req.user.role !== 'ADMIN') {
+      return res.status(403).json({ success: false, message: '관리자 권한이 필요합니다.' });
+    }
+
+    // Get all consent responses and extract unique agencies
+    const allResponses = Array.from(consentResponses.values());
+
+    // Group by agency (design_type = agency name, preferred_color = agency phone)
+    const agencyMap = new Map();
+
+    allResponses.forEach(response => {
+      const agencyName = response.design_type;
+      const agencyPhone = response.preferred_color;
+
+      if (agencyName && agencyName.trim()) {
+        const key = `${agencyName}-${agencyPhone || ''}`;
+
+        if (!agencyMap.has(key)) {
+          agencyMap.set(key, {
+            agency_name: agencyName,
+            agency_phone: agencyPhone || '',
+            store_count: 1,
+            stores: [{
+              store_id: response.store_id,
+              store_name: stores.find(s => s.id === response.store_id)?.name || '알 수 없음',
+              submitted_at: response.submitted_at
+            }],
+            first_submitted_at: response.submitted_at,
+            last_submitted_at: response.submitted_at
+          });
+        } else {
+          const agency = agencyMap.get(key);
+          agency.store_count++;
+          agency.stores.push({
+            store_id: response.store_id,
+            store_name: stores.find(s => s.id === response.store_id)?.name || '알 수 없음',
+            submitted_at: response.submitted_at
+          });
+          // Update first/last submitted dates
+          if (new Date(response.submitted_at) < new Date(agency.first_submitted_at)) {
+            agency.first_submitted_at = response.submitted_at;
+          }
+          if (new Date(response.submitted_at) > new Date(agency.last_submitted_at)) {
+            agency.last_submitted_at = response.submitted_at;
+          }
+        }
+      }
+    });
+
+    const agencies = Array.from(agencyMap.values())
+      .sort((a, b) => b.store_count - a.store_count);
+
+    console.log(`📋 대리점 목록 조회: ${agencies.length}개 대리점`);
+
+    res.json({
+      success: true,
+      data: {
+        agencies,
+        total: agencies.length
+      }
+    });
+
+  } catch (error) {
+    console.error('Get agencies error:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+});
+
 // Sales Log 삭제 (DELETE 메서드 지원)
 app.delete('/api/stores/:storeId/sales-logs/:logId', authenticateToken, (req, res) => {
   const { storeId, logId } = req.params;

@@ -5,6 +5,7 @@ const client = new DynamoDBClient({ region: "ap-northeast-2" });
 const dynamodb = DynamoDBDocumentClient.from(client);
 
 const storesTable = "sms-stores-dev";
+const consentTable = "sms-consent-responses-dev";
 
 // JWT 디코딩 함수
 const decodeJWT = (token) => {
@@ -19,14 +20,86 @@ const decodeJWT = (token) => {
 export const handler = async (event) => {
   try {
     // 토큰에서 사용자 정보 추출
-    const token = event.headers.Authorization?.replace('Bearer ', '') || 
+    const token = event.headers.Authorization?.replace('Bearer ', '') ||
                   event.headers.authorization?.replace('Bearer ', '');
     const decoded = decodeJWT(token);
-    
+
     const userRole = decoded?.role;
     const userId = decoded?.userId;
 
     const queryParams = event.queryStringParameters || {};
+
+    // ⭐ type=agencies면 대리점 목록 반환
+    if (queryParams.type === 'agencies') {
+      // ADMIN만 접근 가능
+      if (userRole !== 'ADMIN') {
+        return {
+          statusCode: 403,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          body: JSON.stringify({ success: false, error: '관리자 권한이 필요합니다.' })
+        };
+      }
+
+      // consent-responses 테이블에서 대리점 정보 추출
+      let allResponses = [];
+      let lastKey = null;
+      do {
+        const params = { TableName: consentTable };
+        if (lastKey) params.ExclusiveStartKey = lastKey;
+        const res = await dynamodb.send(new ScanCommand(params));
+        allResponses = allResponses.concat(res.Items || []);
+        lastKey = res.LastEvaluatedKey;
+      } while (lastKey);
+
+      // stores 테이블에서 매장 이름 조회
+      let allStores = [];
+      lastKey = null;
+      do {
+        const params = { TableName: storesTable, ProjectionExpression: 'store_id, store_name' };
+        if (lastKey) params.ExclusiveStartKey = lastKey;
+        const res = await dynamodb.send(new ScanCommand(params));
+        allStores = allStores.concat(res.Items || []);
+        lastKey = res.LastEvaluatedKey;
+      } while (lastKey);
+
+      const storeMap = new Map();
+      allStores.forEach(s => storeMap.set(s.store_id, s.store_name || '알 수 없음'));
+
+      // 대리점 정보 집계
+      const agencyMap = new Map();
+      allResponses.forEach(r => {
+        const agencyName = r.design_type;
+        const agencyPhone = r.preferred_color;
+        if (agencyName && agencyName.trim()) {
+          const key = `${agencyName}-${agencyPhone || ''}`;
+          if (!agencyMap.has(key)) {
+            agencyMap.set(key, {
+              agency_name: agencyName,
+              agency_phone: agencyPhone || '',
+              store_count: 1,
+              stores: [{ store_id: r.store_id, store_name: storeMap.get(r.store_id) || '알 수 없음', submitted_at: r.submitted_at }],
+              first_submitted_at: r.submitted_at,
+              last_submitted_at: r.submitted_at
+            });
+          } else {
+            const a = agencyMap.get(key);
+            a.store_count++;
+            a.stores.push({ store_id: r.store_id, store_name: storeMap.get(r.store_id) || '알 수 없음', submitted_at: r.submitted_at });
+            if (r.submitted_at && (!a.first_submitted_at || r.submitted_at < a.first_submitted_at)) a.first_submitted_at = r.submitted_at;
+            if (r.submitted_at && (!a.last_submitted_at || r.submitted_at > a.last_submitted_at)) a.last_submitted_at = r.submitted_at;
+          }
+        }
+      });
+
+      const agencies = Array.from(agencyMap.values()).sort((a, b) => b.store_count - a.store_count);
+
+      return {
+        statusCode: 200,
+        headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        body: JSON.stringify({ success: true, data: { agencies, total: agencies.length } })
+      };
+    }
+
     let ownerId = queryParams.ownerId;
     const statuses = queryParams.statuses ? (Array.isArray(queryParams.statuses) ? queryParams.statuses : [queryParams.statuses]) : [];
     const lifecycles = queryParams.lifecycles ? (Array.isArray(queryParams.lifecycles) ? queryParams.lifecycles : [queryParams.lifecycles]) : [];

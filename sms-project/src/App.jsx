@@ -27,6 +27,7 @@ import MenuApplyPage from './pages/MenuApplyPage.jsx';
 import MenuPhotoUploadPage from './pages/MenuPhotoUploadPage.jsx';
 import QRMenuManagementPage from './pages/QRMenuManagementPage.jsx';
 import QRPlacementsPage from './pages/QRPlacementsPage.jsx';
+import AgencyListPage from './pages/AgencyListPage.jsx';
 
 /**
  * 404 페이지 컴포넌트
@@ -313,15 +314,25 @@ function App() {
         />
         
         {/* 부착인증 관리 페이지 (ADMIN 전용) */}
-        <Route 
-          path="/qr-placements" 
+        <Route
+          path="/qr-placements"
           element={
             <AdminRoute>
               <QRPlacementsPage />
             </AdminRoute>
-          } 
+          }
         />
-        
+
+        {/* 대리점 관리 페이지 (ADMIN 전용) */}
+        <Route
+          path="/agencies"
+          element={
+            <AdminRoute>
+              <AgencyListPage />
+            </AdminRoute>
+          }
+        />
+
         {/* 404 페이지 */}
         <Route path="*" element={<NotFoundPage />} />
         </Routes>

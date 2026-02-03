@@ -150,7 +150,8 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
       children: [
         { name: '가입신청', path: '/applications', adminOnly: true },
         { name: '매장관리', path: '/stores' },
-        { name: '방문일정', path: '/schedule' }
+        { name: '방문일정', path: '/schedule' },
+        { name: '대리점관리', path: '/agencies', adminOnly: true }
       ]
     },
     {
