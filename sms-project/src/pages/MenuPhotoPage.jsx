@@ -123,9 +123,9 @@ const MenuPhotoPage = () => {
       // 1. 이미지를 base64로 변환
       const base64Image = await fileToBase64(originalImage);
       
-      // 2. Gemini API 호출
+      // 2. Gemini API 호출 (Gemini 2.0 Flash - 이미지 생성 지원)
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent?key=${import.meta.env.VITE_GOOGLE_API_KEY}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent?key=${import.meta.env.VITE_GOOGLE_API_KEY}`,
         {
           method: 'POST',
           headers: {
@@ -135,7 +135,7 @@ const MenuPhotoPage = () => {
             contents: [{
               parts: [
                 {
-                  text: `(Masterpiece, Best Quality:1.5), A stunning, high-end commercial food photograph created based on the layout of the reference image. Dramatic, warm golden hour studio lighting creating an appetizing glow and cinematic atmosphere. Completely upgrade the visual quality. Render all food items shown in the reference with rich, juicy, and photorealistic textures, making them look Michelin-star quality. Maintain the exact arrangement of dishes and plates but present them in a luxurious fine dining setting. Sharp focus, shallow depth of field, 8k resolution, highly detailed. strictly 1:1 aspect ratio.`
+                  text: `Transform this food photo into a high-end commercial food photograph. Create a stunning, Michelin-star quality image with: dramatic warm golden hour studio lighting, appetizing glow and cinematic atmosphere, rich juicy photorealistic textures, luxurious fine dining presentation. Maintain the exact arrangement of dishes but upgrade the visual quality. Sharp focus, shallow depth of field, 8k resolution, highly detailed. Keep the same 1:1 aspect ratio.`
                 },
                 {
                   inlineData: {
@@ -146,9 +146,8 @@ const MenuPhotoPage = () => {
               ]
             }],
             generationConfig: {
-              temperature: 0.4,
-              maxOutputTokens: 8192,
-              responseMimeType: "application/json"
+              responseModalities: ["image", "text"],
+              temperature: 0.4
             }
           })
         }
