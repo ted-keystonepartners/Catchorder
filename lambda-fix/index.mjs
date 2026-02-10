@@ -672,8 +672,8 @@ async function handleWeeklyCohortDetailView(weekKey) {
 
     // 보류 상태 (설치 후 다시 진행중으로)
     const HOLD_STATUSES = [
-      'REVISIT_SCHEDULED', 'INFO_REQUEST', 'REMOTE_INSTALL_SCHEDULED',
-      'ADMIN_SETTING', 'QR_LINKING'
+      'PENDING', 'REVISIT_SCHEDULED', 'INFO_REQUEST', 'REMOTE_INSTALL_SCHEDULED',
+      'ADMIN_SETTING', 'QR_LINKING', 'DEFECT_REPAIR'
     ];
 
     // 해지 상태

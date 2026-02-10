@@ -1072,6 +1072,199 @@ const DashboardPage = () => {
           </div>
           )}
 
+          {/* 주간 코호트 잔존율 표 */}
+          {!isMobile && (
+            <div style={{
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              padding: '24px',
+              border: '1px solid #e5e7eb',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
+                  주간 코호트 잔존율
+                </h3>
+                <span style={{ fontSize: '12px', color: '#6b7280' }}>
+                  * 해당 주차에 주문 1건 이상 발생한 매장
+                </span>
+              </div>
+
+              {cohortRetentionLoading ? (
+                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#6b7280' }}>로딩 중...</span>
+                </div>
+              ) : cohortRetentionData.length > 0 ? (
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                    <thead>
+                      <tr>
+                        <th style={{
+                          padding: '10px 12px',
+                          textAlign: 'left',
+                          fontWeight: '600',
+                          color: '#374151',
+                          backgroundColor: '#f9fafb',
+                          borderBottom: '2px solid #e5e7eb',
+                          position: 'sticky',
+                          left: 0,
+                          minWidth: '100px'
+                        }}>
+                          설치 주차
+                        </th>
+                        <th style={{
+                          padding: '10px 12px',
+                          textAlign: 'center',
+                          fontWeight: '600',
+                          color: '#374151',
+                          backgroundColor: '#e0f2fe',
+                          borderBottom: '2px solid #e5e7eb',
+                          minWidth: '80px'
+                        }}>
+                          설치매장
+                        </th>
+                        {cohortRetentionData[0]?.weeks?.map((week, idx) => (
+                          <th key={`week-header-${idx}`} style={{
+                            padding: '10px 12px',
+                            textAlign: 'center',
+                            fontWeight: '600',
+                            color: '#374151',
+                            backgroundColor: '#f9fafb',
+                            borderBottom: '2px solid #e5e7eb',
+                            minWidth: '90px'
+                          }}>
+                            Week {idx}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cohortRetentionData.map((row) => (
+                        <Fragment key={row.weekKey}>
+                        <tr
+                          onClick={() => fetchCohortDetail(row.weekKey)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td style={{
+                            padding: '10px 12px',
+                            fontWeight: '500',
+                            color: '#111827',
+                            backgroundColor: expandedCohortWeek === row.weekKey ? '#eff6ff' : 'white',
+                            borderBottom: '1px solid #e5e7eb',
+                            position: 'sticky',
+                            left: 0
+                          }}>
+                            {expandedCohortWeek === row.weekKey ? '▼ ' : '▶ '}{row.label}
+                          </td>
+                          <td style={{
+                            padding: '10px 12px',
+                            textAlign: 'center',
+                            backgroundColor: '#e0f2fe',
+                            borderBottom: '1px solid #e5e7eb',
+                            fontWeight: '600',
+                            color: '#0369a1'
+                          }}>
+                            {row.installed}
+                          </td>
+                          {row.weeks.map((week, weekIdx) => (
+                            <td key={`${row.weekKey}-w${weekIdx}`} style={{
+                              padding: '10px 12px',
+                              textAlign: 'center',
+                              backgroundColor: getRetentionColor(week.rate),
+                              borderBottom: '1px solid #e5e7eb',
+                              fontWeight: week.rate >= 70 ? '600' : '400',
+                              color: week.rate >= 50 ? '#166534' : '#991b1b'
+                            }}>
+                              {week.count} ({week.rate}%)
+                            </td>
+                          ))}
+                          {/* 미래 주차는 빈 셀로 표시 */}
+                          {Array.from({ length: Math.max(0, (cohortRetentionData[0]?.weeks?.length || 0) - row.weeks.length) }).map((_, emptyIdx) => (
+                            <td key={`${row.weekKey}-empty-${emptyIdx}`} style={{
+                              padding: '10px 12px',
+                              textAlign: 'center',
+                              backgroundColor: '#f9fafb',
+                              borderBottom: '1px solid #e5e7eb',
+                              color: '#d1d5db'
+                            }}>
+                              -
+                            </td>
+                          ))}
+                        </tr>
+                        {/* 상세 행 (클릭 시 펼침) - 부모 테이블과 동일한 컬럼 구조 */}
+                        {expandedCohortWeek === row.weekKey && cohortDetailLoading && (
+                          <tr>
+                            <td colSpan={2 + (cohortRetentionData[0]?.weeks?.length || 0)} style={{ padding: '12px', textAlign: 'center', backgroundColor: '#f8fafc', color: '#6b7280' }}>
+                              상세 데이터 로딩 중...
+                            </td>
+                          </tr>
+                        )}
+                        {expandedCohortWeek === row.weekKey && !cohortDetailLoading && cohortDetailData?.stores?.map((store) => {
+                          const maxWeeksCount = cohortRetentionData[0]?.weeks?.length || 0;
+                          return (
+                            <tr key={`detail-${store.store_id}`} style={{ backgroundColor: '#f8fafc' }}>
+                              <td style={{
+                                padding: '8px 12px',
+                                paddingLeft: '24px',
+                                fontWeight: '400',
+                                color: '#374151',
+                                backgroundColor: '#f8fafc',
+                                borderBottom: '1px solid #e5e7eb',
+                                position: 'sticky',
+                                left: 0,
+                                fontSize: '13px'
+                              }}>
+                                {store.store_name}
+                              </td>
+                              {/* 설치매장 컬럼 (설치 날짜 표시) */}
+                              <td style={{
+                                padding: '8px 12px',
+                                textAlign: 'center',
+                                backgroundColor: '#f0f9ff',
+                                borderBottom: '1px solid #e5e7eb',
+                                fontSize: '12px',
+                                color: '#0369a1'
+                              }}>
+                                {store.install_date ? store.install_date.slice(5).replace('-', '/') : ''}
+                              </td>
+                              {/* Week 0 ~ maxWeeks 컬럼 */}
+                              {Array.from({ length: maxWeeksCount }).map((_, weekIdx) => {
+                                const weekData = store.weeks?.[weekIdx];
+                                const value = weekData?.value || '-';
+                                const isHold = value === '보류';
+                                const isChurn = value === '해지';
+                                const isDash = value === '-';
+                                const isZero = value === '0건';
+                                return (
+                                  <td key={`${store.store_id}-w${weekIdx}`} style={{
+                                    padding: '8px 12px',
+                                    textAlign: 'center',
+                                    backgroundColor: isHold ? '#fef3c7' : isChurn ? '#fee2e2' : isDash ? '#f8fafc' : isZero ? '#fef2f2' : '#ecfdf5',
+                                    borderBottom: '1px solid #e5e7eb',
+                                    color: isHold ? '#92400e' : isChurn ? '#991b1b' : isDash ? '#d1d5db' : isZero ? '#ef4444' : '#166534',
+                                    fontWeight: isHold || isChurn ? '600' : '400',
+                                    fontSize: '13px'
+                                  }}>
+                                    {value}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          );
+                        })}
+                        </Fragment>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span style={{ color: '#6b7280' }}>데이터가 없습니다</span>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* 차트 그리드 - 모바일에서 숨김, 데스크탑: 2열 */}
           {!isMobile && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4" style={{ marginBottom: '24px' }}>
@@ -1341,199 +1534,6 @@ const DashboardPage = () => {
               ) : (
                 <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
                   데이터가 없습니다
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* 주간 코호트 잔존율 표 */}
-          {!isMobile && (
-            <div style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              padding: '24px',
-              border: '1px solid #e5e7eb',
-              marginBottom: '24px'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                  주간 코호트 잔존율
-                </h3>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                  * 해당 주차에 주문 1건 이상 발생한 매장
-                </span>
-              </div>
-
-              {cohortRetentionLoading ? (
-                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: '#6b7280' }}>로딩 중...</span>
-                </div>
-              ) : cohortRetentionData.length > 0 ? (
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                    <thead>
-                      <tr>
-                        <th style={{
-                          padding: '10px 12px',
-                          textAlign: 'left',
-                          fontWeight: '600',
-                          color: '#374151',
-                          backgroundColor: '#f9fafb',
-                          borderBottom: '2px solid #e5e7eb',
-                          position: 'sticky',
-                          left: 0,
-                          minWidth: '100px'
-                        }}>
-                          설치 주차
-                        </th>
-                        <th style={{
-                          padding: '10px 12px',
-                          textAlign: 'center',
-                          fontWeight: '600',
-                          color: '#374151',
-                          backgroundColor: '#e0f2fe',
-                          borderBottom: '2px solid #e5e7eb',
-                          minWidth: '80px'
-                        }}>
-                          설치매장
-                        </th>
-                        {cohortRetentionData[0]?.weeks?.map((week, idx) => (
-                          <th key={`week-header-${idx}`} style={{
-                            padding: '10px 12px',
-                            textAlign: 'center',
-                            fontWeight: '600',
-                            color: '#374151',
-                            backgroundColor: '#f9fafb',
-                            borderBottom: '2px solid #e5e7eb',
-                            minWidth: '90px'
-                          }}>
-                            Week {idx}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cohortRetentionData.map((row) => (
-                        <Fragment key={row.weekKey}>
-                        <tr
-                          onClick={() => fetchCohortDetail(row.weekKey)}
-                          style={{ cursor: 'pointer' }}
-                        >
-                          <td style={{
-                            padding: '10px 12px',
-                            fontWeight: '500',
-                            color: '#111827',
-                            backgroundColor: expandedCohortWeek === row.weekKey ? '#eff6ff' : 'white',
-                            borderBottom: '1px solid #e5e7eb',
-                            position: 'sticky',
-                            left: 0
-                          }}>
-                            {expandedCohortWeek === row.weekKey ? '▼ ' : '▶ '}{row.label}
-                          </td>
-                          <td style={{
-                            padding: '10px 12px',
-                            textAlign: 'center',
-                            backgroundColor: '#e0f2fe',
-                            borderBottom: '1px solid #e5e7eb',
-                            fontWeight: '600',
-                            color: '#0369a1'
-                          }}>
-                            {row.installed}
-                          </td>
-                          {row.weeks.map((week, weekIdx) => (
-                            <td key={`${row.weekKey}-w${weekIdx}`} style={{
-                              padding: '10px 12px',
-                              textAlign: 'center',
-                              backgroundColor: getRetentionColor(week.rate),
-                              borderBottom: '1px solid #e5e7eb',
-                              fontWeight: week.rate >= 70 ? '600' : '400',
-                              color: week.rate >= 50 ? '#166534' : '#991b1b'
-                            }}>
-                              {week.count} ({week.rate}%)
-                            </td>
-                          ))}
-                          {/* 미래 주차는 빈 셀로 표시 */}
-                          {Array.from({ length: Math.max(0, (cohortRetentionData[0]?.weeks?.length || 0) - row.weeks.length) }).map((_, emptyIdx) => (
-                            <td key={`${row.weekKey}-empty-${emptyIdx}`} style={{
-                              padding: '10px 12px',
-                              textAlign: 'center',
-                              backgroundColor: '#f9fafb',
-                              borderBottom: '1px solid #e5e7eb',
-                              color: '#d1d5db'
-                            }}>
-                              -
-                            </td>
-                          ))}
-                        </tr>
-                        {/* 상세 행 (클릭 시 펼침) - 부모 테이블과 동일한 컬럼 구조 */}
-                        {expandedCohortWeek === row.weekKey && cohortDetailLoading && (
-                          <tr>
-                            <td colSpan={2 + (cohortRetentionData[0]?.weeks?.length || 0)} style={{ padding: '12px', textAlign: 'center', backgroundColor: '#f8fafc', color: '#6b7280' }}>
-                              상세 데이터 로딩 중...
-                            </td>
-                          </tr>
-                        )}
-                        {expandedCohortWeek === row.weekKey && !cohortDetailLoading && cohortDetailData?.stores?.map((store) => {
-                          const maxWeeksCount = cohortRetentionData[0]?.weeks?.length || 0;
-                          return (
-                            <tr key={`detail-${store.store_id}`} style={{ backgroundColor: '#f8fafc' }}>
-                              <td style={{
-                                padding: '8px 12px',
-                                paddingLeft: '24px',
-                                fontWeight: '400',
-                                color: '#374151',
-                                backgroundColor: '#f8fafc',
-                                borderBottom: '1px solid #e5e7eb',
-                                position: 'sticky',
-                                left: 0,
-                                fontSize: '13px'
-                              }}>
-                                {store.store_name}
-                              </td>
-                              {/* 설치매장 컬럼 (설치 날짜 표시) */}
-                              <td style={{
-                                padding: '8px 12px',
-                                textAlign: 'center',
-                                backgroundColor: '#f0f9ff',
-                                borderBottom: '1px solid #e5e7eb',
-                                fontSize: '12px',
-                                color: '#0369a1'
-                              }}>
-                                {store.install_date ? store.install_date.slice(5).replace('-', '/') : ''}
-                              </td>
-                              {/* Week 0 ~ maxWeeks 컬럼 */}
-                              {Array.from({ length: maxWeeksCount }).map((_, weekIdx) => {
-                                const weekData = store.weeks?.[weekIdx];
-                                const value = weekData?.value || '-';
-                                const isHold = value === '보류';
-                                const isChurn = value === '해지';
-                                const isDash = value === '-';
-                                const isZero = value === '0건';
-                                return (
-                                  <td key={`${store.store_id}-w${weekIdx}`} style={{
-                                    padding: '8px 12px',
-                                    textAlign: 'center',
-                                    backgroundColor: isHold ? '#fef3c7' : isChurn ? '#fee2e2' : isDash ? '#f8fafc' : isZero ? '#fef2f2' : '#ecfdf5',
-                                    borderBottom: '1px solid #e5e7eb',
-                                    color: isHold ? '#92400e' : isChurn ? '#991b1b' : isDash ? '#d1d5db' : isZero ? '#ef4444' : '#166534',
-                                    fontWeight: isHold || isChurn ? '600' : '400',
-                                    fontSize: '13px'
-                                  }}>
-                                    {value}
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          );
-                        })}
-                        </Fragment>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: '#6b7280' }}>데이터가 없습니다</span>
                 </div>
               )}
             </div>
