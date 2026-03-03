@@ -1249,14 +1249,15 @@ async function handleMonthlyCohortRetentionView(startDate) {
       });
     }
 
-    // 5. 월별 잔존율 계산 (이전 설치는 제외 - 월별 추적 무의미)
+    // 5. 월별 잔존율 계산 (Month 0~4까지만)
     const result = [];
-    const sortedMonths = Object.keys(cohorts).sort().filter(k => k !== '0000-00');
+    const sortedMonths = Object.keys(cohorts).sort();
 
     for (const monthKey of sortedMonths) {
       const cohort = cohorts[monthKey];
       const installedCount = cohort.stores.length;
-      const cohortStartDate = `${monthKey}-01`;
+      // 이전 설치(0000-00)는 2025년 12월을 기준으로 계산
+      const cohortStartDate = monthKey === '0000-00' ? '2025-12-01' : `${monthKey}-01`;
 
       const row = {
         monthKey: cohort.monthKey,
@@ -1265,8 +1266,8 @@ async function handleMonthlyCohortRetentionView(startDate) {
         months: []
       };
 
-      // Month 0부터 시작 (설치 월 이용)
-      for (let monthOffset = 0; monthOffset <= 12; monthOffset++) {
+      // Month 0~4까지만 (5개월 추적)
+      for (let monthOffset = 0; monthOffset <= 4; monthOffset++) {
         const checkDate = new Date(cohortStartDate);
         checkDate.setMonth(checkDate.getMonth() + monthOffset);
 
