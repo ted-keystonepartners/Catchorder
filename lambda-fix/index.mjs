@@ -1249,9 +1249,9 @@ async function handleMonthlyCohortRetentionView(startDate) {
       });
     }
 
-    // 5. 월별 잔존율 계산
+    // 5. 월별 잔존율 계산 (이전 설치는 제외 - 월별 추적 무의미)
     const result = [];
-    const sortedMonths = Object.keys(cohorts).sort();
+    const sortedMonths = Object.keys(cohorts).sort().filter(k => k !== '0000-00');
 
     for (const monthKey of sortedMonths) {
       const cohort = cohorts[monthKey];
