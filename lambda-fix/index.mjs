@@ -1155,8 +1155,8 @@ async function handleMonthlyCohortRetentionView(startDate) {
       return `${month}월 설치`;
     };
 
-    // 대량 등록 이전 기준일
-    const BULK_IMPORT_DATE = '2024-12-08';
+    // 대량 등록 이전 기준일 (Sankey와 동일)
+    const BULK_IMPORT_DATE = '2025-12-08';
 
     // 진행중 상태 (설치 전)
     const INSTALL_PROGRESS_STATUS = [
