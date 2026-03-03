@@ -61,6 +61,11 @@ export const handler = async (event) => {
       return await handleWeeklyCohortView(startDate || '2024-12-15');
     }
 
+    // 월간 코호트 잔존율 뷰 요청 처리
+    if (view === 'monthly_cohort_retention') {
+      return await handleMonthlyCohortRetentionView(startDate || '2024-09-01');
+    }
+
     // 주간 코호트 상세 뷰 (특정 주차 매장 리스트)
     if (view === 'weekly_cohort_detail') {
       const weekKey = queryParams.week_key;
@@ -496,13 +501,15 @@ async function handleWeeklyCohortView(startDate) {
     };
 
   // 1. 병렬로 매장과 히스토리 조회 (성능 최적화)
-  const [storesResult, historyResult] = await Promise.all([
+  // 전체 히스토리도 조회 (보류/해지 상태 확인용)
+  const [storesResult, historyResult, allHistoryResult] = await Promise.all([
     dynamodb.send(new ScanCommand({ TableName: storesTable })),
     dynamodb.send(new ScanCommand({
       TableName: historyTable,
       FilterExpression: "new_status = :status",
       ExpressionAttributeValues: { ":status": "QR_MENU_INSTALL" }
-    }))
+    })),
+    dynamodb.send(new ScanCommand({ TableName: historyTable }))
   ]);
 
   const stores = storesResult.Items || [];
@@ -524,7 +531,32 @@ async function handleWeeklyCohortView(startDate) {
     'QR_MENU_ONLY'
   ];
 
+  // 보류/해지 상태 정의 (상세 뷰와 동일)
+  const HOLD_STATUSES = [
+    'PENDING', 'REVISIT_SCHEDULED', 'INFO_REQUEST', 'REMOTE_INSTALL_SCHEDULED',
+    'ADMIN_SETTING', 'QR_LINKING', 'DEFECT_REPAIR'
+  ];
+  const CHURNED_STATUSES = ['SERVICE_TERMINATED', 'UNUSED_TERMINATED'];
+
   const historyItems = historyResult.Items || [];
+
+  // 매장별 상태 변경 이력 정리 (보류/해지 판단용)
+  const statusChangesByStore = {};
+  for (const item of allHistoryResult.Items || []) {
+    const storeId = item.store_id;
+    if (!statusChangesByStore[storeId]) {
+      statusChangesByStore[storeId] = [];
+    }
+    statusChangesByStore[storeId].push({
+      changedAt: normalizeDate(item.changed_at),
+      oldStatus: item.old_status,
+      newStatus: item.new_status
+    });
+  }
+  // 날짜순 정렬
+  for (const storeId of Object.keys(statusChangesByStore)) {
+    statusChangesByStore[storeId].sort((a, b) => a.changedAt.localeCompare(b.changedAt));
+  }
 
   // 매장별 가장 최근 설치완료일 (진행중 상태에서 변경된 것만, admin 제외)
   // 보류 후 재설치되면 최근 설치일 기준으로 코호트에 포함
@@ -584,7 +616,8 @@ async function handleWeeklyCohortView(startDate) {
     cohorts[weekKey].stores.push({
       storeId,
       seq: store.seq,
-      orderDates: ordersBySeqDate[store.seq] || new Set()
+      orderDates: ordersBySeqDate[store.seq] || new Set(),
+      statusChanges: statusChangesByStore[storeId] || []
     });
   }
 
@@ -622,6 +655,36 @@ async function handleWeeklyCohortView(startDate) {
       const checkEndStr = checkEnd.toISOString().split('T')[0];
 
       const activeCount = cohort.stores.filter(store => {
+        // 1. 해당 주차의 보류/해지 여부 확인 (상세 뷰와 동일한 로직)
+        let weekEndStatus = null;
+        for (const change of store.statusChanges) {
+          if (change.changedAt >= checkStartStr && change.changedAt <= checkEndStr) {
+            weekEndStatus = change.newStatus;
+          }
+        }
+        // 보류 또는 해지 상태면 이용에서 제외
+        if (weekEndStatus && (HOLD_STATUSES.includes(weekEndStatus) || CHURNED_STATUSES.includes(weekEndStatus))) {
+          return false;
+        }
+
+        // 2. 이전 주차에 이미 보류/해지된 경우도 확인
+        let terminated = false;
+        for (const change of store.statusChanges) {
+          if (change.changedAt < checkStartStr) {
+            // 이전 주차에서의 상태 변화
+            if (change.oldStatus === 'QR_MENU_INSTALL' && HOLD_STATUSES.includes(change.newStatus)) {
+              terminated = true;
+            } else if (CHURNED_STATUSES.includes(change.newStatus)) {
+              terminated = true;
+            } else if (change.newStatus === 'QR_MENU_INSTALL') {
+              // 재설치된 경우 종료 상태 해제
+              terminated = false;
+            }
+          }
+        }
+        if (terminated) return false;
+
+        // 3. 주문 여부 확인
         const orderDates = store.orderDates;
         if (!orderDates || orderDates.size === 0) return false;
         for (const orderDate of orderDates) {
@@ -708,26 +771,40 @@ async function handleWeeklyCohortDetailView(weekKey) {
       storeMap[store.store_id] = store;
     }
 
-    // 2. 해당 주차에 설치된 매장 필터링 (최근 설치일 기준)
-    const installsInWeek = {};
+    // 2. 먼저 매장별 최근 설치일 계산 (목록 뷰와 동일한 로직)
+    // 보류 후 재설치된 경우 최근 설치일 기준으로 하나의 코호트에만 포함
+    const latestInstallMap = {};
+    const latestInstallItemMap = {};
     for (const item of historyResult.Items || []) {
       const changedAt = normalizeDate(item.changed_at);
       const changedBy = item.changed_by;
       const oldStatus = item.old_status;
+      const storeId = item.store_id;
 
       if (changedBy === ADMIN_EMAIL) continue;
       if (!INSTALL_PROGRESS_STATUS.includes(oldStatus)) continue;
       if (!changedAt) continue;
-      if (changedAt < weekStartStr || changedAt > weekEndStr) continue;
 
-      const storeId = item.store_id;
-      // 해당 주차 내 최근 설치일
-      if (!installsInWeek[storeId] || changedAt > installsInWeek[storeId].changedAt) {
-        installsInWeek[storeId] = { changedAt, item };
+      // 매장별 가장 최근 설치일로 업데이트
+      if (!latestInstallMap[storeId] || changedAt > latestInstallMap[storeId]) {
+        latestInstallMap[storeId] = changedAt;
+        latestInstallItemMap[storeId] = item;
       }
     }
 
-    // 3. 매장별 상태 변경 이력 정리 (위에서 병렬 조회 완료)
+    // 3. 최근 설치일이 해당 주차에 속하는 매장만 필터링
+    const installsInWeek = {};
+    for (const [storeId, latestInstallDate] of Object.entries(latestInstallMap)) {
+      // 최근 설치일이 해당 주차 범위에 있는 경우만 포함
+      if (latestInstallDate >= weekStartStr && latestInstallDate <= weekEndStr) {
+        installsInWeek[storeId] = {
+          changedAt: latestInstallDate,
+          item: latestInstallItemMap[storeId]
+        };
+      }
+    }
+
+    // 4. 매장별 상태 변경 이력 정리 (위에서 병렬 조회 완료)
     const statusChangesByStore = {};
     for (const item of allHistoryResult.Items || []) {
       const storeId = item.store_id;
@@ -741,7 +818,7 @@ async function handleWeeklyCohortDetailView(weekKey) {
       });
     }
 
-    // 4. seq별 일별 주문 건수 (위에서 병렬 조회 완료)
+    // 5. seq별 일별 주문 건수 (위에서 병렬 조회 완료)
     const ordersBySeq = {};
     for (const item of dailyOrdersResult.Items || []) {
       const seq = item.seq;
@@ -751,11 +828,11 @@ async function handleWeeklyCohortDetailView(weekKey) {
       ordersBySeq[seq][orderDate] = orderCount;
     }
 
-    // 5. 현재 날짜 및 최대 주차 수 계산
+    // 6. 현재 날짜 및 최대 주차 수 계산
     const now = new Date();
     const maxWeeks = Math.min(12, Math.floor((now - monday) / (7 * 24 * 60 * 60 * 1000)));
 
-    // 6. 각 매장별 주차별 데이터 생성
+    // 7. 각 매장별 주차별 데이터 생성
     const storesData = [];
 
     for (const [storeId, { changedAt, item }] of Object.entries(installsInWeek)) {
@@ -795,23 +872,25 @@ async function handleWeeklyCohortDetailView(weekKey) {
         const checkStartStr = checkStart.toISOString().split('T')[0];
         const checkEndStr = checkEnd.toISOString().split('T')[0];
 
-        // 해당 주차에 보류/해지 여부 확인
+        // 해당 주차에 보류/해지 여부 확인 - 최종 상태 기준으로 판단
+        // (일시적 보류 후 재설치된 경우를 올바르게 처리)
+        let weekEndStatus = null;
         for (const change of statusChanges) {
           if (change.changedAt >= checkStartStr && change.changedAt <= checkEndStr) {
-            // 설치 후 보류로 변경
-            if (change.oldStatus === 'QR_MENU_INSTALL' && HOLD_STATUSES.includes(change.newStatus)) {
-              terminated = true;
-              terminatedWeek = weekOffset;
-              terminationType = '보류';
-              break;
-            }
-            // 해지
-            if (CHURNED_STATUSES.includes(change.newStatus)) {
-              terminated = true;
-              terminatedWeek = weekOffset;
-              terminationType = '해지';
-              break;
-            }
+            weekEndStatus = change.newStatus;  // 해당 주차 내 마지막 상태로 계속 업데이트
+          }
+        }
+
+        // 최종 상태 기준 판단
+        if (weekEndStatus) {
+          if (CHURNED_STATUSES.includes(weekEndStatus)) {
+            terminated = true;
+            terminatedWeek = weekOffset;
+            terminationType = '해지';
+          } else if (HOLD_STATUSES.includes(weekEndStatus)) {
+            terminated = true;
+            terminatedWeek = weekOffset;
+            terminationType = '보류';
           }
         }
 
@@ -1056,6 +1135,194 @@ async function handleCohortView(baseDate) {
       }
     })
   };
+}
+
+// 월간 코호트 잔존율 뷰 핸들러
+async function handleMonthlyCohortRetentionView(startDate) {
+  try {
+    const historyTable = "sms-store-history-dev";
+
+    // 월 키 생성 (YYYY-MM 형식)
+    const getMonthKey = (dateStr) => {
+      if (!dateStr) return null;
+      return dateStr.substring(0, 7); // YYYY-MM
+    };
+
+    // 월 라벨 생성 (N월 설치)
+    const getMonthLabel = (monthKey) => {
+      if (monthKey === '0000-00') return '이전 설치';
+      const month = parseInt(monthKey.split('-')[1]);
+      return `${month}월 설치`;
+    };
+
+    // 대량 등록 이전 기준일
+    const BULK_IMPORT_DATE = '2024-12-08';
+
+    // 진행중 상태 (설치 전)
+    const INSTALL_PROGRESS_STATUS = [
+      'PRE_INTRODUCTION',
+      'VISIT_COMPLETED',
+      'REVISIT_SCHEDULED',
+      'INFO_REQUEST',
+      'REMOTE_INSTALL_SCHEDULED',
+      'ADMIN_SETTING',
+      'QR_LINKING',
+      'QR_MENU_ONLY'
+    ];
+
+    const ADMIN_EMAIL = 'admin@catchtable.co.kr';
+
+    // 1. 병렬로 매장과 히스토리 조회
+    const [storesResult, historyResult] = await Promise.all([
+      dynamodb.send(new ScanCommand({ TableName: storesTable })),
+      dynamodb.send(new ScanCommand({
+        TableName: historyTable,
+        FilterExpression: "new_status = :status",
+        ExpressionAttributeValues: { ":status": "QR_MENU_INSTALL" }
+      }))
+    ]);
+
+    const stores = storesResult.Items || [];
+    const storeMap = {};
+    for (const store of stores) {
+      storeMap[store.store_id] = store;
+    }
+
+    // 2. 히스토리에서 QR_MENU_INSTALL 기록 필터링
+    const historyItems = historyResult.Items || [];
+
+    // 매장별 최초 설치완료일 (Sankey 차트와 동일하게 모든 설치 포함)
+    const firstInstallMap = {};
+    for (const item of historyItems) {
+      const storeId = item.store_id;
+      const changedAt = normalizeDate(item.changed_at);
+
+      if (!changedAt || changedAt < startDate) continue;
+
+      // 최초 설치일만 기록 (보류 후 재설치는 별도 코호트로)
+      if (!firstInstallMap[storeId]) {
+        firstInstallMap[storeId] = changedAt;
+      }
+    }
+
+    // 3. 일별 집계 테이블에서 주문 데이터 조회
+    const ordersBySeqDate = {};
+    let lastKey = null;
+    do {
+      const params = {
+        TableName: storeDailyOrdersTable,
+        FilterExpression: "order_date >= :startDate",
+        ExpressionAttributeValues: { ":startDate": startDate }
+      };
+      if (lastKey) params.ExclusiveStartKey = lastKey;
+      const result = await dynamodb.send(new ScanCommand(params));
+      for (const item of result.Items || []) {
+        const seq = item.seq;
+        const orderDate = item.order_date;
+        if (seq && orderDate && item.order_count > 0) {
+          if (!ordersBySeqDate[seq]) ordersBySeqDate[seq] = new Set();
+          ordersBySeqDate[seq].add(orderDate);
+        }
+      }
+      lastKey = result.LastEvaluatedKey;
+    } while (lastKey);
+
+    // 4. 설치 월별 코호트 그룹화
+    const cohorts = {};
+    const now = new Date();
+    const currentMonth = getMonthKey(now.toISOString().split('T')[0]);
+
+    for (const [storeId, installDate] of Object.entries(firstInstallMap)) {
+      const store = storeMap[storeId];
+      if (!store || !store.seq) continue;
+      // 대량 등록 이전은 "이전 설치"로 분류 (Sankey 차트와 동일)
+      const monthKey = installDate < BULK_IMPORT_DATE ? '0000-00' : getMonthKey(installDate);
+      if (!monthKey) continue;
+      if (!cohorts[monthKey]) {
+        cohorts[monthKey] = { monthKey, label: getMonthLabel(monthKey), stores: [] };
+      }
+      cohorts[monthKey].stores.push({
+        storeId,
+        seq: store.seq,
+        installDate,
+        orderDates: ordersBySeqDate[store.seq] || new Set()
+      });
+    }
+
+    // 5. 월별 잔존율 계산
+    const result = [];
+    const sortedMonths = Object.keys(cohorts).sort();
+
+    for (const monthKey of sortedMonths) {
+      const cohort = cohorts[monthKey];
+      const installedCount = cohort.stores.length;
+      const cohortStartDate = `${monthKey}-01`;
+
+      const row = {
+        monthKey: cohort.monthKey,
+        label: cohort.label,
+        installed: installedCount,
+        months: []
+      };
+
+      // Month 0부터 시작 (설치 월 이용)
+      for (let monthOffset = 0; monthOffset <= 12; monthOffset++) {
+        const checkDate = new Date(cohortStartDate);
+        checkDate.setMonth(checkDate.getMonth() + monthOffset);
+
+        // 미래 월은 스킵
+        if (checkDate > now) break;
+
+        const checkYear = checkDate.getFullYear();
+        const checkMonth = checkDate.getMonth() + 1;
+        const checkMonthKey = `${checkYear}-${String(checkMonth).padStart(2, '0')}`;
+
+        // 해당 월의 첫날과 마지막날
+        const monthStart = `${checkMonthKey}-01`;
+        const lastDay = new Date(checkYear, checkMonth, 0).getDate();
+        const monthEnd = `${checkMonthKey}-${String(lastDay).padStart(2, '0')}`;
+
+        // 해당 월에 주문 1건 이상인 매장 수
+        const activeCount = cohort.stores.filter(store => {
+          const orderDates = store.orderDates;
+          if (!orderDates || orderDates.size === 0) return false;
+          for (const orderDate of orderDates) {
+            if (orderDate >= monthStart && orderDate <= monthEnd) {
+              return true;
+            }
+          }
+          return false;
+        }).length;
+
+        row.months.push({
+          monthOffset,
+          count: activeCount,
+          rate: Math.round((activeCount / installedCount) * 100)
+        });
+      }
+      result.push(row);
+    }
+
+    return {
+      statusCode: 200,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({
+        success: true,
+        data: {
+          start_date: startDate,
+          current_month: currentMonth,
+          cohorts: result
+        }
+      })
+    };
+  } catch (error) {
+    console.error("Monthly cohort retention error:", error);
+    return {
+      statusCode: 500,
+      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
 }
 
 // 전일 미이용 매장 조회 (지난주 같은 요일 대비)

@@ -121,6 +121,10 @@ const DashboardPage = () => {
   const [cohortDetailData, setCohortDetailData] = useState(null);
   const [cohortDetailLoading, setCohortDetailLoading] = useState(false);
 
+  // 월간 코호트 잔존율
+  const [monthlyCohortData, setMonthlyCohortData] = useState([]);
+  const [monthlyCohortLoading, setMonthlyCohortLoading] = useState(false);
+
   // Chat states
   const [chatOpen, setChatOpen] = useState(false);
   
@@ -516,6 +520,7 @@ const DashboardPage = () => {
         await fetchHeatmap();
         await fetchCohortData();
         await fetchWeeklyCohort();
+        await fetchMonthlyCohort();
       } catch (err) {
         console.error('대시보드 데이터 로드 실패:', err);
         setLoading(false);
@@ -672,6 +677,21 @@ const DashboardPage = () => {
       }
     } catch (err) {
       console.error('주간 코호트 데이터 조회 실패:', err);
+    }
+  }, []);
+
+  // 월간 코호트 잔존율 데이터 fetch
+  const fetchMonthlyCohort = useCallback(async () => {
+    try {
+      setMonthlyCohortLoading(true);
+      const response = await apiClient.get('/api/dashboard?view=monthly_cohort_retention&start_date=2024-09-01', {}, { timeout: 60000 });
+      if (response.success && response.data?.cohorts) {
+        setMonthlyCohortData(response.data.cohorts);
+      }
+    } catch (err) {
+      console.error('월간 코호트 데이터 조회 실패:', err);
+    } finally {
+      setMonthlyCohortLoading(false);
     }
   }, []);
 
@@ -1439,7 +1459,7 @@ const DashboardPage = () => {
           </div>
           )}
 
-          {/* 월별 설치 코호트 분석 - 모바일에서 숨김 */}
+          {/* 월간 코호트 잔존율 - 모바일에서 숨김 */}
           {!isMobile && (
             <div style={{
               backgroundColor: 'white',
@@ -1450,92 +1470,209 @@ const DashboardPage = () => {
             }}>
               <div style={{ marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#111827', margin: 0 }}>
-                  월별 설치 코호트 분석
+                  월간 코호트 잔존율
                 </h3>
               </div>
 
-              {cohortLoading ? (
-                <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ color: '#6b7280' }}>로딩 중...</span>
+              <div style={{ display: 'flex', gap: '24px' }}>
+                {/* 왼쪽: Sankey 차트 */}
+                <div style={{ flex: '1' }}>
+                  {cohortLoading ? (
+                    <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#6b7280' }}>로딩 중...</span>
+                    </div>
+                  ) : cohortData?.sankey?.nodes?.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={400}>
+                      <Sankey
+                        data={cohortData.sankey}
+                        sort={false}
+                        node={({ x, y, width, height, index, payload }) => {
+                          const nodeCount = cohortData.sankey.nodes.length;
+                          const isStateNode = index >= nodeCount - 3;
+                          let fillColor = '#6366f1';
+
+                          if (isStateNode) {
+                            const stateIndex = index - (nodeCount - 3);
+                            if (stateIndex === 0) fillColor = '#86efac'; // 이용중 - 파스텔 초록
+                            else if (stateIndex === 1) fillColor = '#fde047'; // 미이용 - 파스텔 노랑
+                            else if (stateIndex === 2) fillColor = '#fca5a5'; // 해지 - 파스텔 빨강
+                          } else {
+                            const purples = ['#c4b5fd', '#d8b4fe', '#e9d5ff', '#c7d2fe', '#ddd6fe', '#ede9fe'];
+                            fillColor = purples[index % purples.length];
+                          }
+
+                          return (
+                            <Layer key={`node-${index}`}>
+                              <Rectangle
+                                x={x}
+                                y={y}
+                                width={width}
+                                height={height}
+                                fill={fillColor}
+                                fillOpacity={0.9}
+                              />
+                              <text
+                                x={x < 200 ? x + width + 6 : x - 6}
+                                y={y + height / 2}
+                                textAnchor={x < 200 ? 'start' : 'end'}
+                                dominantBaseline="middle"
+                                style={{ fontSize: 12, fill: '#374151', fontWeight: isStateNode ? '600' : '400' }}
+                              >
+                                {payload.name}{isStateNode && ` (${index === nodeCount - 3 ? cohortData.summary?.total_active : index === nodeCount - 2 ? cohortData.summary?.total_inactive : cohortData.summary?.total_churned})`}
+                              </text>
+                            </Layer>
+                          );
+                        }}
+                        link={<SankeyLink />}
+                        nodePadding={24}
+                        nodeWidth={12}
+                        margin={{ top: 10, right: 20, bottom: 10, left: 20 }}
+                      >
+                        <Tooltip
+                          formatter={(value, name, props) => {
+                            const { payload } = props;
+                            if (payload && payload.source && payload.target) {
+                              const sourceName = payload.source.name;
+
+                              // 소스 노드의 총 값 계산 (비중 계산용)
+                              const sourceTotal = cohortData.sankey.links
+                                .filter(link => cohortData.sankey.nodes[link.source]?.name === sourceName)
+                                .reduce((sum, link) => sum + link.value, 0);
+
+                              const percentage = sourceTotal > 0 ? ((value / sourceTotal) * 100).toFixed(1) : 0;
+
+                              return [`${value}개 (${percentage}%)`, payload.target.name];
+                            }
+                            return [value, name];
+                          }}
+                          labelFormatter={(label, payload) => {
+                            if (payload && payload[0]?.payload?.source) {
+                              return payload[0].payload.source.name;
+                            }
+                            return label;
+                          }}
+                        />
+                      </Sankey>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
+                      데이터가 없습니다
+                    </div>
+                  )}
                 </div>
-              ) : cohortData?.sankey?.nodes?.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <Sankey
-                    data={cohortData.sankey}
-                    sort={false}
-                    node={({ x, y, width, height, index, payload }) => {
-                      const nodeCount = cohortData.sankey.nodes.length;
-                      const isStateNode = index >= nodeCount - 3;
-                      let fillColor = '#6366f1';
 
-                      if (isStateNode) {
-                        const stateIndex = index - (nodeCount - 3);
-                        if (stateIndex === 0) fillColor = '#86efac'; // 이용중 - 파스텔 초록
-                        else if (stateIndex === 1) fillColor = '#fde047'; // 미이용 - 파스텔 노랑
-                        else if (stateIndex === 2) fillColor = '#fca5a5'; // 해지 - 파스텔 빨강
-                      } else {
-                        const purples = ['#c4b5fd', '#d8b4fe', '#e9d5ff', '#c7d2fe', '#ddd6fe', '#ede9fe'];
-                        fillColor = purples[index % purples.length];
-                      }
-
-                      return (
-                        <Layer key={`node-${index}`}>
-                          <Rectangle
-                            x={x}
-                            y={y}
-                            width={width}
-                            height={height}
-                            fill={fillColor}
-                            fillOpacity={0.9}
-                          />
-                          <text
-                            x={x < 200 ? x + width + 6 : x - 6}
-                            y={y + height / 2}
-                            textAnchor={x < 200 ? 'start' : 'end'}
-                            dominantBaseline="middle"
-                            style={{ fontSize: 12, fill: '#374151', fontWeight: isStateNode ? '600' : '400' }}
-                          >
-                            {payload.name}{isStateNode && ` (${index === nodeCount - 3 ? cohortData.summary?.total_active : index === nodeCount - 2 ? cohortData.summary?.total_inactive : cohortData.summary?.total_churned})`}
-                          </text>
-                        </Layer>
-                      );
-                    }}
-                    link={<SankeyLink />}
-                    nodePadding={24}
-                    nodeWidth={12}
-                    margin={{ top: 10, right: 20, bottom: 10, left: 20 }}
-                  >
-                    <Tooltip
-                      formatter={(value, name, props) => {
-                        const { payload } = props;
-                        if (payload && payload.source && payload.target) {
-                          const sourceName = payload.source.name;
-
-                          // 소스 노드의 총 값 계산 (비중 계산용)
-                          const sourceTotal = cohortData.sankey.links
-                            .filter(link => cohortData.sankey.nodes[link.source]?.name === sourceName)
-                            .reduce((sum, link) => sum + link.value, 0);
-
-                          const percentage = sourceTotal > 0 ? ((value / sourceTotal) * 100).toFixed(1) : 0;
-
-                          return [`${value}개 (${percentage}%)`, payload.target.name];
-                        }
-                        return [value, name];
-                      }}
-                      labelFormatter={(label, payload) => {
-                        if (payload && payload[0]?.payload?.source) {
-                          return payload[0].payload.source.name;
-                        }
-                        return label;
-                      }}
-                    />
-                  </Sankey>
-                </ResponsiveContainer>
-              ) : (
-                <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
-                  데이터가 없습니다
+                {/* 오른쪽: 잔존율 테이블 */}
+                <div style={{ flex: '1' }}>
+                  {monthlyCohortLoading ? (
+                    <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{ color: '#6b7280' }}>로딩 중...</span>
+                    </div>
+                  ) : monthlyCohortData.length > 0 ? (
+                    <div style={{ overflowX: 'auto', maxHeight: '400px', overflowY: 'auto' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                        <thead>
+                          <tr>
+                            <th style={{
+                              padding: '10px 12px',
+                              textAlign: 'left',
+                              fontWeight: '600',
+                              color: '#374151',
+                              backgroundColor: '#f9fafb',
+                              borderBottom: '2px solid #e5e7eb',
+                              position: 'sticky',
+                              top: 0,
+                              minWidth: '100px'
+                            }}>
+                              설치 월
+                            </th>
+                            <th style={{
+                              padding: '10px 12px',
+                              textAlign: 'center',
+                              fontWeight: '600',
+                              color: '#374151',
+                              backgroundColor: '#e0f2fe',
+                              borderBottom: '2px solid #e5e7eb',
+                              position: 'sticky',
+                              top: 0,
+                              minWidth: '80px'
+                            }}>
+                              설치매장
+                            </th>
+                            {monthlyCohortData[0]?.months?.map((month, idx) => (
+                              <th key={`month-header-${idx}`} style={{
+                                padding: '10px 12px',
+                                textAlign: 'center',
+                                fontWeight: '600',
+                                color: '#374151',
+                                backgroundColor: '#f9fafb',
+                                borderBottom: '2px solid #e5e7eb',
+                                position: 'sticky',
+                                top: 0,
+                                minWidth: '90px'
+                              }}>
+                                Month {idx}
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {monthlyCohortData.map((row) => (
+                            <tr key={row.monthKey}>
+                              <td style={{
+                                padding: '10px 12px',
+                                fontWeight: '500',
+                                color: '#111827',
+                                backgroundColor: 'white',
+                                borderBottom: '1px solid #e5e7eb'
+                              }}>
+                                {row.label}
+                              </td>
+                              <td style={{
+                                padding: '10px 12px',
+                                textAlign: 'center',
+                                backgroundColor: '#e0f2fe',
+                                borderBottom: '1px solid #e5e7eb',
+                                fontWeight: '600',
+                                color: '#0369a1'
+                              }}>
+                                {row.installed}
+                              </td>
+                              {row.months.map((month, monthIdx) => (
+                                <td key={`${row.monthKey}-m${monthIdx}`} style={{
+                                  padding: '10px 12px',
+                                  textAlign: 'center',
+                                  backgroundColor: getRetentionColor(month.rate),
+                                  borderBottom: '1px solid #e5e7eb',
+                                  fontWeight: month.rate >= 70 ? '600' : '400',
+                                  color: month.rate >= 50 ? '#166534' : '#991b1b'
+                                }}>
+                                  {month.count} ({month.rate}%)
+                                </td>
+                              ))}
+                              {/* 미래 월은 빈 셀로 표시 */}
+                              {Array.from({ length: Math.max(0, (monthlyCohortData[0]?.months?.length || 0) - row.months.length) }).map((_, emptyIdx) => (
+                                <td key={`${row.monthKey}-empty-${emptyIdx}`} style={{
+                                  padding: '10px 12px',
+                                  textAlign: 'center',
+                                  backgroundColor: '#f9fafb',
+                                  borderBottom: '1px solid #e5e7eb',
+                                  color: '#d1d5db'
+                                }}>
+                                  -
+                                </td>
+                              ))}
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontSize: '14px' }}>
+                      데이터가 없습니다
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
           )}
 
