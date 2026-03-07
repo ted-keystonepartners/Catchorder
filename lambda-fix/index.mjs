@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({ region: "ap-northeast-2" });
 const dynamodb = DynamoDBDocumentClient.from(client);
@@ -10,6 +10,15 @@ const dailyStatsTable = "sms-daily-order-stats-dev";
 const usersTable = "sms-users-dev";
 const ordersTable = "sms-orders-dev";
 const storeDailyOrdersTable = "sms-store-daily-orders-dev";
+const reportContentsTable = "sms-report-contents-dev";
+
+// CORS 헤더 (전역)
+const corsHeaders = {
+  "Content-Type": "application/json",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, PUT, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization"
+};
 
 // 담당자 이름 매핑
 const OWNER_NAMES = {
@@ -36,9 +45,19 @@ const normalizeDate = (dateStr) => {
 // 상태값 분류
 const INSTALL_COMPLETED = ["QR_MENU_INSTALL", "SERVICE_TERMINATED", "UNUSED_TERMINATED", "DEFECT_REPAIR"];
 const CHURNED = ["SERVICE_TERMINATED", "UNUSED_TERMINATED"];
+const HOLD_STATUSES = ['PENDING', 'REVISIT_SCHEDULED', 'INFO_REQUEST',
+  'REMOTE_INSTALL_SCHEDULED', 'ADMIN_SETTING', 'QR_LINKING'];
 
 export const handler = async (event) => {
   try {
+    // API 경로 체크
+    const path = event.path || event.rawPath || event.requestContext?.http?.path || event.requestContext?.resourcePath || '';
+
+    // 리포트 컨텐츠 API 처리
+    if (path.includes('/api/report-contents')) {
+      return await handleReportContents(event);
+    }
+
     // 날짜 파라미터 확인
     const queryParams = event.queryStringParameters || {};
     let startDate = queryParams.start_date;
@@ -72,7 +91,7 @@ export const handler = async (event) => {
       if (!weekKey) {
         return {
           statusCode: 400,
-          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+          headers: corsHeaders,
           body: JSON.stringify({ success: false, error: "week_key parameter required" })
         };
       }
@@ -293,7 +312,7 @@ export const handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({
         success: true,
         data: {
@@ -341,7 +360,7 @@ export const handler = async (event) => {
     console.error("ERROR:", error);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({
         success: false,
         error: error.message,
@@ -448,7 +467,7 @@ async function handleHeatmapView(startDate, endDate) {
 
   return {
     statusCode: 200,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    headers: corsHeaders,
     body: JSON.stringify({
       success: true,
       data: {
@@ -700,7 +719,7 @@ async function handleWeeklyCohortView(startDate) {
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({
         success: true,
         data: {
@@ -714,7 +733,7 @@ async function handleWeeklyCohortView(startDate) {
     console.error("Weekly cohort error:", error);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({ success: false, error: error.message })
     };
   }
@@ -925,7 +944,7 @@ async function handleWeeklyCohortDetailView(weekKey) {
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({
         success: true,
         data: {
@@ -943,7 +962,7 @@ async function handleWeeklyCohortDetailView(weekKey) {
     console.error("Weekly cohort detail error:", error);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({ success: false, error: error.message })
     };
   }
@@ -1124,7 +1143,7 @@ async function handleCohortView(baseDate) {
 
   return {
     statusCode: 200,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    headers: corsHeaders,
     body: JSON.stringify({
       success: true,
       data: {
@@ -1194,13 +1213,13 @@ async function handleMonthlyCohortRetentionView(startDate) {
     // 매장별 최초 설치완료일 (Sankey 차트와 동일하게 모든 설치 포함)
     const firstInstallMap = {};
     for (const item of historyItems) {
-      const storeId = item.store_id;
+      const storeId = String(item.store_id);  // 타입 통일
       const changedAt = normalizeDate(item.changed_at);
 
-      if (!changedAt || changedAt < startDate) continue;
+      if (!changedAt) continue;
 
-      // 최초 설치일만 기록 (보류 후 재설치는 별도 코호트로)
-      if (!firstInstallMap[storeId]) {
+      // 최초 설치완료일 기록 (가장 이른 날짜로 업데이트)
+      if (!firstInstallMap[storeId] || changedAt < firstInstallMap[storeId]) {
         firstInstallMap[storeId] = changedAt;
       }
     }
@@ -1227,7 +1246,37 @@ async function handleMonthlyCohortRetentionView(startDate) {
       lastKey = result.LastEvaluatedKey;
     } while (lastKey);
 
-    // 4. 설치 월별 코호트 그룹화
+    // 4. 월별 신규가입 수 계산 (created_at 기준, 상태 무관 모든 매장)
+    const monthlyRegistered = {};
+    for (const store of stores) {
+      if (!store.created_at) continue;
+      const createdAt = normalizeDate(store.created_at);
+      if (!createdAt || createdAt < startDate) continue;
+      const monthKey = createdAt < BULK_IMPORT_DATE ? '0000-00' : getMonthKey(createdAt);
+      if (!monthKey) continue;
+      monthlyRegistered[monthKey] = (monthlyRegistered[monthKey] || 0) + 1;
+    }
+
+    // 5. 월별 이용 매장 수 계산 (설치완료 매장 중 해당 월 주문 1건 이상)
+    const monthlyActive = {};
+    for (const store of stores) {
+      if (!store.seq) continue;
+      if (!INSTALL_COMPLETED.includes(store.status)) continue;
+      const orderDates = ordersBySeqDate[store.seq];
+      if (!orderDates || orderDates.size === 0) continue;
+
+      // 각 주문 날짜를 월별로 집계
+      const activeMonths = new Set();
+      for (const orderDate of orderDates) {
+        const orderMonthKey = getMonthKey(orderDate);
+        if (orderMonthKey) activeMonths.add(orderMonthKey);
+      }
+      for (const monthKey of activeMonths) {
+        monthlyActive[monthKey] = (monthlyActive[monthKey] || 0) + 1;
+      }
+    }
+
+    // 6. 설치 월별 코호트 그룹화
     const cohorts = {};
     const now = new Date();
     const currentMonth = getMonthKey(now.toISOString().split('T')[0]);
@@ -1235,6 +1284,7 @@ async function handleMonthlyCohortRetentionView(startDate) {
     for (const [storeId, installDate] of Object.entries(firstInstallMap)) {
       const store = storeMap[storeId];
       if (!store || !store.seq) continue;
+      // 설치 이력이 있는 모든 매장 포함 (현재 상태 무관)
       // 대량 등록 이전은 "이전 설치"로 분류 (Sankey 차트와 동일)
       const monthKey = installDate < BULK_IMPORT_DATE ? '0000-00' : getMonthKey(installDate);
       if (!monthKey) continue;
@@ -1249,7 +1299,7 @@ async function handleMonthlyCohortRetentionView(startDate) {
       });
     }
 
-    // 5. 월별 잔존율 계산 (Month 0~4까지만)
+    // 7. 월별 잔존율 계산 (Month 0~4까지만)
     const result = [];
     const sortedMonths = Object.keys(cohorts).sort();
 
@@ -1257,12 +1307,15 @@ async function handleMonthlyCohortRetentionView(startDate) {
       const cohort = cohorts[monthKey];
       const installedCount = cohort.stores.length;
       // 이전 설치(0000-00)는 2025년 12월을 기준으로 계산
-      const cohortStartDate = monthKey === '0000-00' ? '2025-12-01' : `${monthKey}-01`;
+      // 이전 설치(0000-00)는 11월 기준으로 계산 (M+0=11월, M+1=12월...)
+      const cohortStartDate = monthKey === '0000-00' ? '2025-11-01' : `${monthKey}-01`;
 
       const row = {
         monthKey: cohort.monthKey,
         label: cohort.label,
+        registered: monthlyRegistered[monthKey] || 0,
         installed: installedCount,
+        active: monthlyActive[monthKey] || 0,
         months: []
       };
 
@@ -1304,15 +1357,87 @@ async function handleMonthlyCohortRetentionView(startDate) {
       result.push(row);
     }
 
+    // 8. 퍼널용 월별 통계 (monthlyStats) - created_at 기준 코호트로 재작성
+    // 코호트는 created_at 기준으로 그룹화 (신규가입 월 기준)
+    const registrationCohorts = {};
+    for (const store of stores) {
+      if (!store.created_at) continue;
+      const createdAt = normalizeDate(store.created_at);
+      if (!createdAt || createdAt < startDate) continue;
+      const monthKey = createdAt < BULK_IMPORT_DATE ? '0000-00' : getMonthKey(createdAt);
+      if (!monthKey) continue;
+
+      if (!registrationCohorts[monthKey]) {
+        registrationCohorts[monthKey] = [];
+      }
+      registrationCohorts[monthKey].push({
+        storeId: String(store.store_id),  // 타입 통일
+        seq: store.seq,
+        status: store.status,
+        createdAt
+      });
+    }
+
+    const getMonthStatLabel = (key) => {
+      if (key === '0000-00') return '이전 설치';
+      const month = parseInt(key.split('-')[1]);
+      return `${month}월`;
+    };
+
+    const monthlyStats = Object.keys(registrationCohorts).sort().map(monthKey => {
+      const cohortStores = registrationCohorts[monthKey];
+
+      // 신규가입: 해당 월에 등록된 모든 매장
+      const registered = cohortStores.length;
+
+      // 설치완료: 히스토리에 설치완료 이력이 있는 매장 (현재 상태 무관)
+      const installed = cohortStores.filter(s =>
+        firstInstallMap[s.storeId] !== undefined
+      ).length;
+
+      // 이용: 설치 이력이 있는 매장 중 전체 기간 동안 한 번이라도 주문 있음 (해지 포함)
+      const active = cohortStores.filter(s => {
+        if (firstInstallMap[s.storeId] === undefined) return false;
+        if (!s.seq) return false;
+        const orderDates = ordersBySeqDate[s.seq];
+        return orderDates && orderDates.size > 0;
+      }).length;
+
+      // 해지: 설치 이력 있고 현재 상태가 CHURNED 또는 HOLD (설치 후 이탈)
+      const churned = cohortStores.filter(s =>
+        firstInstallMap[s.storeId] !== undefined && (CHURNED.includes(s.status) || HOLD_STATUSES.includes(s.status))
+      ).length;
+
+      // 보류: 설치 이력 없이 HOLD 또는 CHURNED 상태 (미설치 후 이탈)
+      const hold = cohortStores.filter(s =>
+        firstInstallMap[s.storeId] === undefined && (HOLD_STATUSES.includes(s.status) || CHURNED.includes(s.status))
+      ).length;
+
+      // 검증: 신규가입 = 설치완료 + 보류(미설치이탈) + 진행중
+      const inProgress = registered - installed - hold;
+      console.log(`${monthKey}: reg=${registered}, inst=${installed}, active=${active}, churn=${churned}, hold=${hold}, inProgress=${inProgress}`);
+
+      return {
+        monthKey,
+        label: getMonthStatLabel(monthKey),
+        registered,
+        installed,
+        active,
+        churned,
+        hold
+      };
+    });
+
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
       body: JSON.stringify({
         success: true,
         data: {
           start_date: startDate,
           current_month: currentMonth,
-          cohorts: result
+          cohorts: result,
+          monthlyStats
         }
       })
     };
@@ -1320,7 +1445,155 @@ async function handleMonthlyCohortRetentionView(startDate) {
     console.error("Monthly cohort retention error:", error);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+      headers: corsHeaders,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+}
+
+// 리포트 컨텐츠 API 핸들러
+async function handleReportContents(event) {
+  const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
+  const queryParams = event.queryStringParameters || {};
+
+  try {
+    // OPTIONS 요청: CORS preflight
+    if (method === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: ''
+      };
+    }
+
+    // GET 요청: 조회
+    if (method === 'GET') {
+      const sectionId = queryParams.section_id;
+      const month = queryParams.month;
+
+      // 파라미터 검증
+      if (!month) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "month parameter is required (format: YYYY-MM)" })
+        };
+      }
+
+      // 특정 섹션 조회
+      if (sectionId) {
+        const result = await dynamodb.send(new GetCommand({
+          TableName: reportContentsTable,
+          Key: { section_id: sectionId, month: month }
+        }));
+
+        return {
+          statusCode: 200,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            success: true,
+            data: result.Item || null
+          })
+        };
+      }
+
+      // 해당 월의 모든 섹션 조회 (GSI 없이 4개 섹션 각각 조회)
+      const sectionIds = ['kpi_summary', 'active_store_trend', 'cohort_forecast', 'funnel'];
+      const results = await Promise.all(
+        sectionIds.map(sid =>
+          dynamodb.send(new GetCommand({
+            TableName: reportContentsTable,
+            Key: { section_id: sid, month: month }
+          }))
+        )
+      );
+
+      const items = results
+        .map(r => r.Item)
+        .filter(item => item != null);
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          data: items
+        })
+      };
+    }
+
+    // PUT 요청: 저장/수정
+    if (method === 'PUT') {
+      const body = JSON.parse(event.body || '{}');
+      const { section_id, month, content, updated_by } = body;
+
+      // 파라미터 검증
+      if (!section_id || !month || !content) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({
+            success: false,
+            error: "section_id, month, and content are required"
+          })
+        };
+      }
+
+      // 기존 데이터 조회
+      const existing = await dynamodb.send(new GetCommand({
+        TableName: reportContentsTable,
+        Key: { section_id, month }
+      }));
+
+      const now = new Date().toISOString();
+      const history = existing.Item?.history || [];
+
+      // 기존 내용이 있으면 history에 추가
+      if (existing.Item?.content) {
+        history.push({
+          content: existing.Item.content,
+          updated_at: existing.Item.updated_at,
+          updated_by: existing.Item.updated_by
+        });
+      }
+
+      // 새 데이터 저장
+      const newItem = {
+        section_id,
+        month,
+        content,
+        updated_at: now,
+        updated_by: updated_by || 'anonymous',
+        history
+      };
+
+      await dynamodb.send(new PutCommand({
+        TableName: reportContentsTable,
+        Item: newItem
+      }));
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          data: newItem
+        })
+      };
+    }
+
+    // 지원하지 않는 메소드
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ success: false, error: "Method not allowed" })
+    };
+
+  } catch (error) {
+    console.error("Report contents error:", error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
       body: JSON.stringify({ success: false, error: error.message })
     };
   }
@@ -1437,7 +1710,7 @@ async function handleInactiveTodayView(inputDate) {
 
   return {
     statusCode: 200,
-    headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+    headers: corsHeaders,
     body: JSON.stringify({
       success: true,
       data: {
