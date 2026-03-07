@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, QueryCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({ region: "ap-northeast-2" });
 const dynamodb = DynamoDBDocumentClient.from(client);
@@ -11,12 +11,13 @@ const usersTable = "sms-users-dev";
 const ordersTable = "sms-orders-dev";
 const storeDailyOrdersTable = "sms-store-daily-orders-dev";
 const reportContentsTable = "sms-report-contents-dev";
+const keyTasksTable = "sms-key-tasks-dev";
 
 // CORS 헤더 (전역)
 const corsHeaders = {
   "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, PUT, POST, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, PUT, POST, DELETE, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, Authorization"
 };
 
@@ -56,6 +57,11 @@ export const handler = async (event) => {
     // 리포트 컨텐츠 API 처리
     if (path.includes('/api/report-contents')) {
       return await handleReportContents(event);
+    }
+
+    // Key Tasks API 처리
+    if (path.includes('/api/key-tasks')) {
+      return await handleKeyTasks(event);
     }
 
     // 날짜 파라미터 확인
@@ -1443,6 +1449,351 @@ async function handleMonthlyCohortRetentionView(startDate) {
     };
   } catch (error) {
     console.error("Monthly cohort retention error:", error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
+}
+
+// Key Tasks API 핸들러
+async function handleKeyTasks(event) {
+  const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
+  const path = event.path || event.rawPath || event.requestContext?.http?.path || '';
+  const queryParams = event.queryStringParameters || {};
+
+  try {
+    // OPTIONS 요청: CORS preflight
+    // OPTIONS uses AWS_PROXY (not MOCK) to ensure CORS headers stay synchronized
+    // with Lambda code. MOCK integrations require manual header updates in API Gateway
+    // console, causing drift when methods are added/removed.
+    if (method === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: ''
+      };
+    }
+
+    // 경로 파싱: /api/key-tasks, /api/key-tasks/{taskId}, /api/key-tasks/{taskId}/actions, /api/key-tasks/{taskId}/actions/{actionId}
+    const pathParts = path.split('/').filter(p => p);
+    // pathParts: ['api', 'key-tasks'] or ['api', 'key-tasks', 'kt-123'] or ['api', 'key-tasks', 'kt-123', 'actions'] etc.
+    const taskIdIndex = pathParts.indexOf('key-tasks') + 1;
+    const taskId = pathParts[taskIdIndex] && !['actions'].includes(pathParts[taskIdIndex]) ? pathParts[taskIdIndex] : null;
+    const hasActions = pathParts.includes('actions');
+    const actionIdIndex = pathParts.indexOf('actions') + 1;
+    const actionId = hasActions && pathParts[actionIdIndex] ? pathParts[actionIdIndex] : null;
+
+    // GET /api/key-tasks - 전체 Task 목록 조회
+    if (method === 'GET' && !taskId) {
+      // 모든 Task 조회
+      const tasksResult = await dynamodb.send(new ScanCommand({
+        TableName: keyTasksTable,
+        FilterExpression: "begins_with(item_id, :taskPrefix)",
+        ExpressionAttributeValues: { ":taskPrefix": "task#" }
+      }));
+
+      const tasks = tasksResult.Items || [];
+
+      // 각 Task의 Action Items 조회
+      const tasksWithActions = await Promise.all(tasks.map(async (task) => {
+        const actionsResult = await dynamodb.send(new QueryCommand({
+          TableName: keyTasksTable,
+          KeyConditionExpression: "task_id = :taskId AND begins_with(item_id, :actionPrefix)",
+          ExpressionAttributeValues: {
+            ":taskId": task.task_id,
+            ":actionPrefix": "action#"
+          }
+        }));
+
+        const actionItems = (actionsResult.Items || []).map(action => ({
+          id: action.item_id.replace('action#', ''),
+          title: action.title,
+          status: action.status,
+          startMonth: action.start_month,
+          endMonth: action.end_month,
+          content: action.content || '',
+          order: action.order || 0
+        })).sort((a, b) => a.order - b.order);
+
+        return {
+          id: task.task_id,
+          title: task.title,
+          owner: task.owner,
+          status: task.status,
+          startMonth: task.start_month,
+          endMonth: task.end_month,
+          order: task.order || 0,
+          actionItems
+        };
+      }));
+
+      // 정렬
+      tasksWithActions.sort((a, b) => a.order - b.order);
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: { tasks: tasksWithActions } })
+      };
+    }
+
+    // POST /api/key-tasks - 새 Task 생성
+    if (method === 'POST' && !taskId && !hasActions) {
+      const body = JSON.parse(event.body || '{}');
+      const { title, owner, status, start_month, end_month } = body;
+
+      if (!title) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "title is required" })
+        };
+      }
+
+      const newTaskId = `kt-${Date.now()}`;
+      const now = new Date().toISOString();
+
+      // 현재 최대 order 조회
+      const existingTasks = await dynamodb.send(new ScanCommand({
+        TableName: keyTasksTable,
+        FilterExpression: "begins_with(item_id, :taskPrefix)",
+        ExpressionAttributeValues: { ":taskPrefix": "task#" },
+        ProjectionExpression: "#ord",
+        ExpressionAttributeNames: { "#ord": "order" }
+      }));
+      const maxOrder = Math.max(0, ...((existingTasks.Items || []).map(t => t.order || 0)));
+
+      const newTask = {
+        task_id: newTaskId,
+        item_id: `task#${newTaskId}`,
+        type: 'TASK',
+        title,
+        owner: owner || '',
+        status: status || '진행중',
+        start_month: start_month || 1,
+        end_month: end_month || 12,
+        order: maxOrder + 1,
+        created_at: now,
+        updated_at: now
+      };
+
+      await dynamodb.send(new PutCommand({
+        TableName: keyTasksTable,
+        Item: newTask
+      }));
+
+      return {
+        statusCode: 201,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: { task_id: newTaskId, message: "Task가 생성되었습니다." } })
+      };
+    }
+
+    // PUT /api/key-tasks/{taskId} - Task 수정
+    if (method === 'PUT' && taskId && !hasActions) {
+      const body = JSON.parse(event.body || '{}');
+      const { title, owner, status, start_month, end_month } = body;
+
+      // 기존 Task 조회
+      const existing = await dynamodb.send(new GetCommand({
+        TableName: keyTasksTable,
+        Key: { task_id: taskId, item_id: `task#${taskId}` }
+      }));
+
+      if (!existing.Item) {
+        return {
+          statusCode: 404,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "Task not found" })
+        };
+      }
+
+      const updatedTask = {
+        ...existing.Item,
+        title: title ?? existing.Item.title,
+        owner: owner ?? existing.Item.owner,
+        status: status ?? existing.Item.status,
+        start_month: start_month ?? existing.Item.start_month,
+        end_month: end_month ?? existing.Item.end_month,
+        updated_at: new Date().toISOString()
+      };
+
+      await dynamodb.send(new PutCommand({
+        TableName: keyTasksTable,
+        Item: updatedTask
+      }));
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: updatedTask })
+      };
+    }
+
+    // DELETE /api/key-tasks/{taskId} - Task 삭제 (하위 Action Items 포함)
+    if (method === 'DELETE' && taskId && !hasActions) {
+      // Task와 하위 Action Items 모두 조회
+      const items = await dynamodb.send(new QueryCommand({
+        TableName: keyTasksTable,
+        KeyConditionExpression: "task_id = :taskId",
+        ExpressionAttributeValues: { ":taskId": taskId }
+      }));
+
+      // 모두 삭제
+      for (const item of (items.Items || [])) {
+        await dynamodb.send(new DeleteCommand({
+          TableName: keyTasksTable,
+          Key: { task_id: item.task_id, item_id: item.item_id }
+        }));
+      }
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, message: "Task와 하위 Action Items가 삭제되었습니다." })
+      };
+    }
+
+    // POST /api/key-tasks/{taskId}/actions - Action Item 추가
+    if (method === 'POST' && taskId && hasActions && !actionId) {
+      const body = JSON.parse(event.body || '{}');
+      const { title, status, start_month, end_month, content } = body;
+
+      if (!title) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "title is required" })
+        };
+      }
+
+      // Task 존재 확인
+      const taskExists = await dynamodb.send(new GetCommand({
+        TableName: keyTasksTable,
+        Key: { task_id: taskId, item_id: `task#${taskId}` }
+      }));
+
+      if (!taskExists.Item) {
+        return {
+          statusCode: 404,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "Task not found" })
+        };
+      }
+
+      const newActionId = `ai-${Date.now()}`;
+      const now = new Date().toISOString();
+
+      // 현재 Action Items 최대 order 조회
+      const existingActions = await dynamodb.send(new QueryCommand({
+        TableName: keyTasksTable,
+        KeyConditionExpression: "task_id = :taskId AND begins_with(item_id, :actionPrefix)",
+        ExpressionAttributeValues: {
+          ":taskId": taskId,
+          ":actionPrefix": "action#"
+        },
+        ProjectionExpression: "#ord",
+        ExpressionAttributeNames: { "#ord": "order" }
+      }));
+      const maxOrder = Math.max(0, ...((existingActions.Items || []).map(a => a.order || 0)));
+
+      const newAction = {
+        task_id: taskId,
+        item_id: `action#${newActionId}`,
+        type: 'ACTION',
+        parent_task_id: taskId,
+        title,
+        status: status || '대기',
+        start_month: start_month || 1,
+        end_month: end_month || 12,
+        content: content || '',
+        order: maxOrder + 1,
+        created_at: now,
+        updated_at: now
+      };
+
+      await dynamodb.send(new PutCommand({
+        TableName: keyTasksTable,
+        Item: newAction
+      }));
+
+      return {
+        statusCode: 201,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: { action_id: newActionId, message: "Action Item이 추가되었습니다." } })
+      };
+    }
+
+    // PUT /api/key-tasks/{taskId}/actions/{actionId} - Action Item 수정
+    if (method === 'PUT' && taskId && hasActions && actionId) {
+      const body = JSON.parse(event.body || '{}');
+      const { title, status, start_month, end_month, content } = body;
+
+      const itemId = actionId.startsWith('action#') ? actionId : `action#${actionId}`;
+
+      // 기존 Action 조회
+      const existing = await dynamodb.send(new GetCommand({
+        TableName: keyTasksTable,
+        Key: { task_id: taskId, item_id: itemId }
+      }));
+
+      if (!existing.Item) {
+        return {
+          statusCode: 404,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "Action Item not found" })
+        };
+      }
+
+      const updatedAction = {
+        ...existing.Item,
+        title: title ?? existing.Item.title,
+        status: status ?? existing.Item.status,
+        start_month: start_month ?? existing.Item.start_month,
+        end_month: end_month ?? existing.Item.end_month,
+        content: content ?? existing.Item.content,
+        updated_at: new Date().toISOString()
+      };
+
+      await dynamodb.send(new PutCommand({
+        TableName: keyTasksTable,
+        Item: updatedAction
+      }));
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: updatedAction })
+      };
+    }
+
+    // DELETE /api/key-tasks/{taskId}/actions/{actionId} - Action Item 삭제
+    if (method === 'DELETE' && taskId && hasActions && actionId) {
+      const itemId = actionId.startsWith('action#') ? actionId : `action#${actionId}`;
+
+      await dynamodb.send(new DeleteCommand({
+        TableName: keyTasksTable,
+        Key: { task_id: taskId, item_id: itemId }
+      }));
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, message: "Action Item이 삭제되었습니다." })
+      };
+    }
+
+    // 지원하지 않는 메소드
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ success: false, error: "Method not allowed" })
+    };
+
+  } catch (error) {
+    console.error("Key Tasks error:", error);
     return {
       statusCode: 500,
       headers: corsHeaders,

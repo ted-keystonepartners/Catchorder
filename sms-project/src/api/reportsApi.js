@@ -233,13 +233,14 @@ export async function getReportCohort(endDate) {
  */
 export async function getKeyTasks() {
   try {
-    const response = await apiClient.get('/api/reports/tasks', {}, { timeout: 30000 });
+    const response = await apiClient.get('/api/key-tasks', {}, { timeout: 30000 });
 
-    if (response.success) {
+    if (response.success && response.data?.tasks) {
       return response;
     }
 
-    console.warn('Key Tasks API 미구현, mock 데이터 사용');
+    // API 실패 시 mock 데이터 사용
+    console.warn('Key Tasks API 실패, mock 데이터 사용');
     return {
       success: true,
       data: { tasks: getMockKeyTasks() },
@@ -252,6 +253,129 @@ export async function getKeyTasks() {
       data: { tasks: getMockKeyTasks() },
       error: null
     };
+  }
+}
+
+/**
+ * Key Task 생성
+ * @param {Object} data - Task 데이터
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function createKeyTask(data) {
+  try {
+    const response = await apiClient.post('/api/key-tasks', {
+      title: data.title,
+      owner: data.owner,
+      status: data.status || '진행중',
+      start_month: data.startMonth || 1,
+      end_month: data.endMonth || 12
+    }, { timeout: 30000 });
+
+    return response;
+  } catch (err) {
+    console.error('Key Task 생성 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Key Task 수정
+ * @param {string} taskId - Task ID
+ * @param {Object} data - 수정할 데이터
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function updateKeyTask(taskId, data) {
+  try {
+    const response = await apiClient.put(`/api/key-tasks/${taskId}`, {
+      title: data.title,
+      owner: data.owner,
+      status: data.status,
+      start_month: data.startMonth,
+      end_month: data.endMonth
+    }, { timeout: 30000 });
+
+    return response;
+  } catch (err) {
+    console.error('Key Task 수정 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Key Task 삭제
+ * @param {string} taskId - Task ID
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export async function deleteKeyTask(taskId) {
+  try {
+    const response = await apiClient.delete(`/api/key-tasks/${taskId}`, { timeout: 30000 });
+    return response;
+  } catch (err) {
+    console.error('Key Task 삭제 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Action Item 추가
+ * @param {string} taskId - 부모 Task ID
+ * @param {Object} data - Action Item 데이터
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function createKeyTaskAction(taskId, data) {
+  try {
+    const response = await apiClient.post(`/api/key-tasks/${taskId}/actions`, {
+      title: data.title,
+      status: data.status || '대기',
+      start_month: data.startMonth || 1,
+      end_month: data.endMonth || 12,
+      content: data.content || ''
+    }, { timeout: 30000 });
+
+    return response;
+  } catch (err) {
+    console.error('Action Item 추가 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Action Item 수정
+ * @param {string} taskId - 부모 Task ID
+ * @param {string} actionId - Action Item ID
+ * @param {Object} data - 수정할 데이터
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function updateKeyTaskAction(taskId, actionId, data) {
+  try {
+    const response = await apiClient.put(`/api/key-tasks/${taskId}/actions/${actionId}`, {
+      title: data.title,
+      status: data.status,
+      start_month: data.startMonth,
+      end_month: data.endMonth,
+      content: data.content
+    }, { timeout: 30000 });
+
+    return response;
+  } catch (err) {
+    console.error('Action Item 수정 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Action Item 삭제
+ * @param {string} taskId - 부모 Task ID
+ * @param {string} actionId - Action Item ID
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export async function deleteKeyTaskAction(taskId, actionId) {
+  try {
+    const response = await apiClient.delete(`/api/key-tasks/${taskId}/actions/${actionId}`, { timeout: 30000 });
+    return response;
+  } catch (err) {
+    console.error('Action Item 삭제 실패:', err);
+    return { success: false, error: err.message };
   }
 }
 
@@ -564,6 +688,12 @@ export default {
   getReportFunnel,
   getReportCohort,
   getKeyTasks,
+  createKeyTask,
+  updateKeyTask,
+  deleteKeyTask,
+  createKeyTaskAction,
+  updateKeyTaskAction,
+  deleteKeyTaskAction,
   getReportContents,
   saveReportContent
 };

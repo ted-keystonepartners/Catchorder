@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { getKeyTasks } from '../../api/reportsApi.js';
+import {
+  getKeyTasks,
+  createKeyTask,
+  updateKeyTask,
+  deleteKeyTask,
+  createKeyTaskAction,
+  updateKeyTaskAction,
+  deleteKeyTaskAction
+} from '../../api/reportsApi.js';
+import KeyTaskModal from './KeyTaskModal.jsx';
 
 const ACCENT = '#FF3D00';
 
@@ -8,42 +17,38 @@ const KeyTaskSection = ({ dateRange }) => {
   const [loading, setLoading] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [expandedActions, setExpandedActions] = useState({});
-  const [editingId, setEditingId] = useState(null);
-  const [contents, setContents] = useState({});
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const response = await getKeyTasks();
-        if (response.success && response.data?.tasks) {
-          const taskData = response.data.tasks;
-          setTasks(taskData);
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState(null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const [selectedActionId, setSelectedActionId] = useState(null);
+  const [initialData, setInitialData] = useState(null);
 
-          // 초기 contents 설정
-          const initial = {};
-          taskData.forEach(task => {
-            task.actionItems?.forEach(action => {
-              initial[action.id] = action.content || '';
-            });
-          });
-          setContents(initial);
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const response = await getKeyTasks();
+      if (response.success && response.data?.tasks) {
+        const taskData = response.data.tasks;
+        setTasks(taskData);
 
-          // 첫 번째 태스크와 첫 번째 액션 펼치기
-          if (taskData.length > 0) {
-            setExpandedTasks({ [taskData[0].id]: true });
-            if (taskData[0].actionItems?.length > 0) {
-              setExpandedActions({ [taskData[0].actionItems[0].id]: true });
-            }
+        // 첫 번째 태스크와 첫 번째 액션 펼치기
+        if (taskData.length > 0) {
+          setExpandedTasks({ [taskData[0].id]: true });
+          if (taskData[0].actionItems?.length > 0) {
+            setExpandedActions({ [taskData[0].actionItems[0].id]: true });
           }
         }
-      } catch (err) {
-        console.error('Key Tasks 조회 실패:', err);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (err) {
+      console.error('Key Tasks 조회 실패:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, [dateRange]);
 
@@ -55,14 +60,106 @@ const KeyTaskSection = ({ dateRange }) => {
     setExpandedActions(prev => ({ ...prev, [actionId]: !prev[actionId] }));
   };
 
-  const handleContentChange = (actionId, value) => {
-    setContents(prev => ({ ...prev, [actionId]: value }));
-  };
-
   const getStatusStyle = (status) => {
     if (status === '완료') return { color: '#16a34a', backgroundColor: '#f0fdf4' };
     if (status === '진행중') return { color: '#ea580c', backgroundColor: '#fff7ed' };
     return { color: '#6b7280', backgroundColor: '#f3f4f6' };
+  };
+
+  // Modal handlers
+  const handleCreateTask = () => {
+    setModalMode('create-task');
+    setSelectedTaskId(null);
+    setSelectedActionId(null);
+    setInitialData(null);
+    setModalOpen(true);
+  };
+
+  const handleEditTask = (e, task) => {
+    e.stopPropagation();
+    setModalMode('edit-task');
+    setSelectedTaskId(task.id);
+    setSelectedActionId(null);
+    setInitialData(task);
+    setModalOpen(true);
+  };
+
+  const handleDeleteTask = async (e, taskId) => {
+    e.stopPropagation();
+    if (!confirm('Task와 하위 Action Items를 모두 삭제하시겠습니까?')) return;
+
+    try {
+      const result = await deleteKeyTask(taskId);
+      if (result.success) {
+        fetchData();
+      } else {
+        alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
+      }
+    } catch (err) {
+      alert('삭제 실패: ' + err.message);
+    }
+  };
+
+  const handleAddAction = (e, taskId) => {
+    e.stopPropagation();
+    setModalMode('add-action');
+    setSelectedTaskId(taskId);
+    setSelectedActionId(null);
+    setInitialData(null);
+    setModalOpen(true);
+  };
+
+  const handleEditAction = (e, taskId, action) => {
+    e.stopPropagation();
+    setModalMode('edit-action');
+    setSelectedTaskId(taskId);
+    setSelectedActionId(action.id);
+    setInitialData(action);
+    setModalOpen(true);
+  };
+
+  const handleDeleteAction = async (e, taskId, actionId) => {
+    e.stopPropagation();
+    if (!confirm('Action Item을 삭제하시겠습니까?')) return;
+
+    try {
+      const result = await deleteKeyTaskAction(taskId, actionId);
+      if (result.success) {
+        fetchData();
+      } else {
+        alert('삭제 실패: ' + (result.error || '알 수 없는 오류'));
+      }
+    } catch (err) {
+      alert('삭제 실패: ' + err.message);
+    }
+  };
+
+  const handleModalSuccess = async (formData, { taskId, actionId, mode }) => {
+    let result;
+
+    switch (mode) {
+      case 'create-task':
+        result = await createKeyTask(formData);
+        break;
+      case 'edit-task':
+        result = await updateKeyTask(taskId, formData);
+        break;
+      case 'add-action':
+        result = await createKeyTaskAction(taskId, formData);
+        break;
+      case 'edit-action':
+        result = await updateKeyTaskAction(taskId, actionId, formData);
+        break;
+      default:
+        throw new Error('Invalid mode');
+    }
+
+    if (!result.success) {
+      throw new Error(result.error || '저장에 실패했습니다.');
+    }
+
+    setModalOpen(false);
+    fetchData();
   };
 
   const LoadingSkeleton = () => (
@@ -76,6 +173,24 @@ const KeyTaskSection = ({ dateRange }) => {
         }} />
       ))}
     </div>
+  );
+
+  const ActionButton = ({ onClick, color, bgColor, children }) => (
+    <button
+      onClick={onClick}
+      style={{
+        padding: '4px 8px',
+        fontSize: '11px',
+        fontWeight: '500',
+        color: color,
+        backgroundColor: bgColor,
+        border: 'none',
+        borderRadius: '4px',
+        cursor: 'pointer'
+      }}
+    >
+      {children}
+    </button>
   );
 
   return (
@@ -99,16 +214,19 @@ const KeyTaskSection = ({ dateRange }) => {
         }}>
           Key Task 현황
         </h2>
-        <button style={{
-          padding: '8px 14px',
-          backgroundColor: ACCENT,
-          color: 'white',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '13px',
-          fontWeight: '600',
-          cursor: 'pointer'
-        }}>
+        <button
+          onClick={handleCreateTask}
+          style={{
+            padding: '8px 14px',
+            backgroundColor: ACCENT,
+            color: 'white',
+            border: 'none',
+            borderRadius: '8px',
+            fontSize: '13px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
           + 생성
         </button>
       </div>
@@ -146,7 +264,7 @@ const KeyTaskSection = ({ dateRange }) => {
                   cursor: 'pointer'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                   <span style={{
                     fontSize: '12px',
                     color: '#9ca3af',
@@ -162,158 +280,128 @@ const KeyTaskSection = ({ dateRange }) => {
                     · {task.owner}
                   </span>
                 </div>
-                <span style={{
-                  padding: '4px 10px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  fontWeight: '500',
-                  ...getStatusStyle(task.status)
-                }}>
-                  {task.status}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <ActionButton onClick={(e) => handleAddAction(e, task.id)} color="#3b82f6" bgColor="#eff6ff">
+                    + Action
+                  </ActionButton>
+                  <ActionButton onClick={(e) => handleEditTask(e, task)} color="#6b7280" bgColor="#f3f4f6">
+                    수정
+                  </ActionButton>
+                  <ActionButton onClick={(e) => handleDeleteTask(e, task.id)} color="#dc2626" bgColor="#fef2f2">
+                    삭제
+                  </ActionButton>
+                  <span style={{
+                    padding: '4px 10px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    fontWeight: '500',
+                    ...getStatusStyle(task.status)
+                  }}>
+                    {task.status}
+                  </span>
+                </div>
               </div>
 
               {/* Action Items */}
               {expandedTasks[task.id] && (
                 <div style={{ borderTop: '1px solid #e5e7eb' }}>
-                  {task.actionItems?.map((action, idx) => (
-                    <div key={action.id} style={{ borderTop: idx > 0 ? '1px solid #f3f4f6' : 'none' }}>
-                      {/* Action Item Header */}
-                      <div
-                        onClick={() => toggleAction(action.id)}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '12px 16px 12px 40px',
-                          backgroundColor: expandedActions[action.id] ? '#f9fafb' : '#fafafa',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{
-                            fontSize: '10px',
-                            color: '#9ca3af',
-                            transform: expandedActions[action.id] ? 'rotate(90deg)' : 'rotate(0deg)',
-                            transition: 'transform 0.15s'
-                          }}>
-                            ▶
-                          </span>
-                          <span style={{ fontSize: '13px', color: '#374151' }}>
-                            {action.title}
-                          </span>
-                        </div>
-                        <span style={{
-                          padding: '3px 8px',
-                          borderRadius: '4px',
-                          fontSize: '11px',
-                          fontWeight: '500',
-                          ...getStatusStyle(action.status)
-                        }}>
-                          {action.status}
-                        </span>
-                      </div>
-
-                      {/* Content Area */}
-                      {expandedActions[action.id] && (
-                        <div style={{
-                          padding: '12px 16px 16px 56px',
-                          backgroundColor: '#f9fafb'
-                        }}>
-                          {editingId === action.id ? (
-                            <div>
-                              <textarea
-                                value={contents[action.id] || ''}
-                                onChange={(e) => handleContentChange(action.id, e.target.value)}
-                                style={{
-                                  width: '100%',
-                                  minHeight: '120px',
-                                  padding: '12px',
-                                  border: '1px solid #d1d5db',
-                                  borderRadius: '6px',
-                                  fontSize: '13px',
-                                  lineHeight: '1.6',
-                                  fontFamily: 'inherit',
-                                  resize: 'vertical',
-                                  outline: 'none'
-                                }}
-                                onFocus={(e) => e.target.style.borderColor = ACCENT}
-                                onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
-                              />
-                              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                                <button
-                                  onClick={() => setEditingId(null)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: ACCENT,
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: '600',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  저장
-                                </button>
-                                <button
-                                  onClick={() => setEditingId(null)}
-                                  style={{
-                                    padding: '6px 12px',
-                                    backgroundColor: '#e5e7eb',
-                                    color: '#374151',
-                                    border: 'none',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    fontWeight: '500',
-                                    cursor: 'pointer'
-                                  }}
-                                >
-                                  취소
-                                </button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div>
-                              <div style={{
-                                padding: '12px',
-                                backgroundColor: 'white',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '6px',
-                                fontSize: '13px',
-                                lineHeight: '1.7',
-                                color: '#374151',
-                                whiteSpace: 'pre-wrap'
-                              }}>
-                                {contents[action.id] || '내용을 입력해주세요.'}
-                              </div>
-                              <button
-                                onClick={() => setEditingId(action.id)}
-                                style={{
-                                  marginTop: '8px',
-                                  padding: '5px 10px',
-                                  backgroundColor: 'transparent',
-                                  color: '#6b7280',
-                                  border: '1px solid #d1d5db',
-                                  borderRadius: '4px',
-                                  fontSize: '12px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                수정
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
+                  {task.actionItems?.length === 0 ? (
+                    <div style={{
+                      padding: '20px 40px',
+                      textAlign: 'center',
+                      color: '#9ca3af',
+                      fontSize: '13px',
+                      backgroundColor: '#fafafa'
+                    }}>
+                      Action Item이 없습니다. "+ Action" 버튼을 눌러 추가하세요.
                     </div>
-                  ))}
+                  ) : (
+                    task.actionItems?.map((action, idx) => (
+                      <div key={action.id} style={{ borderTop: idx > 0 ? '1px solid #f3f4f6' : 'none' }}>
+                        {/* Action Item Header */}
+                        <div
+                          onClick={() => toggleAction(action.id)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 16px 12px 40px',
+                            backgroundColor: expandedActions[action.id] ? '#f9fafb' : '#fafafa',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                            <span style={{
+                              fontSize: '10px',
+                              color: '#9ca3af',
+                              transform: expandedActions[action.id] ? 'rotate(90deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.15s'
+                            }}>
+                              ▶
+                            </span>
+                            <span style={{ fontSize: '13px', color: '#374151' }}>
+                              {action.title}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <ActionButton onClick={(e) => handleEditAction(e, task.id, action)} color="#6b7280" bgColor="#f3f4f6">
+                              수정
+                            </ActionButton>
+                            <ActionButton onClick={(e) => handleDeleteAction(e, task.id, action.id)} color="#dc2626" bgColor="#fef2f2">
+                              삭제
+                            </ActionButton>
+                            <span style={{
+                              padding: '3px 8px',
+                              borderRadius: '4px',
+                              fontSize: '11px',
+                              fontWeight: '500',
+                              ...getStatusStyle(action.status)
+                            }}>
+                              {action.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Content Area */}
+                        {expandedActions[action.id] && (
+                          <div style={{
+                            padding: '12px 16px 16px 56px',
+                            backgroundColor: '#f9fafb'
+                          }}>
+                            <div style={{
+                              padding: '12px',
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '6px',
+                              fontSize: '13px',
+                              lineHeight: '1.7',
+                              color: '#374151',
+                              whiteSpace: 'pre-wrap'
+                            }}>
+                              {action.content || '내용이 없습니다.'}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
           ))}
         </div>
       )}
+
+      {/* Modal */}
+      <KeyTaskModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        mode={modalMode}
+        taskId={selectedTaskId}
+        actionId={selectedActionId}
+        initialData={initialData}
+        onSuccess={handleModalSuccess}
+      />
 
       <style>{`
         @keyframes pulse {
