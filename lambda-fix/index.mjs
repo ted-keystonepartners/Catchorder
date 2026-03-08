@@ -132,14 +132,38 @@ export const handler = async (event) => {
     const stores = storesResult.Items || [];
     const orderStats = orderStatsResult.Items || [];
 
-    // 2. 이용매장 세트 구성
+    // 2. 이용매장 세트 구성 (KPI 기준: 최근 30일 내 주문 - STORE_CLASSIFICATION.md)
     let activeStoreSeqs = new Set();
     let orderStatsBySeq = {};
     let totalOrderCount = 0;
     let totalCustomerCount = 0;
 
+    // KPI 기준: 항상 최근 30일 내 주문 매장만 이용매장으로 판정
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // 최근 30일 기준으로 이용매장 판정 (날짜 필터와 무관하게 KPI 일관성 유지)
+    const dailyResult30 = await dynamodb.send(new ScanCommand({
+      TableName: dailyStatsTable,
+      FilterExpression: "order_date BETWEEN :start AND :end",
+      ExpressionAttributeValues: {
+        ":start": thirtyDaysAgoStr,
+        ":end": todayStr
+      }
+    }));
+    const dailyStats30 = dailyResult30.Items || [];
+    for (const day of dailyStats30) {
+      if (day.store_seqs) {
+        for (const seq of day.store_seqs) {
+          activeStoreSeqs.add(seq);
+        }
+      }
+    }
+
     if (hasDateFilter) {
-      // 날짜 필터가 있으면 일별 집계 테이블에서 해당 기간의 매장 추출
+      // 날짜 필터가 있으면 일별 집계 테이블에서 해당 기간의 주문 통계 추출
       const dailyResult = await dynamodb.send(new ScanCommand({
         TableName: dailyStatsTable,
         FilterExpression: "order_date BETWEEN :start AND :end",
@@ -172,7 +196,7 @@ export const handler = async (event) => {
         }
       }
     } else {
-      // 날짜 필터 없으면 전체 기간
+      // 날짜 필터 없으면 주문 통계만 전체 기간으로 (activeStoreSeqs는 최근 30일 유지 - KPI 기준)
       for (const stat of orderStats) {
         orderStatsBySeq[stat.seq] = {
           orderCount: stat.order_count || 0,
@@ -181,7 +205,8 @@ export const handler = async (event) => {
         totalOrderCount += stat.order_count || 0;
         totalCustomerCount += stat.customer_count || 0;
       }
-      activeStoreSeqs = new Set(Object.keys(orderStatsBySeq));
+      // activeStoreSeqs는 이미 최근 30일 기준으로 설정됨 (위에서 dailyResult30으로 구성)
+      // KPI 일관성: 이용매장 = 최근 30일 내 주문 (STORE_CLASSIFICATION.md 기준)
     }
 
     // 4. 집계
@@ -277,8 +302,8 @@ export const handler = async (event) => {
         }
       }
 
-      // 이용매장 체크
-      if (hasOrder) {
+      // 이용매장 체크 (KPI 기준: 설치완료 상태 + 최근 30일 주문 - STORE_CLASSIFICATION.md)
+      if (INSTALL_COMPLETED.includes(status) && hasOrder) {
         activeStores++;
         ownerStats[ownerId].active++;
       }
@@ -1230,7 +1255,32 @@ async function handleMonthlyCohortRetentionView(startDate) {
       }
     }
 
-    // 3. 일별 집계 테이블에서 주문 데이터 조회
+    // 3. 주문 데이터 조회 (월별 잔존율 계산용 + 퍼널 이용매장 계산용)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    // KPI와 동일: dailyStatsTable에서 최근 30일 이용매장 추출 (퍼널 active 계산용)
+    const activeStoreSeqs = new Set();
+    const dailyResult30 = await dynamodb.send(new ScanCommand({
+      TableName: dailyStatsTable,
+      FilterExpression: "order_date BETWEEN :start AND :end",
+      ExpressionAttributeValues: {
+        ":start": thirtyDaysAgoStr,
+        ":end": todayStr
+      }
+    }));
+    const dailyStats30 = dailyResult30.Items || [];
+    for (const day of dailyStats30) {
+      if (day.store_seqs) {
+        for (const seq of day.store_seqs) {
+          activeStoreSeqs.add(seq);
+        }
+      }
+    }
+
+    // 일별 주문 데이터 (월별 잔존율 계산용)
     const ordersBySeqDate = {};
     let lastKey = null;
     do {
@@ -1312,9 +1362,8 @@ async function handleMonthlyCohortRetentionView(startDate) {
     for (const monthKey of sortedMonths) {
       const cohort = cohorts[monthKey];
       const installedCount = cohort.stores.length;
-      // 이전 설치(0000-00)는 2025년 12월을 기준으로 계산
-      // 이전 설치(0000-00)는 11월 기준으로 계산 (M+0=11월, M+1=12월...)
-      const cohortStartDate = monthKey === '0000-00' ? '2025-11-01' : `${monthKey}-01`;
+      // 이전 설치(0000-00)는 12월 기준으로 계산 (M+0=비움, M+1=12월, M+2=1월...)
+      const cohortStartDate = monthKey === '0000-00' ? '2025-12-01' : `${monthKey}-01`;
 
       const row = {
         monthKey: cohort.monthKey,
@@ -1365,12 +1414,19 @@ async function handleMonthlyCohortRetentionView(startDate) {
 
     // 8. 퍼널용 월별 통계 (monthlyStats) - created_at 기준 코호트로 재작성
     // 코호트는 created_at 기준으로 그룹화 (신규가입 월 기준)
+    // KPI와 일치: 모든 매장 포함 (created_at 없거나 startDate 이전은 "이전 설치" 코호트로)
     const registrationCohorts = {};
     for (const store of stores) {
-      if (!store.created_at) continue;
-      const createdAt = normalizeDate(store.created_at);
-      if (!createdAt || createdAt < startDate) continue;
-      const monthKey = createdAt < BULK_IMPORT_DATE ? '0000-00' : getMonthKey(createdAt);
+      const createdAt = store.created_at ? normalizeDate(store.created_at) : null;
+      // created_at이 없거나 startDate 이전이면 "이전 설치(0000-00)" 코호트로 분류
+      let monthKey;
+      if (!createdAt || createdAt < startDate) {
+        monthKey = '0000-00';
+      } else if (createdAt < BULK_IMPORT_DATE) {
+        monthKey = '0000-00';
+      } else {
+        monthKey = getMonthKey(createdAt);
+      }
       if (!monthKey) continue;
 
       if (!registrationCohorts[monthKey]) {
@@ -1380,7 +1436,7 @@ async function handleMonthlyCohortRetentionView(startDate) {
         storeId: String(store.store_id),  // 타입 통일
         seq: store.seq,
         status: store.status,
-        createdAt
+        createdAt: createdAt || null
       });
     }
 
@@ -1396,27 +1452,26 @@ async function handleMonthlyCohortRetentionView(startDate) {
       // 신규가입: 해당 월에 등록된 모든 매장
       const registered = cohortStores.length;
 
-      // 설치완료: 히스토리에 설치완료 이력이 있는 매장 (현재 상태 무관)
+      // 설치완료: 현재 상태가 INSTALL_COMPLETED인 매장 (KPI 기준 - STORE_CLASSIFICATION.md)
       const installed = cohortStores.filter(s =>
-        firstInstallMap[s.storeId] !== undefined
+        INSTALL_COMPLETED.includes(s.status)
       ).length;
 
-      // 이용: 설치 이력이 있는 매장 중 전체 기간 동안 한 번이라도 주문 있음 (해지 포함)
+      // 이용: 설치완료 상태 + 최근 30일 내 주문 있음 (KPI와 동일한 activeStoreSeqs 사용)
       const active = cohortStores.filter(s => {
-        if (firstInstallMap[s.storeId] === undefined) return false;
+        if (!INSTALL_COMPLETED.includes(s.status)) return false;
         if (!s.seq) return false;
-        const orderDates = ordersBySeqDate[s.seq];
-        return orderDates && orderDates.size > 0;
+        return activeStoreSeqs.has(s.seq);
       }).length;
 
-      // 해지: 설치 이력 있고 현재 상태가 CHURNED 또는 HOLD (설치 후 이탈)
+      // 해지: CHURNED 상태만 (KPI 기준 - STORE_CLASSIFICATION.md)
       const churned = cohortStores.filter(s =>
-        firstInstallMap[s.storeId] !== undefined && (CHURNED.includes(s.status) || HOLD_STATUSES.includes(s.status))
+        CHURNED.includes(s.status)
       ).length;
 
-      // 보류: 설치 이력 없이 HOLD 또는 CHURNED 상태 (미설치 후 이탈)
+      // 보류: 미설치 + HOLD 상태 (KPI 기준 - STORE_CLASSIFICATION.md)
       const hold = cohortStores.filter(s =>
-        firstInstallMap[s.storeId] === undefined && (HOLD_STATUSES.includes(s.status) || CHURNED.includes(s.status))
+        !INSTALL_COMPLETED.includes(s.status) && HOLD_STATUSES.includes(s.status)
       ).length;
 
       // 검증: 신규가입 = 설치완료 + 보류(미설치이탈) + 진행중

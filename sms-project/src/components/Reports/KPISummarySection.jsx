@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getDashboardOverallStats } from '../../api/reportsApi.js';
+import { apiClient } from '../../api/client.js';
 import { useReportContent } from '../../hooks/useReportContent.js';
 
 const ACCENT = '#FF3D00';
@@ -52,6 +54,8 @@ const KPICard = ({ title, value, unit, color, description, loading }) => {
 const KPISummarySection = ({ dateRange }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [trendData, setTrendData] = useState([]);
+  const [trendLoading, setTrendLoading] = useState(false);
 
   // useReportContent 훅 사용
   const {
@@ -83,12 +87,43 @@ const KPISummarySection = ({ dateRange }) => {
     fetchData();
   }, [dateRange]);
 
+  // 이용매장 추이 데이터 fetch
+  useEffect(() => {
+    const fetchTrendData = async () => {
+      setTrendLoading(true);
+      try {
+        const startDate = '2025-12-09';
+        const response = await apiClient.get(
+          `/api/stats/daily-usage?start_date=${startDate}&end_date=${dateRange.end}`
+        );
+        if (response.success && response.data?.daily_usage) {
+          setTrendData(response.data.daily_usage);
+        }
+      } catch (err) {
+        console.error('이용매장 추이 데이터 조회 실패:', err);
+      } finally {
+        setTrendLoading(false);
+      }
+    };
+    fetchTrendData();
+  }, [dateRange]);
+
+  // Y축 도메인 계산
+  const getYDomain = () => {
+    if (trendData.length === 0) return [0, 100];
+    const activeValues = trendData.map(d => d.active || 0);
+    const min = Math.min(...activeValues);
+    const max = Math.max(...activeValues);
+    const padding = Math.ceil((max - min) * 0.1) || 5;
+    return [Math.max(0, min - padding), max + padding];
+  };
+
   const funnel = data?.funnel || {};
   const installDetail = data?.install_detail?.summary || {};
   const conversion = data?.conversion || {};
 
-  // 이용매장: 최근 30일 내 주문 발생 (install_detail.summary.active + active_not_completed)
-  const activeStores = (installDetail.active || 0) + (installDetail.active_not_completed || 0);
+  // 이용매장: 설치 완료 매장 중 주문 이력 있음 (active_not_completed 제외 - STORE_CLASSIFICATION.md 기준)
+  const activeStores = installDetail.active || 0;
   // 미이용매장: 설치했지만 최근 주문 없음
   const inactiveStores = installDetail.inactive || 0;
 
@@ -112,42 +147,16 @@ const KPISummarySection = ({ dateRange }) => {
       value: activeStores > 0 ? activeStores.toLocaleString() : (funnel.active?.toLocaleString() || '-'),
       unit: '개',
       color: '#3B82F6',
-      description: '최근 30일 내 주문 발생'
+      description: '설치 완료 + 주문 이력'
     },
     {
-      title: '해지/보류',
+      title: '해지',
       value: funnel.churned?.toLocaleString() || '-',
       unit: '개',
       color: '#EF4444',
       description: `해지율 ${conversion.churn_rate || 0}%`
     }
   ];
-
-  const generateAISummary = () => {
-    if (!data) return '데이터를 불러오는 중입니다...';
-
-    const registered = funnel.registered || 0;
-    const installed = funnel.install_completed || 0;
-    const active = activeStores > 0 ? activeStores : (funnel.active || 0);
-    const churned = funnel.churned || 0;
-
-    const installRate = registered > 0 ? ((installed / registered) * 100).toFixed(1) : 0;
-    const usageRate = installed > 0 ? ((active / installed) * 100).toFixed(1) : 0;
-
-    let summaryParts = [];
-    summaryParts.push(`전체 ${registered}개 매장 중 ${installed}개가 설치를 완료하여 설치율 ${installRate}%를 기록하고 있습니다.`);
-    summaryParts.push(`최근 30일 기준 ${active}개 매장이 실제 서비스를 이용 중이며 이용전환율은 ${usageRate}%입니다.`);
-
-    if (inactiveStores > 0) {
-      summaryParts.push(`설치 후 미이용 매장 ${inactiveStores}개에 대한 활성화 전략이 필요합니다.`);
-    }
-
-    if (churned > 0) {
-      summaryParts.push(`해지/보류 매장 ${churned}개에 대한 원인 분석 및 재활성화 방안 검토가 필요합니다.`);
-    }
-
-    return summaryParts.join(' ');
-  };
 
   return (
     <div style={{
@@ -192,6 +201,99 @@ const KPISummarySection = ({ dateRange }) => {
         {kpis.map((kpi) => (
           <KPICard key={kpi.title} {...kpi} loading={loading} />
         ))}
+      </div>
+
+      {/* 이용매장 추이 차트 */}
+      <div style={{ marginBottom: '20px' }}>
+        {trendLoading ? (
+          <div style={{
+            height: '280px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '8px',
+            animation: 'pulse 1.5s infinite'
+          }} />
+        ) : trendData.length > 0 ? (
+          <>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return `${date.getMonth() + 1}/${date.getDate()}`;
+                  }}
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                />
+                <YAxis
+                  domain={getYDomain()}
+                  tick={{ fontSize: 11, fill: '#6b7280' }}
+                  axisLine={{ stroke: '#e5e7eb' }}
+                  tickLine={{ stroke: '#e5e7eb' }}
+                  width={40}
+                />
+                <Tooltip
+                  labelFormatter={(value) => {
+                    const date = new Date(value);
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                  }}
+                  formatter={(value) => [`${value}개`, '이용매장']}
+                  contentStyle={{
+                    backgroundColor: 'white',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="active"
+                  stroke="#3B82F6"
+                  strokeWidth={2}
+                  dot={{ r: 2, fill: '#3B82F6' }}
+                  activeDot={{ r: 4, fill: '#3B82F6' }}
+                  name="이용매장"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+            {/* 범례 */}
+            <div style={{
+              marginTop: '12px',
+              padding: '10px 16px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '8px',
+              fontSize: '12px',
+              color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              <span style={{
+                display: 'inline-block',
+                width: '12px',
+                height: '3px',
+                backgroundColor: '#3B82F6',
+                borderRadius: '2px'
+              }} />
+              <span>일별 이용매장 수 (최근 30일 내 주문 발생 매장)</span>
+            </div>
+          </>
+        ) : (
+          <div style={{
+            height: '280px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: '#9ca3af',
+            fontSize: '13px',
+            backgroundColor: '#f9fafb',
+            borderRadius: '8px'
+          }}>
+            데이터가 없습니다
+          </div>
+        )}
       </div>
 
       {/* 보고내용 */}
@@ -299,40 +401,6 @@ const KPISummarySection = ({ dateRange }) => {
           )}
         </div>
       )}
-
-      {/* AI Summary */}
-      <div style={{
-        backgroundColor: '#fafafa',
-        border: '1px solid #f3f4f6',
-        borderLeft: `3px solid ${ACCENT}`,
-        borderRadius: '8px',
-        padding: '16px'
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginBottom: '8px'
-        }}>
-          <span style={{ fontSize: '14px' }}>✨</span>
-          <span style={{ fontSize: '13px', fontWeight: '600', color: ACCENT }}>AI 요약</span>
-        </div>
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <div style={{ width: '100%', height: '16px', backgroundColor: '#f3f4f6', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
-            <div style={{ width: '80%', height: '16px', backgroundColor: '#f3f4f6', borderRadius: '4px', animation: 'pulse 1.5s infinite' }} />
-          </div>
-        ) : (
-          <p style={{
-            fontSize: '14px',
-            color: '#374151',
-            lineHeight: '1.7',
-            margin: 0
-          }}>
-            {generateAISummary()}
-          </p>
-        )}
-      </div>
 
       <style>{`
         @keyframes pulse {
