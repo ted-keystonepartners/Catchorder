@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import MainLayout from '../components/Layout/MainLayout.jsx';
+import ExecutiveSummarySection from '../components/Reports/ExecutiveSummarySection.jsx';
 import KPISummarySection from '../components/Reports/KPISummarySection.jsx';
 import FunnelSection from '../components/Reports/FunnelSection.jsx';
 import CohortForecastSection from '../components/Reports/CohortForecastSection.jsx';
@@ -72,8 +73,19 @@ const ReportsPage = () => {
         },
         // KPI 트렌드 데이터 (일별 이용매장 추이)
         kpi_trend: trendResponse.success ? (trendResponse.data?.daily_usage || []) : [],
-        // 퍼널 분석
-        funnel: funnelResponse.data || { monthly: [], cumulative: {} },
+        // 퍼널 분석 (현재 월 제외)
+        funnel: (() => {
+          const funnelData = funnelResponse.data || { monthly: [], cumulative: {} };
+          const currentMonth = new Date().toISOString().slice(0, 7);
+          const currentMonthNum = new Date().getMonth() + 1;
+          const currentYear = new Date().getFullYear();
+          const filteredMonthly = (funnelData.monthly || []).filter(item => {
+            if (item.month === currentMonth) return false;
+            if (item.label === `${currentMonthNum}월` && item.month?.startsWith(String(currentYear))) return false;
+            return true;
+          });
+          return { ...funnelData, monthly: filteredMonthly };
+        })(),
         // 코호트 잔존율
         cohort: cohortResponse.data || { cohorts: [] },
         // Key Tasks
@@ -99,7 +111,7 @@ const ReportsPage = () => {
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111827', margin: '0 0 6px 0', letterSpacing: '-0.5px' }}>
-              리포트
+              QR TF 프로젝트 리포트
             </h1>
             <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
               누적 성과 분석 및 전략 현황
@@ -128,6 +140,7 @@ const ReportsPage = () => {
 
         {/* Report Sections */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <ExecutiveSummarySection />
           <KPISummarySection dateRange={reportData} />
           <CohortForecastSection dateRange={reportData} />
           <FunnelSection dateRange={reportData} />

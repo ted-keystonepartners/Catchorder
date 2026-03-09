@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { getSharedReport } from '../api/reportsApi.js';
+import ExecutiveSummarySection from '../components/Reports/ExecutiveSummarySection.jsx';
 
 const ACCENT = '#FF3D00';
 
@@ -93,6 +94,10 @@ const SharedReportPage = () => {
   const [error, setError] = useState(null);
   const [expandedTasks, setExpandedTasks] = useState({});
   const [expandedActions, setExpandedActions] = useState({});
+  // 보고내용 아코디언 상태 (기본: 닫힘)
+  const [showKpiReport, setShowKpiReport] = useState(false);
+  const [showCohortReport, setShowCohortReport] = useState(false);
+  const [showFunnelReport, setShowFunnelReport] = useState(false);
 
   useEffect(() => {
     const fetchReport = async () => {
@@ -101,19 +106,7 @@ const SharedReportPage = () => {
         const response = await getSharedReport(shareToken);
         if (response.success) {
           setReport(response.data);
-          // 모든 태스크/액션 펼치기
-          const snapshot = response.data.snapshot || {};
-          const tasks = snapshot.key_tasks || [];
-          const allTasksExpanded = {};
-          const allActionsExpanded = {};
-          tasks.forEach(task => {
-            allTasksExpanded[task.id] = true;
-            task.actionItems?.forEach(action => {
-              allActionsExpanded[action.id] = true;
-            });
-          });
-          setExpandedTasks(allTasksExpanded);
-          setExpandedActions(allActionsExpanded);
+          // Key Task 기본 닫힘 상태 (펼치지 않음)
         } else {
           setError(response.error || '리포트를 불러올 수 없습니다.');
         }
@@ -252,6 +245,9 @@ const SharedReportPage = () => {
       <div style={{ maxWidth: '960px', margin: '0 auto', padding: '24px' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
+          {/* Executive Summary */}
+          <ExecutiveSummarySection />
+
           {/* KPI 요약 섹션 */}
           <div style={{
             backgroundColor: 'white',
@@ -261,7 +257,7 @@ const SharedReportPage = () => {
           }}>
             <div style={{ marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-                KPI 요약
+                주요 지표 현황
               </h2>
               <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
                 핵심 성과 지표 현황
@@ -345,23 +341,54 @@ const SharedReportPage = () => {
               </div>
             )}
 
-            {reportContents.kpi_summary && (
-              <div style={{
-                backgroundColor: '#fafafa',
-                border: '1px solid #f3f4f6',
-                borderLeft: `3px solid ${ACCENT}`,
-                borderRadius: '8px',
-                padding: '16px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '14px' }}>📝</span>
-                  <span style={{ fontSize: '13px', fontWeight: '600', color: ACCENT }}>보고내용</span>
+            {/* 보고내용 아코디언 */}
+            <div style={{
+              border: '1px solid #e5e7eb',
+              borderRadius: '8px',
+              overflow: 'hidden'
+            }}>
+              <div
+                onClick={() => setShowKpiReport(!showKpiReport)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '14px 16px',
+                  backgroundColor: showKpiReport ? '#fafafa' : 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{
+                    fontSize: '12px',
+                    color: '#9ca3af',
+                    transform: showKpiReport ? 'rotate(90deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.15s'
+                  }}>
+                    ▶
+                  </span>
+                  <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                    📝 보고내용
+                  </span>
                 </div>
-                <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.7', margin: 0, whiteSpace: 'pre-wrap' }}>
-                  {reportContents.kpi_summary}
-                </p>
+                {!showKpiReport && !reportContents.kpi_summary && (
+                  <span style={{ fontSize: '12px', color: '#9ca3af' }}>내용 없음</span>
+                )}
               </div>
-            )}
+              {showKpiReport && (
+                <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px', backgroundColor: '#fafafa' }}>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#374151',
+                    lineHeight: '1.7',
+                    margin: 0,
+                    whiteSpace: 'pre-wrap'
+                  }}>
+                    {reportContents.kpi_summary || '내용이 없습니다.'}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* 코호트 예측 섹션 */}
@@ -376,7 +403,7 @@ const SharedReportPage = () => {
               }}>
                 <div style={{ marginBottom: '20px' }}>
                   <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-                    코호트 잔존율
+                    월간 잔존율 코호트
                   </h2>
                   <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
                     월별 설치 코호트의 이용 잔존율 (설치월 기준)
@@ -493,7 +520,6 @@ const SharedReportPage = () => {
                     gap: '20px',
                     flexWrap: 'wrap'
                   }}>
-                    <strong style={{ color: '#374151' }}>잔존율:</strong>
                     {[
                       { label: '85%+', bg: '#dcfce7', text: '#15803d' },
                       { label: '75-85%', bg: '#d1fae5', text: '#065f46' },
@@ -515,24 +541,55 @@ const SharedReportPage = () => {
                     ))}
                   </div>
                 </div>
-                {reportContents.cohort_forecast && (
-                  <div style={{
-                    backgroundColor: '#fafafa',
-                    border: '1px solid #f3f4f6',
-                    borderLeft: `3px solid ${ACCENT}`,
-                    borderRadius: '8px',
-                    padding: '16px',
-                    marginTop: '20px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                      <span style={{ fontSize: '14px' }}>📝</span>
-                      <span style={{ fontSize: '13px', fontWeight: '600', color: ACCENT }}>보고내용</span>
+                {/* 보고내용 아코디언 */}
+                <div style={{
+                  border: '1px solid #e5e7eb',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  marginTop: '20px'
+                }}>
+                  <div
+                    onClick={() => setShowCohortReport(!showCohortReport)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '14px 16px',
+                      backgroundColor: showCohortReport ? '#fafafa' : 'white',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{
+                        fontSize: '12px',
+                        color: '#9ca3af',
+                        transform: showCohortReport ? 'rotate(90deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.15s'
+                      }}>
+                        ▶
+                      </span>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                        📝 보고내용
+                      </span>
                     </div>
-                    <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.7', margin: 0, whiteSpace: 'pre-wrap' }}>
-                      {reportContents.cohort_forecast}
-                    </p>
+                    {!showCohortReport && !reportContents.cohort_forecast && (
+                      <span style={{ fontSize: '12px', color: '#9ca3af' }}>내용 없음</span>
+                    )}
                   </div>
-                )}
+                  {showCohortReport && (
+                    <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px', backgroundColor: '#fafafa' }}>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#374151',
+                        lineHeight: '1.7',
+                        margin: 0,
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {reportContents.cohort_forecast || '내용이 없습니다.'}
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })()}
@@ -547,7 +604,7 @@ const SharedReportPage = () => {
             }}>
               <div style={{ marginBottom: '20px' }}>
                 <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-                  퍼널 분석
+                  월별 퍼널 분석
                 </h2>
                 <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
                   해당 월에 가입한 매장의 <strong>전체 기간 이용 이력</strong> 기준 분류
@@ -594,40 +651,12 @@ const SharedReportPage = () => {
                 <div style={{
                   flex: '1 1 320px',
                   minWidth: '320px',
-                  padding: '20px 24px',
+                  padding: '16px 24px',
                   backgroundColor: '#fafafa',
                   borderRadius: '12px',
                   display: 'flex',
                   flexDirection: 'column'
                 }}>
-                  {/* 범례 */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                    gap: '16px',
-                    marginBottom: '16px',
-                    fontSize: '12px'
-                  }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151' }}>
-                      <span style={{
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: '#FF6B00',
-                        borderRadius: '3px'
-                      }} />
-                      설치율
-                    </span>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151' }}>
-                      <span style={{
-                        width: '12px',
-                        height: '12px',
-                        backgroundColor: '#3B82F6',
-                        borderRadius: '3px'
-                      }} />
-                      이용률
-                    </span>
-                  </div>
-
                   {/* 차트 영역 */}
                   <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                     {/* 막대 그래프 */}
@@ -722,24 +751,90 @@ const SharedReportPage = () => {
                   </div>
                 </div>
               </div>
-              {reportContents.funnel && (
-                <div style={{
-                  backgroundColor: '#fafafa',
-                  border: '1px solid #f3f4f6',
-                  borderLeft: `3px solid ${ACCENT}`,
-                  borderRadius: '8px',
-                  padding: '16px',
-                  marginTop: '20px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '14px' }}>📝</span>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: ACCENT }}>보고내용</span>
+
+              {/* 범례 */}
+              <div style={{
+                marginTop: '16px',
+                padding: '12px 16px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                fontSize: '12px',
+                color: '#6b7280',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '20px',
+                flexWrap: 'wrap'
+              }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '4px',
+                    backgroundColor: '#FF6B00'
+                  }} />
+                  설치율 (가입 대비 설치)
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                  <span style={{
+                    display: 'inline-block',
+                    width: '14px',
+                    height: '14px',
+                    borderRadius: '4px',
+                    backgroundColor: '#3B82F6'
+                  }} />
+                  이용률 (설치 대비 이용)
+                </span>
+              </div>
+              {/* 보고내용 아코디언 */}
+              <div style={{
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                marginTop: '20px'
+              }}>
+                <div
+                  onClick={() => setShowFunnelReport(!showFunnelReport)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '14px 16px',
+                    backgroundColor: showFunnelReport ? '#fafafa' : 'white',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#9ca3af',
+                      transform: showFunnelReport ? 'rotate(90deg)' : 'rotate(0deg)',
+                      transition: 'transform 0.15s'
+                    }}>
+                      ▶
+                    </span>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+                      📝 보고내용
+                    </span>
                   </div>
-                  <p style={{ fontSize: '14px', color: '#374151', lineHeight: '1.7', margin: 0, whiteSpace: 'pre-wrap' }}>
-                    {reportContents.funnel}
-                  </p>
+                  {!showFunnelReport && !reportContents.funnel && (
+                    <span style={{ fontSize: '12px', color: '#9ca3af' }}>내용 없음</span>
+                  )}
                 </div>
-              )}
+                {showFunnelReport && (
+                  <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px', backgroundColor: '#fafafa' }}>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#374151',
+                      lineHeight: '1.7',
+                      margin: 0,
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {reportContents.funnel || '내용이 없습니다.'}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

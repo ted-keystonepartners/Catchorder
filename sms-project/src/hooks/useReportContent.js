@@ -34,7 +34,6 @@ export function useReportContent(sectionId) {
           );
           if (sectionContent) {
             setContent(sectionContent.content || '');
-            setShowReport(true);
           }
         }
       } catch (err) {

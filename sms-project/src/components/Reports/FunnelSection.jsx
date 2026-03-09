@@ -74,35 +74,19 @@ const FunnelSection = ({ dateRange }) => {
       padding: '24px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
-        <div>
-          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-            월별 퍼널 분석
-          </h2>
-          <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-            해당 월에 가입한 매장의 <strong>전체 기간 이용 이력</strong> 기준 분류
-          </p>
-        </div>
-        <button
-          onClick={() => { setShowReport(!showReport); if (!showReport) setIsEditing(true); }}
-          style={{
-            padding: '8px 14px',
-            backgroundColor: ACCENT,
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '13px',
-            fontWeight: '600',
-            cursor: 'pointer'
-          }}
-        >
-          + 작성
-        </button>
+      <div style={{ marginBottom: '20px' }}>
+        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
+          월별 퍼널 분석
+        </h2>
+        <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
+          해당 월에 가입한 매장의 <strong>전체 기간 이용 이력</strong> 기준 분류
+        </p>
       </div>
 
       {loading ? (
         <LoadingSkeleton />
       ) : monthlyData.length > 0 ? (
+        <>
         <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
           {/* 왼쪽: 테이블 */}
           <div style={{ flex: '1 1 50%', minWidth: '320px', overflowX: 'auto' }}>
@@ -309,40 +293,12 @@ const FunnelSection = ({ dateRange }) => {
           <div style={{
             flex: '1 1 320px',
             minWidth: '320px',
-            padding: '20px 24px',
+            padding: '16px 24px',
             backgroundColor: '#fafafa',
             borderRadius: '12px',
             display: 'flex',
             flexDirection: 'column'
           }}>
-            {/* 범례 */}
-            <div style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '16px',
-              marginBottom: '16px',
-              fontSize: '12px'
-            }}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151' }}>
-                <span style={{
-                  width: '12px',
-                  height: '12px',
-                  backgroundColor: '#FF6B00',
-                  borderRadius: '3px'
-                }} />
-                설치율
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#374151' }}>
-                <span style={{
-                  width: '12px',
-                  height: '12px',
-                  backgroundColor: '#3B82F6',
-                  borderRadius: '3px'
-                }} />
-                이용률
-              </span>
-            </div>
-
             {/* 차트 영역 */}
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               {/* 막대 그래프 */}
@@ -437,6 +393,42 @@ const FunnelSection = ({ dateRange }) => {
             </div>
           </div>
         </div>
+
+        {/* 범례 */}
+        <div style={{
+          marginTop: '16px',
+          padding: '12px 16px',
+          backgroundColor: '#f9fafb',
+          borderRadius: '8px',
+          fontSize: '12px',
+          color: '#6b7280',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '20px',
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              display: 'inline-block',
+              width: '14px',
+              height: '14px',
+              borderRadius: '4px',
+              backgroundColor: '#FF6B00'
+            }} />
+            설치율 (가입 대비 설치)
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{
+              display: 'inline-block',
+              width: '14px',
+              height: '14px',
+              borderRadius: '4px',
+              backgroundColor: '#3B82F6'
+            }} />
+            이용률 (설치 대비 이용)
+          </span>
+        </div>
+      </>
       ) : (
         <div style={{
           padding: '60px',
@@ -447,111 +439,137 @@ const FunnelSection = ({ dateRange }) => {
         </div>
       )}
 
-      {/* 보고내용 */}
-      {showReport && (
-        <div style={{
-          backgroundColor: '#fafafa',
-          border: '1px solid #f3f4f6',
-          borderLeft: `3px solid ${ACCENT}`,
-          borderRadius: '8px',
-          padding: '16px',
-          marginTop: '20px'
-        }}>
-          <div style={{
+      {/* 보고내용 아코디언 */}
+      <div style={{
+        border: '1px solid #e5e7eb',
+        borderRadius: '8px',
+        overflow: 'hidden',
+        marginTop: '20px'
+      }}>
+        {/* 아코디언 헤더 */}
+        <div
+          onClick={() => setShowReport(!showReport)}
+          style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '6px',
-            marginBottom: '8px'
-          }}>
-            <span style={{ fontSize: '14px' }}>📝</span>
-            <span style={{ fontSize: '13px', fontWeight: '600', color: ACCENT }}>보고내용</span>
+            justifyContent: 'space-between',
+            padding: '14px 16px',
+            backgroundColor: showReport ? '#fafafa' : 'white',
+            cursor: 'pointer'
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <span style={{
+              fontSize: '12px',
+              color: '#9ca3af',
+              transform: showReport ? 'rotate(90deg)' : 'rotate(0deg)',
+              transition: 'transform 0.15s'
+            }}>
+              ▶
+            </span>
+            <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+              📝 보고내용
+            </span>
           </div>
-          {isEditing ? (
-            <div>
-              <textarea
-                value={reportContent}
-                onChange={(e) => setReportContent(e.target.value)}
-                placeholder="보고 내용을 입력해주세요..."
-                style={{
-                  width: '100%',
-                  minHeight: '100px',
-                  padding: '12px',
-                  fontSize: '14px',
-                  border: '1px solid #d1d5db',
-                  borderRadius: '6px',
-                  resize: 'vertical',
-                  fontFamily: 'inherit',
-                  lineHeight: '1.6'
-                }}
-              />
-              <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={async () => {
-                    const success = await saveReportContent();
-                    if (!success) {
-                      // 저장 실패 시 편집 모드 유지
-                    }
-                  }}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: ACCENT,
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer'
-                  }}
-                >
-                  저장
-                </button>
-                <button
-                  onClick={() => { setShowReport(false); setIsEditing(false); }}
-                  style={{
-                    padding: '6px 12px',
-                    backgroundColor: '#e5e7eb',
-                    color: '#374151',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontSize: '12px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  취소
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <p style={{
-                fontSize: '14px',
-                color: '#374151',
-                lineHeight: '1.7',
-                margin: 0,
-                whiteSpace: 'pre-wrap'
-              }}>
-                {reportContent || '내용을 입력해주세요.'}
-              </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {showReport && !isEditing && (
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={(e) => { e.stopPropagation(); setIsEditing(true); }}
                 style={{
-                  marginTop: '8px',
-                  padding: '5px 10px',
-                  backgroundColor: 'transparent',
-                  color: ACCENT,
-                  border: `1px solid ${ACCENT}`,
+                  padding: '4px 8px',
+                  fontSize: '11px',
+                  fontWeight: '500',
+                  color: '#6b7280',
+                  backgroundColor: '#f3f4f6',
+                  border: 'none',
                   borderRadius: '4px',
-                  fontSize: '12px',
                   cursor: 'pointer'
                 }}
               >
                 수정
               </button>
-            </div>
-          )}
+            )}
+            {!showReport && !reportContent && (
+              <span style={{ fontSize: '12px', color: '#9ca3af' }}>클릭하여 작성</span>
+            )}
+          </div>
         </div>
-      )}
+
+        {/* 아코디언 내용 */}
+        {showReport && (
+          <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px', backgroundColor: '#fafafa' }}>
+            {isEditing ? (
+              <div>
+                <textarea
+                  value={reportContent}
+                  onChange={(e) => setReportContent(e.target.value)}
+                  placeholder="보고 내용을 입력해주세요..."
+                  style={{
+                    width: '100%',
+                    minHeight: '100px',
+                    padding: '12px',
+                    fontSize: '14px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    resize: 'vertical',
+                    fontFamily: 'inherit',
+                    lineHeight: '1.6'
+                  }}
+                />
+                <div style={{ marginTop: '8px', display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={async () => {
+                      const success = await saveReportContent();
+                      if (!success) {
+                        // 저장 실패 시 편집 모드 유지
+                      }
+                    }}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: ACCENT,
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    저장
+                  </button>
+                  <button
+                    onClick={() => setIsEditing(false)}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: '#e5e7eb',
+                      color: '#374151',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    취소
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#374151',
+                  lineHeight: '1.7',
+                  margin: 0,
+                  whiteSpace: 'pre-wrap'
+                }}>
+                  {reportContent || '내용을 입력해주세요.'}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       <style>{`
         @keyframes pulse {

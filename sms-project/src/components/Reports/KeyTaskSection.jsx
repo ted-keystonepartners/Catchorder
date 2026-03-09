@@ -32,14 +32,6 @@ const KeyTaskSection = ({ dateRange }) => {
       if (response.success && response.data?.tasks) {
         const taskData = response.data.tasks;
         setTasks(taskData);
-
-        // 첫 번째 태스크와 첫 번째 액션 펼치기
-        if (taskData.length > 0) {
-          setExpandedTasks({ [taskData[0].id]: true });
-          if (taskData[0].actionItems?.length > 0) {
-            setExpandedActions({ [taskData[0].actionItems[0].id]: true });
-          }
-        }
       }
     } catch (err) {
       console.error('Key Tasks 조회 실패:', err);
