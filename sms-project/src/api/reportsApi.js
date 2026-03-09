@@ -683,6 +683,72 @@ export async function saveReportContent(sectionId, month, content) {
   }
 }
 
+/**
+ * 리포트 발행 (스냅샷 저장)
+ * @param {string} title - 발행 제목
+ * @param {Object} snapshot - 스냅샷 데이터
+ * @param {string} publishedBy - 발행자
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function publishReport(title, snapshot, publishedBy) {
+  try {
+    const response = await apiClient.post('/api/reports/publish', {
+      title,
+      snapshot,
+      published_by: publishedBy
+    }, { timeout: 30000 });
+
+    return response;
+  } catch (err) {
+    console.error('리포트 발행 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 발행된 리포트 목록 조회
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function getPublishedReports() {
+  try {
+    const response = await apiClient.get('/api/reports/published', {}, { timeout: 30000 });
+    return response;
+  } catch (err) {
+    console.error('발행 목록 조회 실패:', err);
+    return { success: false, data: { reports: [] }, error: err.message };
+  }
+}
+
+/**
+ * 공유 토큰으로 발행된 리포트 조회
+ * @param {string} shareToken - 공유 토큰
+ * @returns {Promise<{success: boolean, data: Object, error: string|null}>}
+ */
+export async function getSharedReport(shareToken) {
+  try {
+    const response = await apiClient.get(`/api/reports/shared/${shareToken}`, {}, { timeout: 30000 });
+    return response;
+  } catch (err) {
+    console.error('공유 리포트 조회 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * 발행된 리포트 삭제
+ * @param {string} reportId - 리포트 ID
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export async function deletePublishedReport(reportId) {
+  try {
+    const response = await apiClient.delete(`/api/reports/published/${reportId}`, { timeout: 30000 });
+    return response;
+  } catch (err) {
+    console.error('리포트 삭제 실패:', err);
+    return { success: false, error: err.message };
+  }
+}
+
 export default {
   getReportSummary,
   getReportFunnel,
@@ -695,5 +761,9 @@ export default {
   updateKeyTaskAction,
   deleteKeyTaskAction,
   getReportContents,
-  saveReportContent
+  saveReportContent,
+  publishReport,
+  getPublishedReports,
+  getSharedReport,
+  deletePublishedReport
 };

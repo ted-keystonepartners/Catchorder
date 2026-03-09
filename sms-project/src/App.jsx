@@ -28,6 +28,8 @@ import MenuPhotoUploadPage from './pages/MenuPhotoUploadPage.jsx';
 import QRMenuManagementPage from './pages/QRMenuManagementPage.jsx';
 import QRPlacementsPage from './pages/QRPlacementsPage.jsx';
 import AgencyListPage from './pages/AgencyListPage.jsx';
+import ReportsPage from './pages/ReportsPage.jsx';
+import SharedReportPage from './pages/SharedReportPage.jsx';
 
 /**
  * 404 페이지 컴포넌트
@@ -186,6 +188,7 @@ function App() {
         <Route path="/consent/:token" element={<ConsentFormPage />} />
         <Route path="/apply" element={<ApplyPage />} />
         <Route path="/menuapply" element={<MenuPhotoUploadPage />} />
+        <Route path="/reports/shared/:shareToken" element={<SharedReportPage />} />
         
         {/* 동의서 응답 조회 페이지 (보호된 라우트) */}
         <Route 
@@ -330,6 +333,16 @@ function App() {
             <AdminRoute>
               <AgencyListPage />
             </AdminRoute>
+          }
+        />
+
+        {/* 리포트 페이지 */}
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
           }
         />
 
