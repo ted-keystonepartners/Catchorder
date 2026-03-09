@@ -107,7 +107,7 @@ const CohortForecastSection = ({ dateRange }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-            코호트 잔존율
+            월간 잔존율 코호트
           </h2>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
             월별 설치 코호트의 이용 잔존율 (설치월 기준)

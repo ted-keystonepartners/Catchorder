@@ -38,7 +38,16 @@ const FunnelSection = ({ dateRange }) => {
     fetchData();
   }, [dateRange]);
 
-  const monthlyData = data?.monthly || [];
+  // 현재 월 제외 (데이터가 불완전하므로)
+  const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+  const monthlyData = (data?.monthly || []).filter(item => {
+    // month가 현재 월이면 제외
+    if (item.month === currentMonth) return false;
+    // 2026-03 형식 외에 label이 "3월"이고 올해인 경우도 제외
+    const currentMonthNum = new Date().getMonth() + 1;
+    if (item.label === `${currentMonthNum}월` && item.month?.startsWith(String(new Date().getFullYear()))) return false;
+    return true;
+  });
   const cumulative = data?.cumulative || { registered: 0, installed: 0, active: 0, churned: 0, hold: 0 };
 
   const LoadingSkeleton = () => (
@@ -68,10 +77,10 @@ const FunnelSection = ({ dateRange }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-            퍼널 분석
+            월별 퍼널 분석
           </h2>
           <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>
-            해당 월에 가입한 매장을 <strong>현재 기준</strong>으로 분류한 현황
+            해당 월에 가입한 매장의 <strong>전체 기간 이용 이력</strong> 기준 분류
           </p>
         </div>
         <button

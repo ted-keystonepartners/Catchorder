@@ -168,7 +168,7 @@ const KPISummarySection = ({ dateRange }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
         <div>
           <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-            KPI 요약
+            주요 지표 현황
           </h2>
           <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
             핵심 성과 지표 현황
