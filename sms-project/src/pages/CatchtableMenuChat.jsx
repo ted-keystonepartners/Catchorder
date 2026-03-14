@@ -91,7 +91,7 @@ const CatchtableMenuChat = () => {
       setOptionCategories(data.optionCategories || []);
       setStoreInfo(data.store);
       setBrandStoreId(data.brandStoreId || '442');
-      addSystemMessage('캐치테이블로 세션이 시작되었습니다. 메뉴나 매장 정보에 대해 자유롭게 질문해주세요.');
+      addSystemMessage('정보관리 에이전트 세션이 시작되었습니다. 메뉴나 매장 정보에 대해 자유롭게 질문해주세요.');
     } catch (err) {
       setInitError(err.message);
     } finally {
@@ -293,7 +293,7 @@ const CatchtableMenuChat = () => {
             margin: '0 auto 20px'
           }} />
           <p style={{ fontSize: '15px', color: C.text3, letterSpacing: '-0.01em' }}>
-            캐치테이블로 연결 중...
+            정보관리 에이전트 연결 중...
           </p>
         </div>
       </div>

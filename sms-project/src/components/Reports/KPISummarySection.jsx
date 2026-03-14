@@ -51,7 +51,7 @@ const KPICard = ({ title, value, unit, color, description, loading }) => {
   );
 };
 
-const KPISummarySection = ({ dateRange }) => {
+const KPISummarySection = ({ dateRange, onPublish }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [trendData, setTrendData] = useState([]);
@@ -165,13 +165,37 @@ const KPISummarySection = ({ dateRange }) => {
       padding: '24px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
     }}>
-      <div style={{ marginBottom: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
-          주요 지표 현황
-        </h2>
-        <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
-          핵심 성과 지표 현황
-        </p>
+      <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>
+            주요 지표 현황
+          </h2>
+          <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>
+            핵심 성과 지표 현황
+          </p>
+        </div>
+        {onPublish && (
+          <button
+            onClick={onPublish}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: ACCENT,
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              whiteSpace: 'nowrap'
+            }}
+          >
+            <span style={{ fontSize: '14px' }}>📤</span>
+            발행하기
+          </button>
+        )}
       </div>
 
       {/* KPI Cards */}

@@ -154,8 +154,8 @@ function summarizeStore(store) {
  * @returns {string} 시스템 프롬프트
  */
 export function buildSystemPrompt({ menuCategories, store, brandStoreId, menuOptions }) {
-  return `당신은 캐치테이블로 매장 관리 도우미입니다.
-관리자가 자연어로 요청하면, 적절한 캐치테이블로 API 액션을 JSON으로 생성합니다.
+  return `당신은 정보관리 에이전트입니다.
+관리자가 자연어로 요청하면, 적절한 API 액션을 JSON으로 생성합니다.
 
 ## 현재 매장 정보
 ${summarizeStore(store)}

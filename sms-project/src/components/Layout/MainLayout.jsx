@@ -180,20 +180,9 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         { name: '메뉴추출', path: '/menu-extract' },
         { name: '사진생성', path: '/menu-photo' },
         { name: '주문입력', path: '/order-upload', adminOnly: true },
-        { name: '캐치테이블로', path: '/catchtable-chat', adminOnly: true }
+        { name: '정보관리', path: '/catchtable-chat', adminOnly: true }
       ]
     },
-    {
-      name: '리포트',
-      hasDropdown: false,
-      path: '/reports',
-      adminOnly: true,
-      icon: (
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      )
-    }
   ];
 
   return (
@@ -240,8 +229,106 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
             }}></div>
           </div>
 
-          {/* 헤더 검색창 - 데스크탑만, 우측 정렬 */}
-          <div style={{ flex: 1 }} /> {/* 스페이서 */}
+          {/* 메뉴 - 데스크탑만 */}
+          <div className="hidden md:flex" style={{ alignItems: 'center', gap: '2px', marginLeft: '24px' }}>
+            {menuItems
+              .filter(item => {
+                if (item.adminOnly && user?.role !== 'ADMIN') return false;
+                if (item.children) return item.children.some(child => !child.adminOnly || user?.role === 'ADMIN');
+                return true;
+              })
+              .map((item) => (
+                item.hasDropdown ? (
+                  <div key={item.name} className="dropdown-container" style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        padding: '6px 12px',
+                        backgroundColor: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? 'rgba(255,255,255,0.2)' : 'transparent',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '500',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                      onMouseOver={(e) => { if (openDropdown !== item.name) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
+                      onMouseOut={(e) => { if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                    >
+                      <span>{item.name}</span>
+                      <svg width="10" height="10" fill="white" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+                    </button>
+                    {openDropdown === item.name && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        marginTop: '4px',
+                        backgroundColor: 'white',
+                        borderRadius: '8px',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                        border: '1px solid #e5e7eb',
+                        minWidth: '140px',
+                        zIndex: 200
+                      }}>
+                        {item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN').map(child => (
+                          <button
+                            key={child.path}
+                            onClick={() => { navigate(child.path); setOpenDropdown(null); }}
+                            style={{
+                              width: '100%',
+                              display: 'block',
+                              padding: '10px 16px',
+                              color: location.pathname === child.path ? '#FF3D00' : '#374151',
+                              backgroundColor: location.pathname === child.path ? '#FFF5F3' : 'transparent',
+                              border: 'none',
+                              textAlign: 'left',
+                              fontSize: '14px',
+                              fontWeight: location.pathname === child.path ? '600' : '500',
+                              cursor: 'pointer',
+                              transition: 'background-color 0.2s'
+                            }}
+                            onMouseOver={(e) => { if (location.pathname !== child.path) e.target.style.backgroundColor = '#f3f4f6'; }}
+                            onMouseOut={(e) => { if (location.pathname !== child.path) e.target.style.backgroundColor = 'transparent'; }}
+                          >
+                            {child.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <button
+                    key={item.name}
+                    onClick={() => navigate(item.path)}
+                    style={{
+                      padding: '6px 12px',
+                      backgroundColor: location.pathname === item.path ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap'
+                    }}
+                    onMouseOver={(e) => { if (location.pathname !== item.path) e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.1)'; }}
+                    onMouseOut={(e) => { if (location.pathname !== item.path) e.currentTarget.style.backgroundColor = 'transparent'; }}
+                  >
+                    <span>{item.name}</span>
+                  </button>
+                )
+              ))}
+          </div>
+
+          {/* 스페이서 */}
+          <div style={{ flex: 1 }} />
           <div
             className="search-container hidden md:block"
             ref={searchContainerRef}
@@ -631,157 +718,7 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
         )}
       </header>
 
-      {/* 메뉴바 - 데스크탑에서만 표시, 헤더 밑에 고정 */}
-      <nav className="hidden md:block" style={{
-        backgroundColor: 'white',
-        borderBottom: '1px solid #e5e7eb',
-        position: 'fixed',
-        top: '65px',
-        left: 0,
-        right: 0,
-        zIndex: 99
-      }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'flex-end',
-          gap: '4px',
-          padding: '8px 24px',
-          maxWidth: '1200px',
-          margin: '0 auto'
-        }}>
-          {menuItems
-            .filter(item => {
-              // 부모 메뉴 자체가 adminOnly면 ADMIN만 표시
-              if (item.adminOnly && user?.role !== 'ADMIN') {
-                return false;
-              }
-              // 하위 메뉴 중 표시할 수 있는 것이 있는지 확인
-              if (item.children) {
-                return item.children.some(child => !child.adminOnly || user?.role === 'ADMIN');
-              }
-              return true;
-            })
-            .map((item) => (
-            item.hasDropdown ? (
-              <div key={item.name} className="dropdown-container" style={{ position: 'relative' }}>
-                <button
-                  onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    padding: '8px 16px',
-                    backgroundColor: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? '#FFF5F3' : 'transparent',
-                    color: openDropdown === item.name || item.children?.some(child => location.pathname === child.path) ? '#FF3D00' : '#374151',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => {
-                    if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
-                      e.currentTarget.style.backgroundColor = '#f3f4f6';
-                    }
-                  }}
-                  onMouseOut={(e) => {
-                    if (openDropdown !== item.name && !item.children?.some(child => location.pathname === child.path)) {
-                      e.currentTarget.style.backgroundColor = 'transparent';
-                    }
-                  }}
-                >
-                  <span>{item.name}</span>
-                  <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openDropdown === item.name && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '100%',
-                    left: 0,
-                    marginTop: '4px',
-                    backgroundColor: 'white',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-                    border: '1px solid #e5e7eb',
-                    minWidth: '140px',
-                    zIndex: 50
-                  }}>
-                    {item.children?.filter(child => !child.adminOnly || user?.role === 'ADMIN').map(child => (
-                      <button
-                        key={child.path}
-                        onClick={() => {
-                          navigate(child.path);
-                          setOpenDropdown(null);
-                        }}
-                        style={{
-                          width: '100%',
-                          display: 'block',
-                          padding: '10px 16px',
-                          color: location.pathname === child.path ? '#FF3D00' : '#374151',
-                          backgroundColor: location.pathname === child.path ? '#FFF5F3' : 'transparent',
-                          border: 'none',
-                          textAlign: 'left',
-                          fontSize: '14px',
-                          fontWeight: location.pathname === child.path ? '600' : '500',
-                          cursor: 'pointer',
-                          transition: 'background-color 0.2s'
-                        }}
-                        onMouseOver={(e) => {
-                          if (location.pathname !== child.path) {
-                            e.target.style.backgroundColor = '#f3f4f6';
-                          }
-                        }}
-                        onMouseOut={(e) => {
-                          if (location.pathname !== child.path) {
-                            e.target.style.backgroundColor = 'transparent';
-                          }
-                        }}
-                      >
-                        {child.name}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button
-                key={item.name}
-                onClick={() => navigate(item.path)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  backgroundColor: location.pathname === item.path ? '#FFF5F3' : 'transparent',
-                  color: location.pathname === item.path ? '#FF3D00' : '#374151',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => {
-                  if (location.pathname !== item.path) {
-                    e.currentTarget.style.backgroundColor = '#f3f4f6';
-                  }
-                }}
-                onMouseOut={(e) => {
-                  if (location.pathname !== item.path) {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }
-                }}
-              >
-                <span>{item.name}</span>
-              </button>
-            )
-          ))}
-        </div>
-      </nav>
+      {/* 기존 nav 바 제거됨 - 메뉴는 헤더에 통합 */}
 
       {/* New Mobile Sidebar Component - 데스크탑에서만 사용 */}
       <div className="hidden md:block">
@@ -796,11 +733,11 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
 
       {/* Main content */}
       <main style={{
-        padding: '24px',
-        paddingTop: '130px', // 헤더(65px) + 메뉴바(50px) + 여백
+        paddingLeft: '24px',
+        paddingRight: '24px',
         paddingBottom: '90px' // 모바일 하단 네비게이션 공간 확보
       }}
-      className="md:pt-[130px] pt-[80px]"
+      className="md:pt-[90px] pt-[80px]"
       >
         <div style={{ maxWidth: '1152px', margin: '0 auto' }}>
           {children}

@@ -108,40 +108,19 @@ const ReportsPage = () => {
     <MainLayout>
       <div style={{ maxWidth: '960px', margin: '0 auto' }}>
         {/* Page Header */}
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111827', margin: '0 0 6px 0', letterSpacing: '-0.5px' }}>
-              QR TF 프로젝트 리포트
-            </h1>
-            <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
-              누적 성과 분석 및 전략 현황
-            </p>
-          </div>
-          <button
-            onClick={() => setPublishModalOpen(true)}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: ACCENT,
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: '600',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <span style={{ fontSize: '16px' }}>📤</span>
-            발행하기
-          </button>
+        <div style={{ marginBottom: '24px' }}>
+          <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#111827', margin: '0 0 6px 0', letterSpacing: '-0.5px' }}>
+            QR TF 프로젝트 리포트
+          </h1>
+          <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+            누적 성과 분석 및 전략 현황
+          </p>
         </div>
 
         {/* Report Sections */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <ExecutiveSummarySection />
-          <KPISummarySection dateRange={reportData} />
+          <KPISummarySection dateRange={reportData} onPublish={() => setPublishModalOpen(true)} />
           <CohortForecastSection dateRange={reportData} />
           <FunnelSection dateRange={reportData} />
           <KeyTaskSection dateRange={reportData} />

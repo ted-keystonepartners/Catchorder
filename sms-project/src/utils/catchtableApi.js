@@ -48,7 +48,7 @@ export async function initCatchtableSession(brandStoreId = '442') {
     };
   }
 
-  throw new Error(result.error || '캐치테이블로 세션 초기화에 실패했습니다.');
+  throw new Error(result.error || '정보관리 에이전트 세션 초기화에 실패했습니다.');
 }
 
 /**
@@ -62,7 +62,7 @@ export async function executeCatchtableActions(actions, menuCache = null, brandS
   const token = getStoredToken();
 
   if (!token) {
-    throw new Error('캐치테이블로 세션이 없습니다. 새로고침해주세요.');
+    throw new Error('정보관리 에이전트 세션이 없습니다. 새로고침해주세요.');
   }
 
   const result = await apiClient.post('/api/catchtable/execute', {
@@ -95,7 +95,7 @@ export async function refreshCatchtableMenu(brandStoreId = '442') {
   const token = getStoredToken();
 
   if (!token) {
-    throw new Error('캐치테이블로 세션이 없습니다. 새로고침해주세요.');
+    throw new Error('정보관리 에이전트 세션이 없습니다. 새로고침해주세요.');
   }
 
   const result = await apiClient.get('/api/catchtable/refresh', {

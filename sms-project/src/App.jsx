@@ -9,7 +9,7 @@ import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
 
 // Pages
 import LoginPage from './pages/LoginPage.jsx';
-import DashboardPage from './pages/DashboardPage.jsx';
+// DashboardPage는 ReportsPage로 대체됨 (참조용 파일 유지)
 import StoreListPage from './pages/StoreListPage.jsx';
 import StoreDetailPage from './pages/StoreDetailPage.jsx';
 import ManagerListPage from './pages/ManagerListPage.jsx';
@@ -206,7 +206,7 @@ function App() {
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <DashboardPage />
+              <ReportsPage />
             </ProtectedRoute>
           } 
         />
@@ -347,15 +347,7 @@ function App() {
           }
         />
 
-        {/* 리포트 페이지 */}
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
+        {/* /reports → /dashboard로 통합됨 */}
 
         {/* 404 페이지 */}
         <Route path="*" element={<NotFoundPage />} />

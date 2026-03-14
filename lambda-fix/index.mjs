@@ -12,6 +12,7 @@ const ordersTable = "sms-orders-dev";
 const storeDailyOrdersTable = "sms-store-daily-orders-dev";
 const reportContentsTable = "sms-report-contents-dev";
 const keyTasksTable = "sms-key-tasks-dev";
+const publishedReportsTable = "sms-published-reports-dev";
 
 // CORS 헤더 (전역)
 const corsHeaders = {
@@ -53,6 +54,16 @@ export const handler = async (event) => {
   try {
     // API 경로 체크
     const path = event.path || event.rawPath || event.requestContext?.http?.path || event.requestContext?.resourcePath || '';
+
+    // 디버그 로그
+    console.log('DEBUG path:', path);
+    console.log('DEBUG event.path:', event.path);
+    console.log('DEBUG event.resource:', event.resource);
+
+    // 발행된 리포트 API 처리 (공유 링크 포함)
+    if (path.includes('/api/reports/shared/') || path.includes('/api/reports/publish') || path.includes('/api/reports/published')) {
+      return await handlePublishedReports(event);
+    }
 
     // 리포트 컨텐츠 API 처리
     if (path.includes('/api/report-contents')) {
@@ -2132,4 +2143,202 @@ async function handleInactiveTodayView(inputDate) {
       }
     })
   };
+}
+
+// UUID 생성 함수 (crypto 없이)
+function generateUUID() {
+  const hex = '0123456789abcdef';
+  let uuid = '';
+  for (let i = 0; i < 36; i++) {
+    if (i === 8 || i === 13 || i === 18 || i === 23) {
+      uuid += '-';
+    } else if (i === 14) {
+      uuid += '4';
+    } else if (i === 19) {
+      uuid += hex[(Math.random() * 4) | 8];
+    } else {
+      uuid += hex[(Math.random() * 16) | 0];
+    }
+  }
+  return uuid;
+}
+
+// 공유 토큰 생성 (짧고 URL-safe)
+function generateShareToken() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  let token = '';
+  for (let i = 0; i < 12; i++) {
+    token += chars[(Math.random() * chars.length) | 0];
+  }
+  return token;
+}
+
+// 발행된 리포트 API 핸들러
+async function handlePublishedReports(event) {
+  const method = event.httpMethod || event.requestContext?.http?.method || 'GET';
+  const path = event.path || event.rawPath || event.requestContext?.http?.path || '';
+
+  try {
+    // OPTIONS 요청: CORS preflight
+    if (method === 'OPTIONS') {
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: ''
+      };
+    }
+
+    // 경로 파싱
+    const pathParts = path.split('/').filter(p => p);
+    // /api/reports/shared/{token}
+    const isSharedPath = path.includes('/api/reports/shared/');
+    const shareToken = isSharedPath ? pathParts[pathParts.indexOf('shared') + 1] : null;
+    // /api/reports/published/{id}
+    const isPublishedPath = path.includes('/api/reports/published');
+    const publishedIdIndex = pathParts.indexOf('published') + 1;
+    const reportId = isPublishedPath && pathParts[publishedIdIndex] ? pathParts[publishedIdIndex] : null;
+
+    // GET /api/reports/shared/{token} - 공유 링크로 리포트 조회 (인증 불필요)
+    if (method === 'GET' && isSharedPath && shareToken) {
+      // share_token으로 리포트 조회 (GSI 사용 또는 Scan)
+      const result = await dynamodb.send(new ScanCommand({
+        TableName: publishedReportsTable,
+        FilterExpression: "share_token = :token",
+        ExpressionAttributeValues: { ":token": shareToken }
+      }));
+
+      if (!result.Items || result.Items.length === 0) {
+        return {
+          statusCode: 404,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "리포트를 찾을 수 없습니다." })
+        };
+      }
+
+      const report = result.Items[0];
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: report.report_id,
+            title: report.title,
+            published_at: report.published_at,
+            snapshot: report.snapshot
+          }
+        })
+      };
+    }
+
+    // GET /api/reports/published - 발행 목록 조회
+    if (method === 'GET' && isPublishedPath && !reportId) {
+      const result = await dynamodb.send(new ScanCommand({
+        TableName: publishedReportsTable
+      }));
+
+      const reports = (result.Items || []).map(r => ({
+        id: r.report_id,
+        title: r.title,
+        published_at: r.published_at,
+        share_token: r.share_token,
+        published_by: r.published_by
+      })).sort((a, b) => b.published_at.localeCompare(a.published_at));
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, data: { reports } })
+      };
+    }
+
+    // POST /api/reports/publish - 리포트 발행 (스냅샷 저장)
+    if (method === 'POST' && path.includes('/api/reports/publish')) {
+      const body = JSON.parse(event.body || '{}');
+      const { title, snapshot, published_by } = body;
+
+      if (!title || !snapshot) {
+        return {
+          statusCode: 400,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "title과 snapshot은 필수입니다." })
+        };
+      }
+
+      const reportId = generateUUID();
+      const shareToken = generateShareToken();
+      const now = new Date().toISOString();
+
+      const newReport = {
+        report_id: reportId,
+        share_token: shareToken,
+        title,
+        snapshot,
+        published_at: now,
+        published_by: published_by || 'anonymous'
+      };
+
+      await dynamodb.send(new PutCommand({
+        TableName: publishedReportsTable,
+        Item: newReport
+      }));
+
+      return {
+        statusCode: 201,
+        headers: corsHeaders,
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: reportId,
+            share_token: shareToken,
+            title,
+            published_at: now
+          }
+        })
+      };
+    }
+
+    // DELETE /api/reports/published/{id} - 발행된 리포트 삭제
+    if (method === 'DELETE' && isPublishedPath && reportId) {
+      // 먼저 리포트 존재 확인
+      const existing = await dynamodb.send(new GetCommand({
+        TableName: publishedReportsTable,
+        Key: { report_id: reportId }
+      }));
+
+      if (!existing.Item) {
+        return {
+          statusCode: 404,
+          headers: corsHeaders,
+          body: JSON.stringify({ success: false, error: "리포트를 찾을 수 없습니다." })
+        };
+      }
+
+      await dynamodb.send(new DeleteCommand({
+        TableName: publishedReportsTable,
+        Key: { report_id: reportId }
+      }));
+
+      return {
+        statusCode: 200,
+        headers: corsHeaders,
+        body: JSON.stringify({ success: true, message: "리포트가 삭제되었습니다." })
+      };
+    }
+
+    // 지원하지 않는 요청
+    return {
+      statusCode: 405,
+      headers: corsHeaders,
+      body: JSON.stringify({ success: false, error: "Method not allowed" })
+    };
+
+  } catch (error) {
+    console.error("Published reports error:", error);
+    return {
+      statusCode: 500,
+      headers: corsHeaders,
+      body: JSON.stringify({ success: false, error: error.message })
+    };
+  }
 }

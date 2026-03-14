@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getReportCohort } from '../../api/reportsApi.js';
 import { useReportContent } from '../../hooks/useReportContent.js';
+import WeeklyCohortSection from './WeeklyCohortSection.jsx';
 
 const ACCENT = '#FF3D00';
 
@@ -22,6 +23,53 @@ const LoadingSkeleton = () => (
     animation: 'pulse 1.5s infinite'
   }} />
 );
+
+const WeeklyCohortAccordion = () => {
+  const [showWeekly, setShowWeekly] = useState(false);
+
+  return (
+    <div style={{
+      border: '1px solid #e5e7eb',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      marginTop: '20px'
+    }}>
+      <div
+        onClick={() => setShowWeekly(!showWeekly)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '14px 16px',
+          backgroundColor: showWeekly ? '#fafafa' : 'white',
+          cursor: 'pointer'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{
+            fontSize: '12px',
+            color: '#9ca3af',
+            transform: showWeekly ? 'rotate(90deg)' : 'rotate(0deg)',
+            transition: 'transform 0.15s'
+          }}>
+            ▶
+          </span>
+          <span style={{ fontSize: '14px', fontWeight: '600', color: '#111827' }}>
+            📊 주간 코호트 잔존율
+          </span>
+        </div>
+        {!showWeekly && (
+          <span style={{ fontSize: '12px', color: '#9ca3af' }}>클릭하여 펼치기</span>
+        )}
+      </div>
+      {showWeekly && (
+        <div style={{ borderTop: '1px solid #e5e7eb', padding: '16px', backgroundColor: '#fafafa' }}>
+          <WeeklyCohortSection />
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CohortForecastSection = ({ dateRange }) => {
   const [data, setData] = useState(null);
@@ -257,6 +305,9 @@ const CohortForecastSection = ({ dateRange }) => {
           코호트 데이터가 없습니다
         </div>
       )}
+
+      {/* 주간 코호트 잔존율 아코디언 */}
+      <WeeklyCohortAccordion />
 
       {/* 보고내용 아코디언 */}
       <div style={{

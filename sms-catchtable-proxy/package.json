@@ -1,0 +1,10 @@
+{
+  "name": "sms-catchtable-proxy",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Catchtablero API proxy Lambda for SMS chat system",
+  "main": "index.mjs",
+  "scripts": {
+    "zip": "zip -r function.zip index.mjs catchtableClient.mjs tokenManager.mjs actionValidator.mjs constants.mjs"
+  }
+}
