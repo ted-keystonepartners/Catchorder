@@ -30,6 +30,7 @@ import QRPlacementsPage from './pages/QRPlacementsPage.jsx';
 import AgencyListPage from './pages/AgencyListPage.jsx';
 import ReportsPage from './pages/ReportsPage.jsx';
 import SharedReportPage from './pages/SharedReportPage.jsx';
+import CatchtableMenuChat from './pages/CatchtableMenuChat.jsx';
 
 /**
  * 404 페이지 컴포넌트
@@ -332,6 +333,16 @@ function App() {
           element={
             <AdminRoute>
               <AgencyListPage />
+            </AdminRoute>
+          }
+        />
+
+        {/* 캐치테이블로 채팅 페이지 (ADMIN 전용) */}
+        <Route
+          path="/catchtable-chat"
+          element={
+            <AdminRoute>
+              <CatchtableMenuChat />
             </AdminRoute>
           }
         />

@@ -179,7 +179,8 @@ const MainLayout = ({ children, searchTerm, setSearchTerm, showSearch = false })
       children: [
         { name: '메뉴추출', path: '/menu-extract' },
         { name: '사진생성', path: '/menu-photo' },
-        { name: '주문입력', path: '/order-upload', adminOnly: true }
+        { name: '주문입력', path: '/order-upload', adminOnly: true },
+        { name: '캐치테이블로', path: '/catchtable-chat', adminOnly: true }
       ]
     },
     {

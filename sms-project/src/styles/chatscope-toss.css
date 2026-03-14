@@ -1,0 +1,279 @@
+/**
+ * Chatscope × Toss Design Override
+ * Font: Pretendard Variable
+ * Key Color: #FF3D00
+ */
+
+/* ===== Global Font ===== */
+.cs-main-container,
+.cs-main-container *,
+.cs-chat-container,
+.cs-chat-container * {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ===== MainContainer ===== */
+.cs-main-container {
+  border: none !important;
+  border-radius: 0 !important;
+  background: #ffffff !important;
+}
+
+/* ===== ChatContainer ===== */
+.cs-chat-container {
+  background-color: #ffffff !important;
+  border: none !important;
+}
+
+/* ===== ConversationHeader ===== */
+.cs-conversation-header,
+.cs-conversation-header__back,
+.cs-conversation-header__content,
+.cs-conversation-header__actions,
+.cs-conversation-header > *,
+.cs-conversation-header > * > * {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+.cs-conversation-header {
+  border-bottom: 1px solid #F2F3F5 !important;
+  padding: 14px 20px !important;
+  box-shadow: none !important;
+}
+/* Back button: override chatscope default blue */
+.cs-conversation-header__back,
+.cs-conversation-header__back button,
+.cs-conversation-header__back svg,
+.cs-conversation-header__back path {
+  color: #191F28 !important;
+  fill: #191F28 !important;
+  stroke: #191F28 !important;
+  background: transparent !important;
+}
+.cs-conversation-header__user-name {
+  font-size: 16px !important;
+  font-weight: 700 !important;
+  color: #191F28 !important;
+  letter-spacing: -0.02em !important;
+}
+.cs-conversation-header__info {
+  font-size: 12px !important;
+  color: #8B95A1 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* ===== MessageList ===== */
+.cs-message-list {
+  background-color: #F7F8FA !important;
+  padding: 20px 16px !important;
+}
+
+/* ===== Message Common ===== */
+.cs-message {
+  margin-bottom: 4px !important;
+}
+.cs-message__content-wrapper {
+  max-width: 75% !important;
+}
+
+/* ===== Message - Outgoing (User) ===== */
+.cs-message--outgoing .cs-message__content {
+  background-color: #FF3D00 !important;
+  color: #ffffff !important;
+  border-radius: 18px 18px 4px 18px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.6 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* ===== Message - Incoming (Assistant) ===== */
+.cs-message--incoming .cs-message__content {
+  background-color: #ffffff !important;
+  color: #191F28 !important;
+  border-radius: 18px 18px 18px 4px !important;
+  padding: 10px 16px !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.6 !important;
+  letter-spacing: -0.01em !important;
+  border: 1px solid #E5E8EB !important;
+  box-shadow: none !important;
+}
+
+/* ===== Custom Content Reset ===== */
+.cs-message__custom-content {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+.cs-message--incoming .cs-message__custom-content {
+  background: transparent !important;
+}
+
+/* ===== MessageSeparator (System) ===== */
+.cs-message-separator {
+  color: #8B95A1 !important;
+  font-size: 12px !important;
+  margin: 12px 0 !important;
+  background: transparent !important;
+  background-color: transparent !important;
+}
+.cs-message-separator::before,
+.cs-message-separator::after {
+  border-color: #E5E8EB !important;
+  background-color: #E5E8EB !important;
+  background: #E5E8EB !important;
+  color: #E5E8EB !important;
+}
+
+/* ===== MessageInput ===== */
+.cs-message-input {
+  background-color: #ffffff !important;
+  border-top: 1px solid #F2F3F5 !important;
+  padding: 12px 16px !important;
+}
+.cs-message-input__content-editor-wrapper {
+  background-color: #F2F3F5 !important;
+  border-radius: 22px !important;
+  border: 1.5px solid transparent !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.cs-message-input--disabled .cs-message-input__content-editor-wrapper {
+  background-color: #F7F8FA !important;
+  opacity: 0.6;
+}
+.cs-message-input__content-editor-wrapper:focus-within {
+  background-color: #ffffff !important;
+  border-color: #FF3D00 !important;
+  box-shadow: 0 0 0 3px rgba(255, 61, 0, 0.06) !important;
+}
+.cs-message-input__content-editor-container {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+.cs-message-input__content-editor-container .cs-message-input__content-editor {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+.cs-message-input__content-editor {
+  font-size: 14px !important;
+  color: #191F28 !important;
+  padding: 10px 16px !important;
+  min-height: 20px !important;
+  max-height: 100px !important;
+  letter-spacing: -0.01em !important;
+}
+.cs-message-input__content-editor[data-placeholder]::before {
+  color: #B0B8C1 !important;
+}
+
+/* ===== Send Button ===== */
+.cs-button--send {
+  background-color: #FF3D00 !important;
+  color: #ffffff !important;
+  border-radius: 50% !important;
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  border: none !important;
+  transition: all 0.15s ease !important;
+  margin: 0 2px 0 8px !important;
+  align-self: center !important;
+}
+.cs-button--send:hover {
+  background-color: #E63600 !important;
+}
+.cs-button--send:disabled {
+  background-color: #D1D6DB !important;
+  cursor: not-allowed !important;
+}
+.cs-button--send svg {
+  display: none !important;
+}
+.cs-button--send::after {
+  content: '';
+  display: block;
+  width: 18px;
+  height: 18px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='white'%3E%3Cpath d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/%3E%3C/svg%3E") center/contain no-repeat;
+}
+
+/* Hide attach button */
+.cs-button--attachment {
+  display: none !important;
+}
+
+/* ===== TypingIndicator ===== */
+.cs-typing-indicator {
+  background-color: transparent !important;
+  padding: 8px 16px !important;
+}
+.cs-typing-indicator__text {
+  font-size: 13px !important;
+  color: #8B95A1 !important;
+}
+.cs-typing-indicator__dot {
+  background-color: #FF3D00 !important;
+  opacity: 0.5;
+}
+
+/* ===== Avatar - hide ===== */
+.cs-avatar {
+  display: none !important;
+}
+
+/* ===== MessageList scroll wrapper background ===== */
+.cs-message-list__scroll-wrapper {
+  background: transparent !important;
+  background-color: transparent !important;
+}
+
+/* ===== Global chatscope default blue leak prevention ===== */
+/* Override any remaining chatscope blue (#c6e3fa, #d5e9f5, etc.) */
+.cs-main-container [class*="cs-"],
+.cs-chat-container [class*="cs-"] {
+  /* Selectively reset blue backgrounds that chatscope injects */
+}
+.cs-conversation-list,
+.cs-conversation-list__item,
+.cs-sidebar,
+.cs-sidebar--left,
+.cs-sidebar--right {
+  background-color: #ffffff !important;
+  background: #ffffff !important;
+}
+/* Catch any element that still carries the chatscope default teal/cyan */
+.cs-message-list .cs-message-separator span {
+  background-color: transparent !important;
+  color: #8B95A1 !important;
+}
+
+/* ===== Scrollbar ===== */
+.cs-message-list__scroll-wrapper::-webkit-scrollbar {
+  width: 4px;
+}
+.cs-message-list__scroll-wrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cs-message-list__scroll-wrapper::-webkit-scrollbar-thumb {
+  background: #D1D6DB;
+  border-radius: 999px;
+}
+.cs-message-list__scroll-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #8B95A1;
+}
+
+/* ===== Scroll-to button hide ===== */
+.cs-message-list__scroll-wrapper > .cs-message-list__scroll-to {
+  display: none;
+}
